@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/audio_controller.dart';
 import 'package:flourish_web/studyroom/audio/song_handler.dart';
+import 'package:flourish_web/studyroom/widgets/songinfo.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'controls.dart';
@@ -44,10 +45,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
       // Check if its loaded by seeing if the song list is empty
       bool? isEmpty = sequenceState?.sequence.isEmpty;
       if (isEmpty != null && !isEmpty) {
-        setState(() {
-          currentSongInfo = _audioPlayer.getCurrentSongInfo();
-          currentSongIndex = _audioPlayer.getCurrentSongIndex();
-        });
+        updateSong();
       }
     });
 
@@ -56,11 +54,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         .listen((discontinuity) {
       switch (discontinuity.reason) {
         case PositionDiscontinuityReason.autoAdvance:
-          setState(() {
-            currentSongInfo =
-                _songHandler.songsInfo[_audioPlayer.getCurrentSongIndex() + 1];
-            currentSongIndex = _audioPlayer.getCurrentSongIndex() + 1;
-          });
+          updateSong();
           break;
         default:
           break;
@@ -70,11 +64,21 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _audioPlayer.pause();
-    } else if (state == AppLifecycleState.resumed) {
-      _audioPlayer.play();
-    }
+    _audioPlayer.pause();
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.pause();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  void updateSong() {
+    setState(() {
+      currentSongInfo = _audioPlayer.getCurrentSongInfo();
+      currentSongIndex = _audioPlayer.getCurrentSongIndex();
+    });
   }
 
   @override
@@ -84,7 +88,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
       child: Container(
         padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 20.0),
         width: MediaQuery.of(context).size.width,
-        height: 100,
+        height: 80,
         child: Stack(
           children: [
             buildBackdrop(),
@@ -108,24 +112,40 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   Widget buildControls() {
-    return StreamBuilder<PlayerState>(
-        stream: _audioPlayer.playerStateStream,
-        builder: (context, snapshot) {
-          final playerState = snapshot.data;
-          final playing = playerState?.playing;
-          if (playing != null) {
-            return Controls(
-              onShuffle: () => {},
-              onPrevious: () {},
-              onPlay: _audioPlayer.play,
-              onPause: _audioPlayer.pause,
-              onNext: () {},
-              onFavorite: () => print('Favorite'),
-              isPlaying: playing,
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        });
+    return Row(
+      children: [
+        StreamBuilder<PlayerState>(
+          stream: _audioPlayer.playerStateStream,
+          builder: (context, snapshot) {
+            final playerState = snapshot.data;
+            final playing = playerState?.playing;
+            if (playing != null) {
+              return Controls(
+                onShuffle: () => {},
+                onPrevious: () {
+                  _audioPlayer.previousSong();
+                  updateSong();
+                },
+                onPlay: _audioPlayer.play,
+                onPause: _audioPlayer.pause,
+                onNext: () {
+                  _audioPlayer.nextSong();
+                  updateSong();
+                },
+                onFavorite: () => print('Favorite'),
+                isPlaying: playing,
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          },
+        ),
+        SongInfo(
+          song: currentSongInfo,
+          positionData: _audioPlayer.positionDataStream,
+          onSeekRequested: (newPosition) => _audioPlayer.seek(newPosition),
+        ),
+      ],
+    );
   }
 }
