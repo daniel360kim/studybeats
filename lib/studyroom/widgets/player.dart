@@ -93,6 +93,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
           children: [
             buildBackdrop(),
             buildControls(),
+            
           ],
         ),
       ),
@@ -148,4 +149,5 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
       ],
     );
   }
+
 }

@@ -7,22 +7,23 @@ import 'package:flourish_web/api/settings.dart';
 
 import 'volumebar.dart';
 
-class SoundFx extends StatefulWidget {
-  const SoundFx(
+class BackgroundSound extends StatefulWidget {
+  const BackgroundSound(
       {required this.icon,
-      required this.soundFxId,
+      required this.backgroundSoundId,
       required this.initialPosition,
       super.key});
 
   final Icon icon;
-  final int soundFxId;
+  final int backgroundSoundId;
   final Offset initialPosition;
 
   @override
-  State<SoundFx> createState() => _SoundFxState();
+  State<BackgroundSound> createState() => _BackgroundSoundState();
 }
 
-class _SoundFxState extends State<SoundFx> with WidgetsBindingObserver {
+class _BackgroundSoundState extends State<BackgroundSound>
+    with WidgetsBindingObserver {
   late Offset _offset;
   bool _selected = false;
 
@@ -31,7 +32,7 @@ class _SoundFxState extends State<SoundFx> with WidgetsBindingObserver {
   final double _volume = 0.5;
   double _volumeBeforeFade = 0.5;
 
-  Future<void> _loadSoundFx() async {
+  Future<void> _loadBackgroundSound() async {
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.speech());
 
@@ -40,14 +41,14 @@ class _SoundFxState extends State<SoundFx> with WidgetsBindingObserver {
       print('A stream error occurred: $e');
     });
 
-    final request = buildAudioRequest({'id': widget.soundFxId});
+    final request = buildAudioRequest({'id': widget.backgroundSoundId});
 
     final url = 'http://$domain:$port/soundfx?$request';
 
     try {
       await _player.setUrl(url);
     } catch (e) {
-      print('Error loading soundfx: $e');
+      print('Error loading BackgroundSound: $e');
     }
 
     // Make the audio player repeat the song when it ends
@@ -62,7 +63,7 @@ class _SoundFxState extends State<SoundFx> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _offset = widget.initialPosition;
-    _loadSoundFx();
+    _loadBackgroundSound();
   }
 
   @override
@@ -117,7 +118,7 @@ class _SoundFxState extends State<SoundFx> with WidgetsBindingObserver {
                   child: IconButton(
                     icon: Icon(
                       widget.icon.icon,
-                      size: 25,
+                      size: 30,
                       color: _selected ? Colors.black : Colors.white,
                     ),
                     onPressed: () {
