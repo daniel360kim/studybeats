@@ -42,6 +42,7 @@ class Controls extends StatelessWidget {
       required this.onPause,
       required this.onNext,
       required this.onFavorite,
+      required this.isPlaying,
       super.key});
 
   final VoidCallback onShuffle;
@@ -50,6 +51,7 @@ class Controls extends StatelessWidget {
   final VoidCallback onPause;
   final VoidCallback onNext;
   final VoidCallback onFavorite;
+  final bool isPlaying;
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +79,15 @@ class Controls extends StatelessWidget {
             ),
             const SizedBox(width: 3.0),
             MusicControlButton(
-              icon: Icons.play_arrow,
+              icon: isPlaying ? Icons.pause : Icons.play_arrow,
               iconSize: mainIconSize,
               splashLength: mainIconSize,
               onPressed: () {
-                onPlay();
+                if (isPlaying) {
+                  onPause();
+                } else {
+                  onPlay();
+                }
               },
             ),
             const SizedBox(width: 3.0),
