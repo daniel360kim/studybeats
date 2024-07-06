@@ -13,10 +13,15 @@ String buildAudioRequest(Map<String, dynamic> request) {
   return requestString;
 }
 
+String buildThumbnailRequest(int songId, int playlistId) {
+  final request = buildAudioRequest({'songId': songId, 'playlistId': playlistId});
+  return 'https://$domain/thumbnail?$request';
+}
+
 Future<Playlist> requestPlaylistById(int id) async {
   final request = buildAudioRequest({'id': id});
 
-  final url = 'http://$domain:$port/playlist?$request';
+  final url = 'https://$domain/playlist?$request';
 
   final response = await http.get(Uri.parse(url));
 
@@ -27,11 +32,10 @@ Future<Playlist> requestPlaylistById(int id) async {
   }
 }
 
-
 Future<Playlist> requestPlaylistByName(String name) async {
   final request = buildAudioRequest({'name': name});
 
-  final url = 'http://$domain:$port/playlist?$request';
+  final url = 'https://$domain/playlist?$request';
 
   final response = await http.get(Uri.parse(url));
 
@@ -46,7 +50,7 @@ Future<Song> requestSong(int playlistId, int songId) async {
   final request =
       buildAudioRequest({'songId': songId, 'playlistId': playlistId});
 
-  final url = 'http://$domain:$port/song?$request';
+  final url = 'https://$domain/song?$request';
 
   final response = await http.get(Uri.parse(url));
 

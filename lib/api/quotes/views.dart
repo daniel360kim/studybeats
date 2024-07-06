@@ -6,7 +6,7 @@ import '../settings.dart';
 import 'objects.dart';
 
 Future<Quote> requestQuote() async {
-  const url = 'http://$domain:$port/quotes';
+  const url = 'https://$domain/quotes';
 
   final response = await http.get(Uri.parse(url));
 

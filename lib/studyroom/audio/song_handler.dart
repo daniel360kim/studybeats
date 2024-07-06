@@ -52,6 +52,7 @@ class SongHandler {
   String getSongUrl(int songId) {
     final request =
         buildAudioRequest({'songId': songId, 'playlistId': playlistId});
-    return 'http://$domain:$port/stream?$request';
+    print('http://$domain/stream?$request');
+    return 'https://$domain/stream?$request';
   }
 }

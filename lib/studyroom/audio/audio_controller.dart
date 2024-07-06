@@ -14,6 +14,8 @@ class AudioController {
 
   void setPlaylist(ConcatenatingAudioSource playlist) {
     audioPlayer.setAudioSource(playlist);
+
+    print('Audio player initialized');
   }
 
   void dispose() {
@@ -36,8 +38,9 @@ class AudioController {
     });
   }
 
-  void shuffle() {
-    audioPlayer.setShuffleModeEnabled(true);
+  Future shuffle() async {
+    await audioPlayer.setShuffleModeEnabled(true);
+    await audioPlayer.shuffle();
   }
 
   void play() async {
@@ -114,6 +117,8 @@ class AudioController {
 
     // Get current song info
 
+    // If shuffle is enabled, return the current sequence
+    
     // Add songs to songOrder list
     for (final item in audioPlayer.sequence!) {
       final Song songInfo = item.tag as Song;

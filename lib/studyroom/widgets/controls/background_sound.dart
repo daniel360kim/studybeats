@@ -5,7 +5,7 @@ import 'package:quiver/async.dart';
 import 'package:flourish_web/api/audio/views.dart';
 import 'package:flourish_web/api/settings.dart';
 
-import 'volumebar.dart';
+import '../../audio/volumebar.dart';
 
 class BackgroundSound extends StatefulWidget {
   const BackgroundSound(
@@ -43,7 +43,7 @@ class _BackgroundSoundState extends State<BackgroundSound>
 
     final request = buildAudioRequest({'id': widget.backgroundSoundId});
 
-    final url = 'http://$domain:$port/soundfx?$request';
+    final url = 'https://$domain/soundfx?$request';
 
     try {
       await _player.setUrl(url);

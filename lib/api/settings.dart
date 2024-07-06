@@ -1,2 +1,1 @@
-const String domain = 'localhost';
-const int port = 1234;
+const String domain = 'flourishbackend-oludrhjgda-uc.a.run.app';

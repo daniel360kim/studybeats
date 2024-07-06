@@ -9,6 +9,7 @@ Song _$SongFromJson(Map<String, dynamic> json) {
     artist: json['artist'] as String,
     duration: json['duration'] as double,
     songPath: json['songPath'] as String,
+    thumbnailPath: json['thumbnailPath'] as String,
     link: json['link'] as String,
   );
 }
@@ -19,6 +20,7 @@ Map<String, dynamic> _$SongToJson(Song instance) => <String, dynamic>{
       'artist': instance.artist,
       'duration': instance.duration,
       'songPath': instance.songPath,
+      'thumbnailPath': instance.thumbnailPath,
       'link': instance.link,
     };
 
@@ -29,6 +31,7 @@ class Song {
   final String artist;
   final double duration;
   final String songPath;
+  final String thumbnailPath;
   final String link;
 
   const Song({
@@ -37,6 +40,7 @@ class Song {
     required this.artist,
     required this.duration,
     required this.songPath,
+    required this.thumbnailPath,
     required this.link,
   });
 

@@ -1,9 +1,26 @@
-import 'package:flourish_web/studyroom/audio/background_sound.dart';
-import 'package:flourish_web/studyroom/widgets/player.dart';
+import 'package:flourish_web/api/audio/objects.dart';
+import 'package:flourish_web/studyroom/widgets/controls/background_sound.dart';
+import 'package:flourish_web/studyroom/widgets/controls/player.dart';
 import 'package:flutter/material.dart';
 
-class StudyRoom extends StatelessWidget {
+class StudyRoom extends StatefulWidget {
   const StudyRoom({super.key});
+
+  @override
+  State<StudyRoom> createState() => _StudyRoomState();
+}
+
+class _StudyRoomState extends State<StudyRoom> {
+  List<Song> songQueue = [];
+  Song currentSongInfo = const Song(
+    id: 0,
+    name: 'Loading...',
+    artist: 'Loading...',
+    duration: 0,
+    link: 'Loading...',
+    songPath: '',
+    thumbnailPath: '',
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +51,7 @@ class StudyRoom extends StatelessWidget {
     );
   }
 
+  // TODO make the offsets dynamic based on the screen size so they are not clipped out of view
   Widget buildBackgroundNoiseControls() {
     return const Stack(
       children: [
