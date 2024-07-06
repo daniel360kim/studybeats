@@ -7,6 +7,7 @@ import 'package:flourish_web/studyroom/widgets/controls/icon_controls.dart';
 import 'package:flourish_web/studyroom/widgets/controls/songinfo.dart';
 import 'package:flourish_web/studyroom/widgets/controls/volume.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
+import 'package:flourish_web/studyroom/widgets/screens/songcredits.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'music_controls.dart';
@@ -39,7 +40,9 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   int currentSongIndex = 0;
 
   bool verticalLayout = false;
+
   bool _showQueue = false;
+  bool _showSongInfo = false;
 
   @override
   void initState() {
@@ -113,6 +116,14 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                 ),
               )
             : const SizedBox.shrink(),
+        _showSongInfo
+            ? Align(
+                alignment: Alignment.bottomRight,
+                child: SongCredits(
+                  song: currentSongInfo,
+                ),
+              )
+            : const SizedBox.shrink(),
         Align(
           alignment: Alignment.bottomCenter,
           child: Container(
@@ -133,7 +144,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   Widget buildBackdrop() {
     return ClipRRect(
-      borderRadius: _showQueue
+      borderRadius: _showQueue || _showSongInfo
           ? const BorderRadius.only(
               topLeft: Radius.circular(20.0),
               bottomLeft: Radius.circular(20.0),
@@ -202,13 +213,19 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         volumeChanged: (volume) => _audioPlayer.setVolume(volume),
       ),
       IconControls(
-        onInfoPressed: (enabled) {},
+        onInfoPressed: (enabled) {
+          setState(() {
+            _showSongInfo = enabled;
+          });
+        },
         onListPressed: (enabled) {
           setState(() {
             _showQueue = enabled;
           });
         },
-        onSharePressed: (enabled) {},
+        onEqualizerPressed: (enabled) {
+          print('Equalizer');
+        },
       ),
     ];
   }

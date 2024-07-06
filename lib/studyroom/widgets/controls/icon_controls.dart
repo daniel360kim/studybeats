@@ -4,77 +4,135 @@ class IconControls extends StatefulWidget {
   const IconControls({
     required this.onInfoPressed,
     required this.onListPressed,
-    required this.onSharePressed,
+    required this.onEqualizerPressed,
     super.key,
   });
 
   final ValueChanged<bool> onInfoPressed;
   final ValueChanged<bool> onListPressed;
-  final ValueChanged<bool> onSharePressed;
+  final ValueChanged<bool> onEqualizerPressed;
 
   @override
   State<IconControls> createState() => _IconControlsState();
 }
 
 class _IconControlsState extends State<IconControls> {
+  bool isInfoEnabled = false;
+  bool isListEnabled = false;
+  bool isEqualizerEnabled = false;
+
+  void _handleInfoPressed() {
+    setState(() {
+      isInfoEnabled = !isInfoEnabled;
+      if (isInfoEnabled) {
+        isListEnabled = false;
+        isEqualizerEnabled = false;
+
+        widget.onListPressed(false);
+        widget.onEqualizerPressed(false);
+      }
+    });
+    widget.onInfoPressed(isInfoEnabled);
+    if (!isInfoEnabled) {
+      widget.onListPressed(false);
+      widget.onEqualizerPressed(false);
+    }
+  }
+
+  void _handleListPressed() {
+    setState(() {
+      isListEnabled = !isListEnabled;
+      if (isListEnabled) {
+        isInfoEnabled = false;
+        isEqualizerEnabled = false;
+
+        widget.onInfoPressed(false);
+        widget.onEqualizerPressed(false);
+      }
+    });
+    widget.onListPressed(isListEnabled);
+    if (!isListEnabled) {
+      widget.onInfoPressed(false);
+      widget.onEqualizerPressed(false);
+    }
+  }
+
+  void _handleEqualizerPressed() {
+    setState(() {
+      isEqualizerEnabled = !isEqualizerEnabled;
+      if (isEqualizerEnabled) {
+        isInfoEnabled = false;
+        isListEnabled = false;
+
+        widget.onInfoPressed(false);
+        widget.onListPressed(false);
+      }
+    });
+    widget.onEqualizerPressed(isEqualizerEnabled);
+    if (!isEqualizerEnabled) {
+      widget.onInfoPressed(false);
+      widget.onListPressed(false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-        width: 150,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            EnabledIconButton(
-              icon: Icons.info,
-              callback: widget.onInfoPressed,
+      width: 200, // Adjusted width to accommodate the third button
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 35,
+            height: 35,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: isInfoEnabled
+                  ? const Color.fromRGBO(170, 170, 170, 0.7)
+                  : Colors.transparent,
             ),
-            const SizedBox(width: 10),
-            EnabledIconButton(
-              icon: Icons.queue_music,
-              callback: widget.onListPressed,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              hoverColor: Colors.transparent,
+              onPressed: _handleInfoPressed,
+              icon: const Icon(Icons.info),
             ),
-          ],
-        ));
-  }
-}
-
-class EnabledIconButton extends StatefulWidget {
-  const EnabledIconButton({
-    super.key,
-    required this.callback,
-    required this.icon,
-  });
-
-  final IconData icon;
-  final ValueChanged<bool> callback;
-
-  @override
-  State<EnabledIconButton> createState() => _EnabledIconButtonState();
-}
-
-class _EnabledIconButtonState extends State<EnabledIconButton> {
-  bool enabled = false;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 35,
-      height: 35,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(5),
-        color: enabled
-            ? const Color.fromRGBO(170, 170, 170, 0.7)
-            : Colors.transparent,
-      ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        hoverColor: Colors.transparent,
-        onPressed: () {
-          setState(() {
-            enabled = !enabled;
-          });
-          widget.callback(enabled);
-        },
-        icon: Icon(widget.icon),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            width: 35,
+            height: 35,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: isListEnabled
+                  ? const Color.fromRGBO(170, 170, 170, 0.7)
+                  : Colors.transparent,
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              hoverColor: Colors.transparent,
+              onPressed: _handleListPressed,
+              icon: const Icon(Icons.queue_music),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            width: 35,
+            height: 35,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: isEqualizerEnabled
+                  ? const Color.fromRGBO(170, 170, 170, 0.7)
+                  : Colors.transparent,
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              hoverColor: Colors.transparent,
+              onPressed: _handleEqualizerPressed,
+              icon: const Icon(Icons.graphic_eq),
+            ),
+          ),
+        ],
       ),
     );
   }

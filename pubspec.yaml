@@ -17,6 +17,7 @@ dependencies:
   quiver: ^3.2.1
   marquee: ^2.2.3
   cached_network_image: ^3.3.1
+  url_launcher: ^6.3.0
 
 
   
