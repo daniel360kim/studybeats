@@ -1,0 +1,212 @@
+[
+    {
+        "id": 1,
+        "name": "Koi",
+        "artist": "Phlocalyst & Living Room & Myr\u00edad",
+        "duration": 117.1875625,
+        "songPath": "assets/audio/asian/Koi.mp3",
+        "thumbnailPath": "assets/audio/asian/Koi.jpg",
+        "link": "https://www.youtube.com/watch?v=xOoepT9pud4&pp=ygUoUGhsb2NhbHlzdCB4IExpdmluZyBSb29tIHggTXlyw61hZCAtIEtvaQ%3D%3D",
+        "waveformPath": "assets/audio/asian/Koi.json"
+    },
+    {
+        "id": 2,
+        "name": "Tsuyu",
+        "artist": "Otaam & C4C",
+        "duration": 149.5815,
+        "songPath": "assets/audio/asian/Tsuyu.mp3",
+        "thumbnailPath": "assets/audio/asian/Tsuyu.jpg",
+        "link": "https://www.youtube.com/watch?v=YAYQcyRyipo&pp=ygUTT3RhYW0geCBDNEMgLSBUc3V5dQ%3D%3D",
+        "waveformPath": "assets/audio/asian/Tsuyu.json"
+    },
+    {
+        "id": 3,
+        "name": "Until Dawn",
+        "artist": "Kanisan",
+        "duration": 101.84827083333333,
+        "songPath": "assets/audio/asian/Until Dawn.mp3",
+        "thumbnailPath": "assets/audio/asian/Until Dawn.jpg",
+        "link": "https://www.youtube.com/watch?v=sdKAfnGIFsA&pp=ygUUS2FuaXNhbiAtIFVudGlsIERhd24%3D",
+        "waveformPath": "assets/audio/asian/Until Dawn.json"
+    },
+    {
+        "id": 4,
+        "name": "Kaigan",
+        "artist": "Raimu & DaniSogen",
+        "duration": 126.20045833333333,
+        "songPath": "assets/audio/asian/Raimu & Tophat Panda - Kaigan [from 'Soothing Breeze'].mp3",
+        "thumbnailPath": "assets/audio/asian/Raimu & Tophat Panda - Kaigan [from 'Soothing Breeze'].jpg",
+        "link": "https://www.youtube.com/watch?v=vJlWrKwirgA&pp=ygUdUmFpbXUgeCBUb3BoYXQgUGFuZGEgLSBLYWlnYW4%3D",
+        "waveformPath": "assets/audio/asian/Raimu & Tophat Panda - Kaigan [from 'Soothing Breeze'].json"
+    },
+    {
+        "id": 5,
+        "name": "West Of Zhuhai",
+        "artist": "Yestalgia & Loafy Building",
+        "duration": 140.544,
+        "songPath": "assets/audio/asian/West Of Zhuhai (Yestalgia & Loafy Building) - from Lofi Girl's Soothing Breeze Compilation.mp3",
+        "thumbnailPath": "assets/audio/asian/West Of Zhuhai (Yestalgia & Loafy Building) - from Lofi Girl's Soothing Breeze Compilation.jpg",
+        "link": "https://www.youtube.com/watch?v=f7jup1veXR0&pp=ygUrWWVzdGFsZ2lhIHggTG9hZnkgQnVpbGRpbmcgLSBXZXN0IE9mIFpodWhhaQ%3D%3D",
+        "waveformPath": "assets/audio/asian/West Of Zhuhai (Yestalgia & Loafy Building) - from Lofi Girl's Soothing Breeze Compilation.json"
+    },
+    {
+        "id": 6,
+        "name": "The Path You Choose",
+        "artist": "BVG",
+        "duration": 203.101,
+        "songPath": "assets/audio/asian/The Path You Choose.mp3",
+        "thumbnailPath": "assets/audio/asian/The Path You Choose.jpg",
+        "link": "https://www.youtube.com/watch?v=thaPzveBHuM&pp=ygUZQlZHIC0gVGhlIFBhdGggWW91IENob29zZQ%3D%3D",
+        "waveformPath": "assets/audio/asian/The Path You Choose.json"
+    },
+    {
+        "id": 7,
+        "name": "The View From The Monastery",
+        "artist": "Celestial Alignment",
+        "duration": 135.90639583333333,
+        "songPath": "assets/audio/asian/Celestial Alignment - The View From The Monastery.mp3",
+        "thumbnailPath": "assets/audio/asian/Celestial Alignment - The View From The Monastery.jpg",
+        "link": "https://www.youtube.com/watch?v=DS3NGlyUj7M&pp=ygUxQ2VsZXN0aWFsIEFsaWdubWVudCAtIFRoZSBWaWV3IEZyb20gVGhlIE1vbmFzdGVyeQ%3D%3D",
+        "waveformPath": "assets/audio/asian/Celestial Alignment - The View From The Monastery.json"
+    },
+    {
+        "id": 8,
+        "name": "Danso Lullaby",
+        "artist": "Mondo Loops & softy",
+        "duration": 137.1429375,
+        "songPath": "assets/audio/asian/Danso Lullaby.mp3",
+        "thumbnailPath": "assets/audio/asian/Danso Lullaby.jpg",
+        "link": "https://www.youtube.com/watch?v=1-bUj116UGw&pp=ygUjTW9uZG8gTG9vcHMgeCBzb2Z0eSAtIERhbnNvIEx1bGxhYnk%3D",
+        "waveformPath": "assets/audio/asian/Danso Lullaby.json"
+    },
+    {
+        "id": 9,
+        "name": "High Sun",
+        "artist": "Jhove",
+        "duration": 152.30775,
+        "songPath": "assets/audio/asian/High Sun.mp3",
+        "thumbnailPath": "assets/audio/asian/High Sun.jpg",
+        "link": "https://www.youtube.com/watch?v=2qCMSZA_hU8&pp=ygUQSmhvdmUgLSBIaWdoIFN1bg%3D%3D",
+        "waveformPath": "assets/audio/asian/High Sun.json"
+    },
+    {
+        "id": 10,
+        "name": "In Love with the Sky",
+        "artist": "Raimu & DaniSogen",
+        "duration": 164.037375,
+        "songPath": "assets/audio/asian/Raimu & DaniSogen - In Love with the Sky [from 'Soothing Breeze'].mp3",
+        "thumbnailPath": "assets/audio/asian/Raimu & DaniSogen - In Love with the Sky [from 'Soothing Breeze'].jpg",
+        "link": "https://www.youtube.com/watch?v=j8OgLFf0mC0&pp=ygUoUmFpbXUgeCBEYW5pU29nZW4gLSBJbiBMb3ZlIFdpdGggVGhlIFNreQ%3D%3D",
+        "waveformPath": "assets/audio/asian/Raimu & DaniSogen - In Love with the Sky [from 'Soothing Breeze'].json"
+    },
+    {
+        "id": 11,
+        "name": "Winter Gardens",
+        "artist": "Midnight Alpha & Nothingtosay",
+        "duration": 184.62020833333332,
+        "songPath": "assets/audio/asian/Winter Gardens.mp3",
+        "thumbnailPath": "assets/audio/asian/Winter Gardens.jpg",
+        "link": "https://www.youtube.com/watch?v=Uw8TnuJcTOI&pp=ygUuTWlkbmlnaHQgQWxwaGEgeCBOb3RoaW5ndG9zYXkgLSBXaW50ZXIgR2FyZGVucw%3D%3D",
+        "waveformPath": "assets/audio/asian/Winter Gardens.json"
+    },
+    {
+        "id": 12,
+        "name": "Wander",
+        "artist": "Dryhope",
+        "duration": 144.0,
+        "songPath": "assets/audio/asian/Wander.mp3",
+        "thumbnailPath": "assets/audio/asian/Wander.jpg",
+        "link": "https://www.youtube.com/watch?v=TDu05s7JjsQ&pp=ygUQRHJ5aG9wZSAtIFdhbmRlcg%3D%3D",
+        "waveformPath": "assets/audio/asian/Wander.json"
+    },
+    {
+        "id": 13,
+        "name": "Cherry Tree",
+        "artist": "Tibeauthetraveler",
+        "duration": 156.4821875,
+        "songPath": "assets/audio/asian/Cherry Tree.mp3",
+        "thumbnailPath": "assets/audio/asian/Cherry Tree.jpg",
+        "link": "https://www.youtube.com/watch?v=7EhXaD0ct08",
+        "waveformPath": "assets/audio/asian/Cherry Tree.json"
+    },
+    {
+        "id": 14,
+        "name": "Fuji",
+        "artist": "Living Room & Otaam",
+        "duration": 148.23533333333333,
+        "songPath": "assets/audio/asian/Fuji.mp3",
+        "thumbnailPath": "assets/audio/asian/Fuji.jpg",
+        "link": "https://www.youtube.com/watch?v=tFocD6iPTIg&pp=ygUbIExpdmluZyBSb29tIHggT3RhYW0gLSBGdWpp",
+        "waveformPath": "assets/audio/asian/Fuji.json"
+    },
+    {
+        "id": 15,
+        "name": "Lushan Sun",
+        "artist": "Sweet Medicine",
+        "duration": 146.25,
+        "songPath": "assets/audio/asian/Lushan Sun.mp3",
+        "thumbnailPath": "assets/audio/asian/Lushan Sun.jpg",
+        "link": "https://www.youtube.com/watch?v=1ZJ50wRNfJM&pp=ygUbU3dlZXQgTWVkaWNpbmUgLSBMdXNoYW4gU3Vu",
+        "waveformPath": "assets/audio/asian/Lushan Sun.json"
+    },
+    {
+        "id": 16,
+        "name": "Waterfall",
+        "artist": "BVG & m\u00f8ndberg",
+        "duration": 160.0250625,
+        "songPath": "assets/audio/asian/Waterfall.mp3",
+        "thumbnailPath": "assets/audio/asian/Waterfall.jpg",
+        "link": "https://www.youtube.com/watch?v=9gPH6LpyVwM&pp=ygUbQlZHIHggbcO4bmRiZXJnIC0gV2F0ZXJmYWxs",
+        "waveformPath": "assets/audio/asian/Waterfall.json"
+    },
+    {
+        "id": 17,
+        "name": "The Guiding Wind",
+        "artist": "Tenno",
+        "duration": 193.77066666666667,
+        "songPath": "assets/audio/asian/Tenno - The Guiding Wind (Soothing Breeze).mp3",
+        "thumbnailPath": "assets/audio/asian/Tenno - The Guiding Wind (Soothing Breeze).jpg",
+        "link": "https://www.youtube.com/watch?v=Y4lai4BRdnE",
+        "waveformPath": "assets/audio/asian/Tenno - The Guiding Wind (Soothing Breeze).json"
+    },
+    {
+        "id": 18,
+        "name": "Mystic Mountain",
+        "artist": "Purrple Cat",
+        "duration": 146.7946875,
+        "songPath": "assets/audio/asian/Mystic Mountain.mp3",
+        "thumbnailPath": "assets/audio/asian/Mystic Mountain.jpg",
+        "link": "https://www.youtube.com/watch?v=UQKx2CRBN9w&pp=ygUdUHVycnBsZSBDYXQgLSBNeXN0aWMgTW91bnRhaW4%3D",
+        "waveformPath": "assets/audio/asian/Mystic Mountain.json"
+    },
+    {
+        "id": 19,
+        "name": "Shibui",
+        "artist": "Jhove",
+        "duration": 166.0,
+        "songPath": "assets/audio/asian/Shibui.mp3",
+        "thumbnailPath": "assets/audio/asian/Shibui.jpg",
+        "link": "https://www.youtube.com/watch?v=qHBPFSQfr58&pp=ygUOSmhvdmUgLSBTaGlidWk%3D",
+        "waveformPath": "assets/audio/asian/Shibui.json"
+    },
+    {
+        "id": 20,
+        "name": "Windmills",
+        "artist": "Ambulo",
+        "duration": 154.14477083333333,
+        "songPath": "assets/audio/asian/Windmills.mp3",
+        "thumbnailPath": "assets/audio/asian/Windmills.jpg",
+        "link": "https://www.youtube.com/watch?v=2WaIu-YWJck&pp=ygUSQW1idWxvIC0gV2luZG1pbGxz",
+        "waveformPath": "assets/audio/asian/Windmills.json"
+    },
+    {
+        "id": 21,
+        "name": "Neon Tiger",
+        "artist": "Purrple Cat",
+        "duration": 114.01345833333333,
+        "songPath": "assets/audio/asian/Neon Tiger.mp3",
+        "thumbnailPath": "assets/audio/asian/Neon Tiger.jpg",
+        "link": "https://www.youtube.com/watch?v=rc5M2rnKZDI&pp=ygUYUHVycnBsZSBDYXQgLSBOZW9uIFRpZ2Vy",
+        "waveformPath": "assets/audio/asian/Neon Tiger.json"
+    }
+]
