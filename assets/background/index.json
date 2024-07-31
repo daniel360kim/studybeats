@@ -1,0 +1,27 @@
+[
+    {
+        "id": 1,
+        "name": "Light Rain",
+        "soundfxPath": "/background/rain.mp3",
+        "iconId": 57711,
+        "fontFamily": "MaterialIcons"
+
+    },
+    {
+        "id": 2,
+        "name": "Traffic",
+        "soundfxPath": "/background/traffic.mp3",
+        "iconId": 58996,
+        "fontFamily": "MaterialIcons"
+
+    },
+    {
+        "id": 3,
+        "name": "Thunderstorm",
+        "soundfxPath": "/background/stormy_rain.mp3",
+        "iconId": 985035,
+        "fontFamily": "MaterialIcons"
+
+    }
+
+]
