@@ -1,3 +1,4 @@
+import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 
 class MusicControlButton extends StatelessWidget {
@@ -7,6 +8,7 @@ class MusicControlButton extends StatelessWidget {
     required this.iconSize,
     required this.icon,
     required this.onPressed,
+    this.iconColor = kFlourishEmphasisBlackish,
   })  : assert(iconSize > 0),
         assert(splashLength > 0),
         assert(splashLength >= iconSize);
@@ -15,6 +17,7 @@ class MusicControlButton extends StatelessWidget {
   final double iconSize;
   final IconData icon;
   final VoidCallback onPressed;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +27,7 @@ class MusicControlButton extends StatelessWidget {
       child: IconButton(
         padding: EdgeInsets.zero,
         iconSize: iconSize,
+        color: iconColor,
         icon: Icon(
           icon,
           size: iconSize,
@@ -43,6 +47,7 @@ class Controls extends StatelessWidget {
       required this.onNext,
       required this.onFavorite,
       required this.isPlaying,
+      required this.isFavorite,
       super.key});
 
   final VoidCallback onShuffle;
@@ -50,7 +55,8 @@ class Controls extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onPause;
   final VoidCallback onNext;
-  final VoidCallback onFavorite;
+  final ValueChanged<bool> onFavorite;
+  final bool isFavorite;
   final bool isPlaying;
 
   @override
@@ -65,10 +71,13 @@ class Controls extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             MusicControlButton(
-              icon: Icons.favorite,
+              icon: isFavorite ? Icons.favorite : Icons.favorite_border,
               iconSize: secondaryIconSize,
               splashLength: secondaryIconSize + 10,
-              onPressed: () {},
+              onPressed: () {
+                onFavorite(!isFavorite);
+              },
+              iconColor: isFavorite ? Colors.red : kFlourishEmphasisBlackish,
             ),
             const SizedBox(width: 7.0),
             MusicControlButton(

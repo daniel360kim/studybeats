@@ -13,7 +13,7 @@ class _VolumeSliderState extends State<VolumeSlider> {
   double volume = 1.0;
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 150,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

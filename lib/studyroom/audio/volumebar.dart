@@ -24,7 +24,7 @@ class _VolumeBarState extends State<VolumeBar> {
   Widget build(BuildContext context) {
     return RotatedBox(
       quarterTurns: 3,
-      child: Container(
+      child: SizedBox(
         width: 150,
         child: Slider(
           value: _value,

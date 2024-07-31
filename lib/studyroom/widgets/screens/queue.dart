@@ -1,6 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/api/worlddata/views.dart';
+import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
@@ -21,22 +19,26 @@ class SongQueue extends StatefulWidget {
 }
 
 class _SongQueueState extends State<SongQueue> {
+  final borderRadius = const BorderRadius.only(
+    topLeft: Radius.circular(40.0),
+    topRight: Radius.circular(40.0),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.only(right: 10, left: 10),
       width: 500,
       height: MediaQuery.of(context).size.height - 80 * 2,
       child: ClipRRect(
+        borderRadius: borderRadius,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
           child: Container(
             padding: const EdgeInsets.fromLTRB(20.0, 30.0, 20.0, 0.0),
-            decoration: const BoxDecoration(
-              color: Color.fromRGBO(170, 170, 170, 0.7),
-              borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40.0),
-                  topRight: Radius.circular(40.0)),
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(170, 170, 170, 0.7),
+              borderRadius: borderRadius,
             ),
             child: Column(
               children: [
@@ -169,6 +171,7 @@ class _QueueSongItemState extends State<QueueSongItem> {
               PlayButton(
                 isHovering: _isHovering,
                 onPressed: widget.onPressed,
+                thumbnailPath: widget.song.thumbnailPath,
               ),
               const SizedBox(width: 10),
               Column(
@@ -210,7 +213,6 @@ class _QueueSongItemState extends State<QueueSongItem> {
                               ),
                             ),
                             const PopupMenuItem(
-                              
                               child: PopupMenuDetails(
                                 icon: Icons.share,
                                 text: 'Share',
@@ -286,10 +288,12 @@ class PlayButton extends StatefulWidget {
     super.key,
     required this.isHovering,
     required this.onPressed,
+    required this.thumbnailPath,
   });
 
   final bool isHovering;
   final VoidCallback onPressed;
+  final String thumbnailPath;
 
   @override
   State<PlayButton> createState() => _PlayButtonState();
@@ -302,13 +306,11 @@ class _PlayButtonState extends State<PlayButton> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        ClipRRect(
-          child: CachedNetworkImage(
-            imageUrl: buildThumbnailRequest(3),
-            height: 50,
-            width: 50,
-            fit: BoxFit.cover,
-          ),
+        Image.asset(
+          widget.thumbnailPath,
+          height: 50,
+          width: 50,
+          fit: BoxFit.cover,
         ),
         if (widget.isHovering)
           Positioned(
