@@ -5,9 +5,7 @@ import 'package:flourish_web/app_state.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:uuid/uuid.dart';
-
-const String defaultProfilePicture =
-    'https://firebasestorage.googleapis.com/v0/b/flourish-web-fa343.appspot.com/o/default_profile.png?alt=media&token=7a7b0005-d9f8-4ddd-80a1-18dac9c93a22';
+import 'urls.dart';
 
 class AuthService {
   Future _createUserEmailPassword(String email, String password) async {
@@ -52,7 +50,7 @@ class AuthService {
   Future signUp(String email, String password) async {
     await _createUserEmailPassword(email, password);
     await _login(email, password);
-    await _registerWithFirestore(defaultProfilePicture);
+    await _registerWithFirestore(kDefaultProfilePicture);
   }
 
   bool doesUserExistInFirebase() {
@@ -113,7 +111,7 @@ class AuthService {
           print('Photo URL: ${user.photoURL}');
           print('Full name ${user.displayName}');
           if (user.photoURL == null) {
-            _registerWithFirestore(defaultProfilePicture);
+            _registerWithFirestore(kDefaultProfilePicture);
           } else {
             _registerWithFirestore(user.photoURL!);
           }

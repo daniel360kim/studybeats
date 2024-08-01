@@ -8,7 +8,7 @@ import 'package:flourish_web/studyroom/widgets/controls/playlist_controls.dart';
 import 'package:flourish_web/studyroom/widgets/controls/scene_controls.dart';
 import 'package:flourish_web/studyroom/widgets/controls/songinfo.dart';
 import 'package:flourish_web/studyroom/widgets/controls/volume.dart';
-import 'package:flourish_web/studyroom/widgets/screens/aichat.dart';
+import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
 import 'package:flourish_web/studyroom/widgets/screens/equalizer.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
