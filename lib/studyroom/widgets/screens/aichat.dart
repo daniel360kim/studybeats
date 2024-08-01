@@ -4,10 +4,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/colors.dart';
+import 'package:flourish_web/studyroom/widgets/screens/ai_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_tex/flutter_tex.dart';
 
 class AiChat extends StatefulWidget {
   const AiChat({super.key});
@@ -89,7 +91,7 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  void _sendMessage() {
+  void _sendMessage() async {
     if (_textEditingController.text.isNotEmpty) {
       final userMessage = _textEditingController.text;
 
@@ -106,20 +108,13 @@ class _AiChatState extends State<AiChat> {
         Map.of({'role': 'user', 'content': userMessage})
       ], maxToken: 1000, model: Gpt4OMiniChatModel());
 
-      _aiMessages.add('');
+      final response = await openAi.onChatCompletion(request: request);
 
-      openAi.onChatCompletionSSE(request: request).listen(
-        (response) {
-          setState(() {
-            _aiMessages.last += response.choices!.first.message!.content;
-          });
-          _scrollToBottom();
-        },
-        onError: (error) {
-          print(error.toString());
-        },
-        
-      );
+      for (var element in response!.choices) {
+        setState(() {
+          _aiMessages.add(element.message!.content);
+        });
+      }
     }
   }
 
@@ -267,6 +262,8 @@ class _AiChatState extends State<AiChat> {
     late final String messageTitle;
     late final Widget profileImage;
 
+    print(message);
+
     if (isUser) {
       messageTitle = 'You';
       if (_profilePictureUrl != null) {
@@ -317,19 +314,12 @@ class _AiChatState extends State<AiChat> {
           Row(
             children: [
               Expanded(
-                child: isUser
-                    ? SelectableText(
-                        message,
-                        style: const TextStyle(fontSize: 16),
-                      )
-                    : MarkdownBody(
-                        selectable: true,
-                        data: message,
-                        styleSheet: MarkdownStyleSheet(
-                          p: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-              ),
+                  child: isUser
+                      ? SelectableText(
+                          message,
+                          style: const TextStyle(fontSize: 16),
+                        )
+                      : AiParser(message)),
               IconButton(
                 icon: const Icon(Icons.copy, size: 16),
                 onPressed: () => _copyToClipboard(message),
