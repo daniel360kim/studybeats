@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/graph_api.dart';
+import 'package:flourish_web/api/Graph/graph_api.dart';
 import 'package:flourish_web/app_state.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +30,7 @@ class AuthService {
     }
   }
 
-  Future _registerWithFirestore(String imageURL) async {
+  Future _registerWithFirestore(String name, String imageURL) async {
     try {
       _logger.i('Registering user with Firebase');
       return await FirebaseFirestore.instance
@@ -39,6 +39,7 @@ class AuthService {
           .set({
         'uid': FirebaseAuth.instance.currentUser!.uid,
         'profilePicture': imageURL,
+        'name': name,
       });
     } catch (e) {
       _logger.e(e);
@@ -62,11 +63,11 @@ class AuthService {
     }
   }
 
-  Future<void> signUp(String email, String password) async {
+  Future<void> signUp(String email, String password, String name) async {
     try {
       await _createUserEmailPassword(email, password);
       await _login(email, password);
-      await _registerWithFirestore(kDefaultProfilePicture);
+      await _registerWithFirestore(name, kDefaultProfilePicture);
       _logger.i('User registered succesfully');
     } catch (e) {
       rethrow;
@@ -103,7 +104,7 @@ class AuthService {
             .doc(user.email)
             .get();
         if (!doc.exists) {
-          await _registerWithFirestore(user.photoURL!);
+          await _registerWithFirestore(user.displayName!, user.photoURL!);
         }
       } else {
         _logger.e('User is null after attempted Google Sign In');
@@ -122,6 +123,7 @@ class AuthService {
     microsoftProvider.setCustomParameters({'tenant': 'common'});
     microsoftProvider.addScope('User.ReadWrite.All');
 
+    String displayName = '';
     try {
       final result =
           await FirebaseAuth.instance.signInWithPopup(microsoftProvider);
@@ -137,6 +139,15 @@ class AuthService {
           final graphAPIService =
               GraphAPIService(accessToken: credential?.accessToken);
 
+          final userModel = await graphAPIService.fetchUserInfo();
+
+          if (userModel.displayName == null) {
+            _logger.e('Microsoft user display name came out as null');
+            throw Exception();
+          }
+
+          displayName = userModel.displayName!;
+
           final bytes = await graphAPIService.fetchProfilePhoto();
           final image = MemoryImage(bytes);
 
@@ -145,7 +156,7 @@ class AuthService {
           await ref.putData(
               image.bytes, SettableMetadata(contentType: 'image/jpeg'));
 
-          _registerWithFirestore(await ref.getDownloadURL());
+          _registerWithFirestore(displayName, await ref.getDownloadURL());
         }
       } else {
         _logger.e('User is null after attempted Microsoft Sign In');
@@ -156,7 +167,7 @@ class AuthService {
       if (e is GraphAPIException) {
         _logger.w(
             'Profile photo request failed. Setting profile photo as default picture');
-        _registerWithFirestore(kDefaultProfilePicture);
+        _registerWithFirestore(displayName, kDefaultProfilePicture);
         return;
       }
       _logger.e('Microsoft sign in failed. $e');

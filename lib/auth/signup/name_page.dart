@@ -1,31 +1,35 @@
 import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
+import 'package:flourish_web/auth/signup/create_password.dart';
 import 'package:flourish_web/auth/signup/signup_page.dart';
+import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:universal_html/js_util.dart';
 
 class EnterNamePage extends StatefulWidget {
-  const EnterNamePage({required this.username, super.key});
+  const EnterNamePage(
+      {required this.username, required this.password, super.key});
 
   final String username;
+  final String password;
 
   @override
   State<EnterNamePage> createState() => _EnterNamePageState();
 }
 
 class _EnterNamePageState extends State<EnterNamePage> {
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _textController = TextEditingController();
 
-  bool _leastCharactersRequirement = false;
-  bool _containsLetterRequirement = false;
-  bool _passwordVisible = false;
+  bool _error = false;
+  String _errorMessage = '';
 
-  final bool _error = false;
-  final String _errorMessage = '';
+  bool _unknownError = false;
 
   bool _loading = false;
 
@@ -46,9 +50,8 @@ class _EnterNamePageState extends State<EnterNamePage> {
                   children: [
                     buildHeading(),
                     const SizedBox(height: 30),
+                    if (_unknownError) const UnknownError(),
                     buildTextFields(),
-                    const SizedBox(height: 20),
-                    passwordRequirements(),
                     const SizedBox(height: 20),
                     _loading
                         ? const SizedBox(
@@ -68,7 +71,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
                               ),
                             ),
                             child: const Text(
-                              'Next',
+                              'Sign Up',
                               style: TextStyle(
                                 color: kFlourishBlackish,
                                 fontSize: 16,
@@ -100,7 +103,8 @@ class _EnterNamePageState extends State<EnterNamePage> {
       children: [
         IconButton(
           onPressed: () {
-            Navigator.of(context).push(noTransition(const SignupPage()));
+            Navigator.of(context).push(
+                noTransition(CreatePasswordPage(username: widget.username)));
           },
           icon: const Icon(Icons.arrow_back_ios_rounded,
               color: kFlourishAliceBlue),
@@ -136,12 +140,12 @@ class _EnterNamePageState extends State<EnterNamePage> {
   Widget buildTextFields() {
     return Column(
       children: [
-        Align(
+        const Align(
           alignment: Alignment.centerLeft,
           child: Row(
             children: [
-              const Text(
-                'Create a password',
+              Text(
+                'Name',
                 style: TextStyle(
                   color: kFlourishAliceBlue,
                   fontSize: 17,
@@ -149,36 +153,34 @@ class _EnterNamePageState extends State<EnterNamePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Spacer(),
-              IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _passwordVisible = !_passwordVisible;
-                    });
-                  },
-                  icon: Icon(
-                    _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: kFlourishAliceBlue,
-                  )),
             ],
+          ),
+        ),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'This name will appear on your profile',
+            style: TextStyle(
+              color: kFlourishLightBlackish,
+              fontSize: 13,
+              fontFamily: 'Inter',
+            ),
           ),
         ),
         const SizedBox(height: 13),
         LoginTextField(
-          controller: _passwordController,
+          controller: _textController,
           onChanged: (_) {
-            updateRequirements();
+            setState(() {
+              _error = false;
+              _errorMessage = '';
+            });
           },
           hintText: '',
-          keyboardType: TextInputType.visiblePassword,
+          keyboardType: TextInputType.name,
           valid: !_error,
-          obscureText: !_passwordVisible,
         ),
-        _error
-            ? ErrorMessage(
-                message: _errorMessage,
-              )
-            : const SizedBox(height: 20),
+        if (_error) ErrorMessage(message: _errorMessage),
       ],
     );
   }
@@ -218,51 +220,27 @@ class _EnterNamePageState extends State<EnterNamePage> {
     );
   }
 
-  Widget passwordRequirements() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Password must contain:',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            color: kFlourishAliceBlue,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 10),
-        PasswordChecklistItem(
-          text: '8 characters',
-          isChecked: _leastCharactersRequirement,
-          error: _error,
-        ),
-        const SizedBox(height: 5),
-        PasswordChecklistItem(
-          text: '1 letter',
-          isChecked: _containsLetterRequirement,
-          error: _error,
-        ),
-      ],
-    );
-  }
-
-  void updateRequirements() {
-    final passwordValidator = PasswordValidator(_passwordController.text);
-    setState(() {
-      _leastCharactersRequirement = passwordValidator.isLengthRequirementMet();
-      _containsLetterRequirement = passwordValidator.isLetterRequirementMet();
-    });
-  }
-
   void next() async {
+    if (_textController.text.isEmpty) {
+      setState(() {
+        _error = true;
+        _errorMessage = 'Enter a name for your profile';
+      });
+      return;
+    }
     setState(() {
       _loading = true;
     });
-    _authService.signUp(
-      widget.username,
-      _passwordController.text,
-    );
+
+    try {
+      _authService.signUp(
+          widget.username, widget.password, _textController.text);
+    } catch (e) {
+      setState(() {
+        _unknownError = true;
+      });
+    }
+
     setState(() {
       _loading = false;
     });

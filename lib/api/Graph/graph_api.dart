@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:flourish_web/api/Graph/user_model.dart';
 import 'package:flourish_web/log_printer.dart';
 
 class GraphAPIException implements Exception {
@@ -12,8 +13,9 @@ class GraphAPIException implements Exception {
 class GraphAPIService {
   final _logger = getLogger('GraphAPIService');
 
+  final _dio = Dio();
+
   final String? accessToken;
-  static const String kGraphEndpoint = 'https://graph.microsoft.com/v1.0/me/';
 
   GraphAPIService({required this.accessToken}) {
     if (accessToken == null) {
@@ -24,9 +26,9 @@ class GraphAPIService {
 
   Future<Uint8List> fetchProfilePhoto() async {
     _logger.i('Fetching profile photo');
-    final dio = Dio();
+    
     try {
-      final response = await dio.get(
+      final response = await _dio.get(
         'https://graph.microsoft.com/v1.0/me/photos/648x648/\$value',
         options: Options(
           responseType: ResponseType.bytes,
@@ -50,6 +52,23 @@ class GraphAPIService {
         _logger.w('Unkown error during api request. $e');
       }
       throw GraphAPIException('No profile photo found', 'blank-profile');
+    }
+  }
+
+    Future<GraphUser> fetchUserInfo() async {
+    try {
+      final response = await _dio.get(
+        'https://graph.microsoft.com/v1.0/me/',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+      return GraphUser.fromJson(response.data);
+    } catch (e) {
+      _logger.e('Failed to fetch user info: $e');
+      return const GraphUser.empty();
     }
   }
 }

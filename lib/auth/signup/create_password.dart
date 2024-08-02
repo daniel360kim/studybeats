@@ -1,6 +1,7 @@
 import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
+import 'package:flourish_web/auth/signup/name_page.dart';
 import 'package:flourish_web/auth/signup/signup_page.dart';
 import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
@@ -28,12 +29,6 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
   final bool _error = false;
   final String _errorMessage = '';
 
-  bool _loading = false;
-
-  bool _unknownError = false;
-
-  final _authService = AuthService();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,20 +44,11 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                   children: [
                     buildHeading(),
                     const SizedBox(height: 30),
-                    if (_unknownError) const UnknownError(),
                     buildTextFields(),
                     const SizedBox(height: 20),
                     passwordRequirements(),
                     const SizedBox(height: 20),
-                    _loading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: kFlourishAdobe,
-                            ),
-                          )
-                        : ElevatedButton(
+                  ElevatedButton(
                             onPressed: next,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: kFlourishAdobe,
@@ -207,7 +193,7 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
             padding: const EdgeInsets.all(0),
           ),
           child: const Text(
-            'Log in',
+            'Log In',
             style: TextStyle(
               color: kFlourishAliceBlue,
               fontSize: 15,
@@ -260,25 +246,10 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
   }
 
   void next() async {
-    setState(() {
-      _loading = true;
-    });
-    try {
-      await _authService.signUp(
-        widget.username,
-        _passwordController.text,
-      );
-    } catch (e) {
-      setState(() {
-        _unknownError = true;
-        _loading = false;
-      });
-      return;
-    }
-    setState(() {
-      _loading = false;
-    });
-    Navigator.of(context).push(noTransition(const StudyRoom()));
+    Navigator.of(context).push(noTransition(EnterNamePage(
+      username: widget.username,
+      password: _passwordController.text,
+    )));
   }
 }
 

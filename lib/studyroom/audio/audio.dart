@@ -166,7 +166,7 @@ class Audio {
       await audioPlayer.setAudioSource(audioSource, preload: true);
       var setEndTime = DateTime.now();
       var setDuration = setEndTime.difference(setStartTime);
-      _logger.e(
+      _logger.d(
           'audioPlayer.setAudioSource time: ${setDuration.inMilliseconds}ms');
 
       isLoaded.value = true;
