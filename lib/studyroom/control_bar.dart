@@ -65,7 +65,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   bool _showSceneSelection = false;
   bool _showTimerSelection = false;
-  bool _showAiChat = true;
+  bool _showAiChat = false;
 
   @override
   void initState() {

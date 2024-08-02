@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flourish_web/api/graph_api.dart';
 import 'package:flourish_web/app_state.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:uuid/uuid.dart';
@@ -96,10 +98,14 @@ class AuthService {
 
   Future signUpInWithMicrosoft() async {
     final microsoftProvider = MicrosoftAuthProvider();
-    microsoftProvider.addScope('User.Read.All');
+    microsoftProvider.setCustomParameters({'tenant': 'common'});
+    microsoftProvider.addScope('User.ReadWrite.All');
 
     try {
-      await FirebaseAuth.instance.signInWithPopup(microsoftProvider);
+      final result =
+          await FirebaseAuth.instance.signInWithPopup(microsoftProvider);
+      final credential = result.credential;
+
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final doc = await FirebaseFirestore.instance
@@ -107,14 +113,19 @@ class AuthService {
             .doc(user.email)
             .get();
         if (!doc.exists) {
-          print('Registering with firestore');
-          print('Photo URL: ${user.photoURL}');
-          print('Full name ${user.displayName}');
-          if (user.photoURL == null) {
-            _registerWithFirestore(kDefaultProfilePicture);
-          } else {
-            _registerWithFirestore(user.photoURL!);
-          }
+          final graphAPIService =
+              GraphAPIService(accessToken: credential?.accessToken);
+
+          final bytes = await graphAPIService.fetchProfilePhoto();
+          final image = MemoryImage(bytes);
+
+          final fileName = const Uuid().v4();
+          final ref = FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
+
+          await ref.putData(
+              image.bytes, SettableMetadata(contentType: 'image/jpeg'));
+
+          _registerWithFirestore(await ref.getDownloadURL());
         }
       }
     } catch (e) {
@@ -171,6 +182,7 @@ class AuthService {
     final fileName = const Uuid().v4();
     final ref =
         FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
+
     await ref.putBlob(image);
 
     final url = await ref.getDownloadURL();

@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
 import 'package:universal_html/html.dart' as html;
@@ -126,7 +125,7 @@ class _AiChatState extends State<AiChat> {
       _scrollToBottom();
 
       final request = ChatCompleteText(messages: [
-        Map.of({'role': 'user', 'content': userMessage})
+        Map.of({'role': 'user', 'content': userMessage,})
       ], maxToken: 1000, model: Gpt4OMiniChatModel());
 
       setState(() {

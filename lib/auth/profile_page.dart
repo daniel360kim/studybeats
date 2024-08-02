@@ -137,7 +137,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _pickImage() async {
     final file = await ImagePickerWeb.getImageAsFile();
-
     // load the file for optimistic UI updates
     final reader = html.FileReader();
     reader.onLoadEnd.listen((event) {
@@ -147,7 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     reader.readAsArrayBuffer(file!);
-    
+
     try {
       await AuthService().updateProfilePicture(file).then((_) {
         updateProfilePictureUrl();
