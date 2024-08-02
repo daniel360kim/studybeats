@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
 import 'package:flutter/foundation.dart';
@@ -13,6 +14,8 @@ class Audio {
   Audio({
     required this.playlistId,
   });
+
+  final _logger = getLogger('AudioController');
 
   final int playlistId;
   final audioPlayer = AudioPlayer();
@@ -32,32 +35,38 @@ class Audio {
   );
 
   void initPlayer() async {
-    // Get the playlist info from the JSON file
-    playlistInfo = await getPlaylistInfo();
-    // Get the appropriate song data from the playlistInfo
-    songs = await getSongsInfo(playlistInfo);
+    try {
+      // Get the playlist info from the JSON file
+      playlistInfo = await getPlaylistInfo();
+      // Get the appropriate song data from the playlistInfo
+      songs = await getSongsInfo(playlistInfo);
 
-    // Get info about the songs from the cloud database based on the playlistId
-    _cloudInfoHandler = SongCloudInfoHandler(playlistId: playlistId);
-    await _cloudInfoHandler.init();
+      // Get info about the songs from the cloud database based on the playlistId
+      _cloudInfoHandler = SongCloudInfoHandler(playlistId: playlistId);
+      await _cloudInfoHandler.init();
 
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.speech());
 
-    // Listen to errors durin playback
-    audioPlayer.playbackEventStream.listen((event) {},
+      // Listen to errors durin playback
+      audioPlayer.playbackEventStream.listen(
+        (event) {},
         onError: (Object e, StackTrace stackTrace) {
-      print('A stream error occurred: $e');
-    });
+          _logger.e('$e', stackTrace: stackTrace);
+        },
+      );
 
-    setAudioSourceAsStream(songs[currentSongIndex].songPath);
+      _setAudioSourceAsStream(songs[currentSongIndex].songPath);
 
-    // Go to the next song when the current song finishes
-    audioPlayer.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed) {
-        nextSong();
-      }
-    });
+      // Go to the next song when the current song finishes
+      audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          nextSong();
+        }
+      });
+    } catch (e) {
+      rethrow;
+    }
   }
 
   void dispose() {
@@ -68,22 +77,32 @@ class Audio {
   }
 
   Future<Playlist> getPlaylistInfo() async {
-    String json =
-        await rootBundle.loadString('assets/audio/index/playlists.json');
+    try {
+      String json =
+          await rootBundle.loadString('assets/audio/index/playlists.json');
 
-    List<dynamic> playlists = await jsonDecode(json);
-    List<Playlist> playlistList =
-        playlists.map((playlist) => Playlist.fromJson(playlist)).toList();
+      List<dynamic> playlists = await jsonDecode(json);
+      List<Playlist> playlistList =
+          playlists.map((playlist) => Playlist.fromJson(playlist)).toList();
 
-    return playlistList.firstWhere((playlist) => playlist.id == playlistId);
+      return playlistList.firstWhere((playlist) => playlist.id == playlistId);
+    } catch (e) {
+      _logger.e('Playlist info asset not found. $e');
+      rethrow;
+    }
   }
 
   Future<List<Song>> getSongsInfo(Playlist playlistInfo) async {
-    String json = await rootBundle.loadString(playlistInfo.playlistPath);
-    List<dynamic> songs = await jsonDecode(json);
-    List<Song> songList = songs.map((song) => Song.fromJson(song)).toList();
+    try {
+      String json = await rootBundle.loadString(playlistInfo.playlistPath);
+      List<dynamic> songs = await jsonDecode(json);
+      List<Song> songList = songs.map((song) => Song.fromJson(song)).toList();
 
-    return songList;
+      return songList;
+    } catch (e) {
+      _logger.e('Song info for playlist ${playlistInfo.name} not found. $e');
+      rethrow;
+    }
   }
 
   void play() async {
@@ -91,7 +110,8 @@ class Audio {
     try {
       await audioPlayer.play();
     } catch (e) {
-      print('Error: $e');
+      _logger.e('Audio play failed. $e');
+      rethrow;
     }
   }
 
@@ -100,12 +120,17 @@ class Audio {
     try {
       await audioPlayer.pause();
     } catch (e) {
-      print('Error: $e');
+      _logger.e('Audio pause failed. $e');
+      rethrow;
     }
   }
 
   Future setFavorite(bool isFavorite) async {
-    await _cloudInfoHandler.setFavorite(currentSongIndex, isFavorite);
+    try {
+      await _cloudInfoHandler.setFavorite(currentSongIndex, isFavorite);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Duration getSongPlayedDuration() {
@@ -116,35 +141,38 @@ class Audio {
     try {
       await audioPlayer.seek(position);
     } catch (e) {
-      print('Error: $e');
+      _logger.e('Audio seek to ${position.inMilliseconds} failed. $e');
+      rethrow;
     }
   }
 
-  void setAudioSourceAsStream(String path) async {
-    var loadStartTime = DateTime.now();
-    final file = await rootBundle.load(path);
-    var loadEndTime = DateTime.now();
-    var loadDuration = loadEndTime.difference(loadStartTime);
-    print('rootBundle.load time: ${loadDuration.inMilliseconds}ms');
-
-    var streamStartTime = DateTime.now();
-    final streamAudioSource = BufferAudioSource(file.buffer.asUint8List());
-    var streamEndTime = DateTime.now();
-    var streamDuration = streamEndTime.difference(streamStartTime);
-    print(
-        'BufferAudioSource creation time: ${streamDuration.inMilliseconds}ms');
-
-    var setStartTime = DateTime.now();
-    final audioSource = streamAudioSource;
+  void _setAudioSourceAsStream(String path) async {
     try {
+      var loadStartTime = DateTime.now();
+      final file = await rootBundle.load(path);
+      var loadEndTime = DateTime.now();
+      var loadDuration = loadEndTime.difference(loadStartTime);
+      _logger.d('rootBundle.load time: ${loadDuration.inMilliseconds}ms');
+
+      var streamStartTime = DateTime.now();
+      final streamAudioSource = BufferAudioSource(file.buffer.asUint8List());
+      var streamEndTime = DateTime.now();
+      var streamDuration = streamEndTime.difference(streamStartTime);
+      _logger.d(
+          'BufferAudioSource creation time: ${streamDuration.inMilliseconds}ms');
+
+      var setStartTime = DateTime.now();
+      final audioSource = streamAudioSource;
       await audioPlayer.setAudioSource(audioSource, preload: true);
       var setEndTime = DateTime.now();
       var setDuration = setEndTime.difference(setStartTime);
-      print('audioPlayer.setAudioSource time: ${setDuration.inMilliseconds}ms');
+      _logger.e(
+          'audioPlayer.setAudioSource time: ${setDuration.inMilliseconds}ms');
 
       isLoaded.value = true;
     } catch (e) {
-      print('Error: $e');
+      _logger.e(e);
+      rethrow;
     }
   }
 
@@ -152,7 +180,8 @@ class Audio {
     try {
       await audioPlayer.setSpeed(speed);
     } catch (e) {
-      print('Error: $e');
+      _logger.e('Audio set speed to $speed failed');
+      rethrow;
     }
   }
 
@@ -162,7 +191,7 @@ class Audio {
 
     isLoaded.value = false;
     try {
-      setAudioSourceAsStream(songs[index].songPath);
+      _setAudioSourceAsStream(songs[index].songPath);
       await audioPlayer.seek(Duration.zero);
       currentSongIndex = index;
 
@@ -175,7 +204,8 @@ class Audio {
 
       isLoaded.value = true;
     } catch (e) {
-      print('Error: $e');
+      _logger.e('Audio seek to $index failed');
+      rethrow;
     }
   }
 
@@ -189,7 +219,11 @@ class Audio {
       nextIndex = 0;
     }
 
-    await seekToIndex(nextIndex).then((value) => isLoaded.value = true);
+    try {
+      await seekToIndex(nextIndex).then((value) => isLoaded.value = true);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future previousSong() async {
@@ -201,21 +235,29 @@ class Audio {
     } else {
       prevIndex = songs.length - 1;
     }
-
-    await seekToIndex(prevIndex).then((value) => isLoaded.value = true);
+    try {
+      await seekToIndex(prevIndex).then((value) => isLoaded.value = true);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future setVolume(double volume) async {
     try {
       await audioPlayer.setVolume(volume);
     } catch (e) {
-      print('Error: $e');
+      _logger.e('Audio set volume to $volume failed');
+      rethrow;
     }
   }
 
   void shuffle() async {
     songs.shuffle();
-    await seekToIndex(currentSongIndex);
+    try {
+      await seekToIndex(currentSongIndex);
+    } catch (e) {
+      rethrow;
+    }
   }
 
 // Gets the current position of the song for the seekbar

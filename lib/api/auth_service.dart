@@ -3,27 +3,36 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/api/graph_api.dart';
 import 'package:flourish_web/app_state.dart';
+import 'package:flourish_web/log_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:logger/logger.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:uuid/uuid.dart';
 import 'urls.dart';
 
 class AuthService {
+  final Logger _logger = getLogger('AuthService');
+
   Future _createUserEmailPassword(String email, String password) async {
     try {
+      _logger.i('Requesting account creation with email and password');
       return await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
     } on FirebaseAuthException catch (e) {
-      // Email and password validation should have been checked before this
-      print(e.code.toString());
+      // This error should not trigger because email password validation should have been done already by Email and Password Validator classes
+      _logger
+          .w('FIREBASE EXCEPTION: Create user with email/password failed. $e');
+      rethrow;
     } catch (e) {
-      throw Exception(e);
+      _logger.e('Create user with email/password failed: $e');
+      rethrow;
     }
   }
 
   Future _registerWithFirestore(String imageURL) async {
     try {
+      _logger.i('Registering user with Firebase');
       return await FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser!.email)
@@ -32,43 +41,49 @@ class AuthService {
         'profilePicture': imageURL,
       });
     } catch (e) {
-      print(e);
+      _logger.e(e);
+      rethrow;
     }
   }
 
   Future _login(String email, String password) async {
     try {
+      _logger.i('Attempting to log user: $email');
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      print(e.code.toString());
+      _logger.w('FIREBASE EXCEPTION: Login with email/password failed. $e');
+      rethrow;
     } catch (e) {
-      throw Exception(e);
+      _logger.e('Log in user with email/password failed: $e');
+      rethrow;
     }
   }
 
-  Future signUp(String email, String password) async {
-    await _createUserEmailPassword(email, password);
-    await _login(email, password);
-    await _registerWithFirestore(kDefaultProfilePicture);
-  }
-
-  bool doesUserExistInFirebase() {
-    final user = FirebaseAuth.instance.currentUser;
-    return user != null;
-  }
-
-  Future signUpInWithGoogle() async {
+  Future<void> signUp(String email, String password) async {
     try {
+      await _createUserEmailPassword(email, password);
+      await _login(email, password);
+      await _registerWithFirestore(kDefaultProfilePicture);
+      _logger.i('User registered succesfully');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> signUpInWithGoogle() async {
+    try {
+      _logger.i('Attempting to sign in with Google');
       final GoogleSignInAccount? googleUser =
           await googleSignIn.signInSilently();
 
       if (googleUser == null) {
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
-          throw Exception('Google sign in failed');
+          _logger.e('Google user returned null');
+          throw Exception();
         }
       }
 
@@ -90,13 +105,19 @@ class AuthService {
         if (!doc.exists) {
           await _registerWithFirestore(user.photoURL!);
         }
+      } else {
+        _logger.e('User is null after attempted Google Sign In');
+        throw Exception();
       }
+      _logger.i('User signed in with Google');
     } catch (e) {
-      print(e);
+      _logger.e('Google sign in failed. $e');
+      rethrow;
     }
   }
 
-  Future signUpInWithMicrosoft() async {
+  Future<void> signUpInWithMicrosoft() async {
+    _logger.i('Attempting to sign in with Microsoft');
     final microsoftProvider = MicrosoftAuthProvider();
     microsoftProvider.setCustomParameters({'tenant': 'common'});
     microsoftProvider.addScope('User.ReadWrite.All');
@@ -119,22 +140,37 @@ class AuthService {
           final bytes = await graphAPIService.fetchProfilePhoto();
           final image = MemoryImage(bytes);
 
-          final fileName = const Uuid().v4();
-          final ref = FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
+          final ref = await _generateProfilePictureReference();
 
           await ref.putData(
               image.bytes, SettableMetadata(contentType: 'image/jpeg'));
 
           _registerWithFirestore(await ref.getDownloadURL());
         }
+      } else {
+        _logger.e('User is null after attempted Microsoft Sign In');
+        throw Exception();
       }
+      _logger.i('User signed in with Microsoft');
     } catch (e) {
-      print(e);
+      if (e is GraphAPIException) {
+        _logger.w(
+            'Profile photo request failed. Setting profile photo as default picture');
+        _registerWithFirestore(kDefaultProfilePicture);
+        return;
+      }
+      _logger.e('Microsoft sign in failed. $e');
+      rethrow;
     }
   }
 
   Future signIn(String email, String password) async {
-    await _login(email, password);
+    try {
+      await _login(email, password);
+    } catch (e) {
+      _logger.e('Sign in for $email failed. $e');
+      rethrow;
+    }
   }
 
   Future<String> getProfilePictureUrl() async {
@@ -147,7 +183,8 @@ class AuthService {
             .get();
         return doc.get('profilePicture');
       } else {
-        throw Exception('User is not logged in');
+        _logger.e('Profile picture url access attempted while logged out');
+        throw Exception();
       }
     } catch (e) {
       throw Exception(e);
@@ -159,40 +196,55 @@ class AuthService {
     if (user != null) {
       return user.metadata.creationTime!;
     } else {
-      throw Exception('User is not logged in');
+      _logger.e('Attempted to get account creation date while logged out');
+      throw Exception();
     }
   }
 
-  Future updateProfilePicture(html.File image) async {
+  Future<void> updateProfilePicture(html.File image) async {
     // Delete the old profile picture if the domain is firebase storage
+    _logger.i('Updating profile picture');
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .get();
-      final oldProfilePicture = doc.get('profilePicture');
-      if (oldProfilePicture.contains('firebasestorage.googleapis.com')) {
-        final oldProfilePictureRef =
-            FirebaseStorage.instance.refFromURL(oldProfilePicture);
-        await oldProfilePictureRef.delete();
+
+    try {
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .get();
+        final oldProfilePicture = doc.get('profilePicture');
+        if (oldProfilePicture.contains('firebasestorage.googleapis.com')) {
+          _logger.i(
+              'Profile picture found in firebasestorage domain. Deleting previous profile picture');
+          final oldProfilePictureRef =
+              FirebaseStorage.instance.refFromURL(oldProfilePicture);
+          await oldProfilePictureRef.delete();
+        }
+      } else {
+        _logger.e('User is null while updating profile picture');
+        throw Exception();
       }
-    }
 
-    final fileName = const Uuid().v4();
-    final ref =
-        FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
+      final ref = await _generateProfilePictureReference();
+      await ref.putBlob(image);
 
-    await ref.putBlob(image);
+      final url = await ref.getDownloadURL();
 
-    final url = await ref.getDownloadURL();
-
-    if (user != null) {
-      return await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('users')
           .doc(user.email)
           .update({'profilePicture': url});
+      _logger.i('Profile picture updated');
+    } catch (e) {
+      _logger.e('Unknown error while updating profile photo');
+      rethrow;
     }
+  }
+
+  Future<Reference> _generateProfilePictureReference() async {
+    final fileName = const Uuid().v4();
+    _logger.i('Generating profile picture reference. Uuid: $fileName');
+    return FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
   }
 }
 

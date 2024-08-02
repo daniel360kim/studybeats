@@ -109,8 +109,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     });
   }
 
-  void updateSongWithIndex(int newIndex) async {}
-
   @override
   Widget build(BuildContext context) {
     return Column(

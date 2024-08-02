@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flourish_web/log_printer.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 Song _$SongFromJson(Map<String, dynamic> json) {
@@ -177,7 +178,7 @@ class SongCloudInfo {
 
   @override
   String toString() => jsonEncode(toJson());
-  
+
   SongCloudInfo copyWith({
     bool? isFavorite,
     int? timesPlayed,
@@ -194,6 +195,8 @@ class SongCloudInfo {
 }
 
 class SongCloudInfoHandler {
+  final _logger = getLogger('SongCloudInfoService');
+
   final int playlistId;
 
   SongCloudInfoHandler({required this.playlistId});
@@ -201,6 +204,8 @@ class SongCloudInfoHandler {
   List<int> loggedSongs = [];
 
   Future init() async {
+    _logger.i('Instantiating SongCloudInfoService');
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
@@ -226,10 +231,12 @@ class SongCloudInfoHandler {
           });
         }
       } catch (e) {
-        print('Error: $e'); // TODO - Handle error
+        _logger.e(e);
+        rethrow;
       }
     } else {
-      print('Error: User is null'); // TODO - Handle error
+      _logger.e('SongCloudInfoHandler cannot be instantiated while logged out');
+      throw Exception();
     }
   }
 
@@ -249,66 +256,92 @@ class SongCloudInfoHandler {
             .doc(songId.toString())
             .set(songInfo.toJson());
       } catch (e) {
-        print('Error: $e'); // TODO - Handle error
+        _logger.e(e);
+        rethrow;
       }
     } else {
-      print('Error: User is null'); // TODO - Handle error
+      _logger.e('User is not logged in');
+      throw Exception();
     }
   }
 
   // Add a song to the log, won't add if it already exists
   Future addSongToLog(int songId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DocumentReference docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('audio')
-          .doc(playlistId.toString());
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DocumentReference docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .collection('audio')
+            .doc(playlistId.toString());
 
-      docRef.update({
-        'loggedSongs': FieldValue.arrayUnion(
-            [songId]), // arrayUnion will not add duplicates
-      });
+        docRef.update({
+          'loggedSongs': FieldValue.arrayUnion(
+              [songId]), // arrayUnion will not add duplicates
+        });
+      } else {
+        _logger.e('User is not logged in');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e(e);
+      rethrow;
     }
   }
 
   Future onSongEnd(int songId, Duration playtime) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      SongCloudInfo songInfo = await getSongCloudInfo(songId);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        SongCloudInfo songInfo = await getSongCloudInfo(songId);
 
-      // Update the song cloud info
-      songInfo = SongCloudInfo(
-        isFavorite: songInfo.isFavorite,
-        timesPlayed: songInfo.timesPlayed + 1,
-        totalPlaytime: songInfo.totalPlaytime + playtime,
-        averagePlaytime: Duration(
-            milliseconds: (songInfo.totalPlaytime.inMilliseconds +
-                    playtime.inMilliseconds) ~/
-                (songInfo.timesPlayed + 1)),
-      );
+        // Update the song cloud info
+        songInfo = SongCloudInfo(
+          isFavorite: songInfo.isFavorite,
+          timesPlayed: songInfo.timesPlayed + 1,
+          totalPlaytime: songInfo.totalPlaytime + playtime,
+          averagePlaytime: Duration(
+              milliseconds: (songInfo.totalPlaytime.inMilliseconds +
+                      playtime.inMilliseconds) ~/
+                  (songInfo.timesPlayed + 1)),
+        );
 
-      // Update the song cloud info in the database
-      await updateSongCloudInfo(songId, songInfo);
+        // Update the song cloud info in the database
+        await updateSongCloudInfo(songId, songInfo);
+      } else {
+        _logger.e('User is not logged in');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e(e);
+      rethrow;
     }
   }
 
   Future setFavorite(int songId, bool isFavorite) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      SongCloudInfo songInfo = await getSongCloudInfo(songId);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        SongCloudInfo songInfo = await getSongCloudInfo(songId);
 
-      // Update the song cloud info
-      songInfo = SongCloudInfo(
-        isFavorite: isFavorite,
-        timesPlayed: songInfo.timesPlayed,
-        totalPlaytime: songInfo.totalPlaytime,
-        averagePlaytime: songInfo.averagePlaytime,
-      );
+        // Update the song cloud info
+        songInfo = SongCloudInfo(
+          isFavorite: isFavorite,
+          timesPlayed: songInfo.timesPlayed,
+          totalPlaytime: songInfo.totalPlaytime,
+          averagePlaytime: songInfo.averagePlaytime,
+        );
 
-      // Update the song cloud info in the database
-      await updateSongCloudInfo(songId, songInfo);
+        // Update the song cloud info in the database
+        await updateSongCloudInfo(songId, songInfo);
+      } else {
+        _logger.e('User is not logged in');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e(e);
+      rethrow;
     }
   }
 
@@ -337,11 +370,12 @@ class SongCloudInfoHandler {
         }
       } catch (e) {
         // Handle error
-        throw Exception('Error fetching SongCloudInfo: $e');
+        _logger.e('Error fetching SOngCloudInfo. $e');
+        rethrow;
       }
     } else {
-      // User is null
-      throw Exception('User is null');
+      _logger.e('User is not logged in');
+      throw Exception();
     }
   }
 }

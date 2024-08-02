@@ -19,6 +19,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _profileImageUrl;
   Uint8List? _imageFile;
 
+  final _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
@@ -27,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void updateProfilePictureUrl() {
-    AuthService().getProfilePictureUrl().then((url) {
+    _authService.getProfilePictureUrl().then((url) {
       setState(() {
         _profileImageUrl = url;
       });
@@ -87,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<String> _getJoinedDate() async {
-    final DateTime creationDate = await AuthService().getAccountCreationDate();
+    final DateTime creationDate = await _authService.getAccountCreationDate();
     return DateFormat('MMM yyyy').format(creationDate);
   }
 
@@ -146,13 +148,11 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     reader.readAsArrayBuffer(file!);
-
     try {
-      await AuthService().updateProfilePicture(file).then((_) {
-        updateProfilePictureUrl();
-        setState(() {
-          _imageFile = null;
-        });
+      await _authService.updateProfilePicture(file);
+      updateProfilePictureUrl();
+      setState(() {
+        _imageFile = null;
       });
     } catch (e) {
       setState(() {

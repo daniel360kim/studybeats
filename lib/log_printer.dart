@@ -1,0 +1,27 @@
+import 'package:logger/logger.dart';
+
+class SimpleLogPrinter extends LogPrinter {
+  final String className;
+  SimpleLogPrinter({required this.className});
+  @override
+  List<String> log(LogEvent event) {
+    final time = event.time.toIso8601String();
+    final color = PrettyPrinter.defaultLevelColors[event.level];
+    final emoji = PrettyPrinter.defaultLevelEmojis[event.level];
+    final level = LogfmtPrinter.levelPrefixes[event.level];
+
+    StringBuffer buffer = StringBuffer();
+    buffer.write('$time: ');
+    buffer.write('$emoji ');
+    buffer.write(color!('[$level]'));
+    buffer.write(color(' ($className): '));
+    buffer.write(color(event.message.toString()));
+
+    List<String> output = [buffer.toString()];
+    return output;
+  }
+}
+
+Logger getLogger(String className) {
+  return Logger(printer: SimpleLogPrinter(className: className));
+}

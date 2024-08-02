@@ -2,6 +2,7 @@ import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/auth/signup/create_password.dart';
+import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/auth/widgets/third_party_button.dart';
@@ -22,6 +23,11 @@ class _SignupPageState extends State<SignupPage> {
   String _emailErrorMessage = '';
 
   bool _loading = false;
+
+  bool _unknownError = false;
+
+  final _authService = AuthService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,6 +43,7 @@ class _SignupPageState extends State<SignupPage> {
                   children: [
                     buildHeading(),
                     const SizedBox(height: 30),
+                    if (_unknownError) const UnknownError(),
                     buildTextFields(),
                     const SizedBox(height: 20),
                     _loading
@@ -78,13 +85,17 @@ class _SignupPageState extends State<SignupPage> {
                         setState(() {
                           _loading = true;
                         });
-                        AuthService().signUpInWithGoogle().then((value) {
-                          print(value.toString());
+                        _authService.signUpInWithGoogle().then((value) {
                           setState(() {
                             _loading = false;
                           });
                           Navigator.of(context)
                               .push(noTransition(const StudyRoom()));
+                        }).catchError((e) {
+                          setState(() {
+                            _unknownError = true;
+                            _loading = false;
+                          });
                         });
                       },
                       backgroundColor: Colors.transparent,
@@ -98,13 +109,17 @@ class _SignupPageState extends State<SignupPage> {
                         setState(() {
                           _loading = true;
                         });
-                        AuthService().signUpInWithMicrosoft().then((value) {
-                          print(value.toString());
+                        _authService.signUpInWithMicrosoft().then((value) {
                           setState(() {
                             _loading = false;
                           });
                           Navigator.of(context)
                               .push(noTransition(const StudyRoom()));
+                        }).catchError((error) {
+                          setState(() {
+                            _unknownError = true;
+                            _loading = false;
+                          });
                         });
                       },
                       backgroundColor: Colors.transparent,

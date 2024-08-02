@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/auth/signup/signup_page.dart';
+import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/auth/widgets/third_party_button.dart';
@@ -33,6 +34,8 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _loading = false;
 
+  final _authService = AuthService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,19 +50,24 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     buildHeading(),
-                    if (_error) buildErrorWidget(),
                     const SizedBox(height: 40),
+                    if (_error) const UnknownError(),
                     CredentialSigninButton(
                       onPressed: () {
                         setState(() {
                           _loading = true;
                         });
-                        AuthService().signUpInWithGoogle().then((value) {
+                        _authService.signUpInWithGoogle().then((value) {
                           setState(() {
                             _loading = false;
                           });
                           Navigator.of(context)
                               .pushReplacement(noTransition(const StudyRoom()));
+                        }).catchError((error) {
+                          setState(() {
+                            error = true;
+                            _loading = false;
+                          });
                         });
                       },
                       backgroundColor: Colors.transparent,
@@ -73,12 +81,17 @@ class _LoginPageState extends State<LoginPage> {
                         setState(() {
                           _loading = true;
                         });
-                        AuthService().signUpInWithMicrosoft().then((value) {
+                        _authService.signUpInWithMicrosoft().then((value) {
                           setState(() {
                             _loading = false;
                           });
                           Navigator.of(context)
                               .pushReplacement(noTransition(const StudyRoom()));
+                        }).catchError((error) {
+                          setState(() {
+                            error = true;
+                            _loading = false;
+                          });
                         });
                       },
                       backgroundColor: Colors.transparent,
@@ -157,31 +170,6 @@ class _LoginPageState extends State<LoginPage> {
             fontWeight: FontWeight.bold,
           ),
         )
-      ],
-    );
-  }
-
-  Widget buildErrorWidget() {
-    return Column(
-      children: [
-        const SizedBox(height: 40),
-        Container(
-          width: 400,
-          height: 30,
-          decoration: const BoxDecoration(
-            color: Colors.red,
-          ),
-          child: const Center(
-            child: Text(
-              'An error occurred. Please try again later.',
-              style: TextStyle(
-                color: kFlourishAliceBlue,
-                fontSize: 12,
-                fontFamily: 'Inter',
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -363,7 +351,7 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _loading = true;
       });
-      await AuthService().signIn(
+      await _authService.signIn(
         _usernameTextController.text,
         _passwordTextController.text,
       );
@@ -376,22 +364,24 @@ class _LoginPageState extends State<LoginPage> {
         setState(() {
           _validUsername = false;
           _usernameErrorMessage = 'User not found';
+          _loading = false;
         });
       } else if (e.code == 'invalid-credential') {
         setState(() {
           _validPassword = false;
           _passwordErrorMessage = 'Incorrect username or password';
+          _loading = false;
         });
       } else {
-        print(e.code);
         setState(() {
           _error = true;
+          _loading = false;
         });
       }
     } catch (e) {
-      print(e.toString());
       setState(() {
         _error = true;
+        _loading = false;
       });
     }
   }

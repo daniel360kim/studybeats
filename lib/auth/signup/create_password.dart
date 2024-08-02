@@ -2,6 +2,7 @@ import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/auth/signup/signup_page.dart';
+import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
@@ -29,6 +30,10 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
 
   bool _loading = false;
 
+  bool _unknownError = false;
+
+  final _authService = AuthService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,6 +49,7 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                   children: [
                     buildHeading(),
                     const SizedBox(height: 30),
+                    if (_unknownError) const UnknownError(),
                     buildTextFields(),
                     const SizedBox(height: 20),
                     passwordRequirements(),
@@ -257,10 +263,18 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
     setState(() {
       _loading = true;
     });
-    AuthService().signUp(
-      widget.username,
-      _passwordController.text,
-    );
+    try {
+      await _authService.signUp(
+        widget.username,
+        _passwordController.text,
+      );
+    } catch (e) {
+      setState(() {
+        _unknownError = true;
+        _loading = false;
+      });
+      return;
+    }
     setState(() {
       _loading = false;
     });

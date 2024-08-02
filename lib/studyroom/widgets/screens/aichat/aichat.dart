@@ -49,6 +49,8 @@ class _AiChatState extends State<AiChat> {
   Uint8List? _imageFile;
   String? _imageUrl;
 
+  final _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
@@ -57,7 +59,7 @@ class _AiChatState extends State<AiChat> {
   }
 
   void _getProfileUrl() async {
-    await AuthService().getProfilePictureUrl().then((value) {
+    await _authService.getProfilePictureUrl().then((value) {
       setState(() {
         _profilePictureUrl = value;
       });
@@ -125,7 +127,10 @@ class _AiChatState extends State<AiChat> {
       _scrollToBottom();
 
       final request = ChatCompleteText(messages: [
-        Map.of({'role': 'user', 'content': userMessage,})
+        Map.of({
+          'role': 'user',
+          'content': userMessage,
+        })
       ], maxToken: 1000, model: Gpt4OMiniChatModel());
 
       setState(() {

@@ -29,6 +29,8 @@ class _EnterNamePageState extends State<EnterNamePage> {
 
   bool _loading = false;
 
+  final _authService = AuthService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -257,7 +259,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
     setState(() {
       _loading = true;
     });
-    AuthService().signUp(
+    _authService.signUp(
       widget.username,
       _passwordController.text,
     );

@@ -19,6 +19,8 @@ class CredentialBar extends StatefulWidget {
 }
 
 class _CredentialBarState extends State<CredentialBar> {
+
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -96,6 +98,8 @@ class _ProfilePictureState extends State<ProfilePicture>
   final double _iconSize = 50.0;
   String? _profileImageUrl;
 
+  final _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
@@ -106,7 +110,7 @@ class _ProfilePictureState extends State<ProfilePicture>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(_controller);
 
     // Fetch the profile image URL once during initialization
-    AuthService().getProfilePictureUrl().then((url) {
+    _authService.getProfilePictureUrl().then((url) {
       setState(() {
         _profileImageUrl = url;
       });
