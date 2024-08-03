@@ -9,6 +9,7 @@ import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CreatePasswordPage extends StatefulWidget {
   const CreatePasswordPage({required this.username, super.key});
@@ -29,53 +30,64 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
   final bool _error = false;
   final String _errorMessage = '';
 
+  final _keyboardListenerFocusNode = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: kFlourishBlackish,
-        body: Center(
-          child: SingleChildScrollView(
-            child: Center(
-              child: SizedBox(
-                width: 350,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildHeading(),
-                    const SizedBox(height: 30),
-                    buildTextFields(),
-                    const SizedBox(height: 20),
-                    passwordRequirements(),
-                    const SizedBox(height: 20),
-                  ElevatedButton(
-                            onPressed: next,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kFlourishAdobe,
-                              minimumSize: const Size(350, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: const Text(
-                              'Next',
-                              style: TextStyle(
-                                color: kFlourishBlackish,
-                                fontSize: 16,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+        body: KeyboardListener(
+          focusNode: _keyboardListenerFocusNode,
+          onKeyEvent: (event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.enter) {
+              next();
+            }
+          },
+          child: Center(
+            child: SingleChildScrollView(
+              child: Center(
+                child: SizedBox(
+                  width: 350,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      buildHeading(),
+                      const SizedBox(height: 30),
+                      buildTextFields(),
+                      const SizedBox(height: 20),
+                      passwordRequirements(),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: next,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kFlourishAdobe,
+                          minimumSize: const Size(350, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                    const SizedBox(height: 40),
-                    Container(
-                      height: 0.5,
-                      width: 550,
-                      color: kFlourishAliceBlue.withOpacity(0.7),
-                    ),
-                    const SizedBox(height: 40),
-                    buildBackToLoginWidgets(),
-                  ],
+                        ),
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            color: kFlourishBlackish,
+                            fontSize: 16,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      Container(
+                        height: 0.5,
+                        width: 550,
+                        color: kFlourishAliceBlue.withOpacity(0.7),
+                      ),
+                      const SizedBox(height: 40),
+                      buildBackToLoginWidgets(),
+                    ],
+                  ),
                 ),
               ),
             ),

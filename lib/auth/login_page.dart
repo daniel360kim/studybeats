@@ -9,6 +9,7 @@ import 'package:flourish_web/auth/widgets/third_party_button.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -36,108 +37,119 @@ class _LoginPageState extends State<LoginPage> {
 
   final _authService = AuthService();
 
+  final _keyboardListenerFocusNode = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: kFlourishBlackish,
-        body: Center(
-          child: SingleChildScrollView(
-            child: Center(
-              child: SizedBox(
-                width: 350,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildHeading(),
-                    const SizedBox(height: 40),
-                    if (_error) const UnknownError(),
-                    CredentialSigninButton(
-                      onPressed: () {
-                        setState(() {
-                          _loading = true;
-                        });
-                        _authService.signUpInWithGoogle().then((value) {
+        body: KeyboardListener(
+          focusNode: _keyboardListenerFocusNode,
+          onKeyEvent: (event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.enter) {
+              login();
+            }
+          },
+          child: Center(
+            child: SingleChildScrollView(
+              child: Center(
+                child: SizedBox(
+                  width: 350,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      buildHeading(),
+                      const SizedBox(height: 40),
+                      if (_error) const UnknownError(),
+                      CredentialSigninButton(
+                        onPressed: () {
                           setState(() {
-                            _loading = false;
+                            _loading = true;
                           });
-                          Navigator.of(context)
-                              .pushReplacement(noTransition(const StudyRoom()));
-                        }).catchError((error) {
+                          _authService.signUpInWithGoogle().then((value) {
+                            setState(() {
+                              _loading = false;
+                            });
+                            Navigator.of(context).pushReplacement(
+                                noTransition(const StudyRoom()));
+                          }).catchError((error) {
+                            setState(() {
+                              error = true;
+                              _loading = false;
+                            });
+                          });
+                        },
+                        backgroundColor: Colors.transparent,
+                        logoPath: 'assets/brand/google.png',
+                        text: 'Sign in with Google',
+                        fontFamily: 'Roboto',
+                      ),
+                      const SizedBox(height: 10),
+                      CredentialSigninButton(
+                        onPressed: () {
                           setState(() {
-                            error = true;
-                            _loading = false;
+                            _loading = true;
                           });
-                        });
-                      },
-                      backgroundColor: Colors.transparent,
-                      logoPath: 'assets/brand/google.png',
-                      text: 'Sign in with Google',
-                      fontFamily: 'Roboto',
-                    ),
-                    const SizedBox(height: 10),
-                    CredentialSigninButton(
-                      onPressed: () {
-                        setState(() {
-                          _loading = true;
-                        });
-                        _authService.signUpInWithMicrosoft().then((value) {
-                          setState(() {
-                            _loading = false;
+                          _authService.signUpInWithMicrosoft().then((value) {
+                            setState(() {
+                              _loading = false;
+                            });
+                            Navigator.of(context).pushReplacement(
+                                noTransition(const StudyRoom()));
+                          }).catchError((error) {
+                            setState(() {
+                              error = true;
+                              _loading = false;
+                            });
                           });
-                          Navigator.of(context)
-                              .pushReplacement(noTransition(const StudyRoom()));
-                        }).catchError((error) {
-                          setState(() {
-                            error = true;
-                            _loading = false;
-                          });
-                        });
-                      },
-                      backgroundColor: Colors.transparent,
-                      logoPath: 'assets/brand/microsoft.png',
-                      text: 'Sign in with Microsoft',
-                      fontFamily: 'SegoeUI',
-                    ),
-                    const SizedBox(height: 40),
-                    Container(
-                      height: 0.5,
-                      width: 550,
-                      color: kFlourishAliceBlue.withOpacity(0.7),
-                    ),
-                    const SizedBox(height: 20),
-                    buildTextFields(),
-                    const SizedBox(height: 15),
-                    _loading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: kFlourishAdobe,
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kFlourishLightBlue,
-                              minimumSize: const Size(350, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                        },
+                        backgroundColor: Colors.transparent,
+                        logoPath: 'assets/brand/microsoft.png',
+                        text: 'Sign in with Microsoft',
+                        fontFamily: 'SegoeUI',
+                      ),
+                      const SizedBox(height: 40),
+                      Container(
+                        height: 0.5,
+                        width: 550,
+                        color: kFlourishAliceBlue.withOpacity(0.7),
+                      ),
+                      const SizedBox(height: 20),
+                      buildTextFields(),
+                      const SizedBox(height: 15),
+                      _loading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: kFlourishAdobe,
+                              ),
+                            )
+                          : ElevatedButton(
+                              onPressed: login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kFlourishLightBlue,
+                                minimumSize: const Size(350, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: const Text(
+                                'Log in',
+                                style: TextStyle(
+                                  color: kFlourishBlackish,
+                                  fontSize: 16,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              'Log in',
-                              style: TextStyle(
-                                color: kFlourishBlackish,
-                                fontSize: 16,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                    const SizedBox(height: 20),
-                    buildSignupWidgets(),
-                  ],
+                      const SizedBox(height: 20),
+                      buildSignupWidgets(),
+                    ],
+                  ),
                 ),
               ),
             ),

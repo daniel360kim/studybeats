@@ -45,6 +45,7 @@ class _AiChatState extends State<AiChat> {
 
   final List<UserMessage> _userMessages = [];
   final List<String> _aiMessages = [];
+  List<Map<String, dynamic>> _conversationHistory = [];
 
   Uint8List? _imageFile;
   String? _imageUrl;
@@ -114,7 +115,10 @@ class _AiChatState extends State<AiChat> {
 
   void _sendTextOnly() async {
     if (_textEditingController.text.isNotEmpty && !_loadingResponse) {
+      final uid = await _authService.getCurrentUserUid();
       final userMessage = _textEditingController.text;
+
+      _conversationHistory.add({'role': 'user', 'content': userMessage});
 
       setState(() {
         _loadingResponse = true;
@@ -126,12 +130,11 @@ class _AiChatState extends State<AiChat> {
       FocusScope.of(context).requestFocus(_textInputFocusNode);
       _scrollToBottom();
 
-      final request = ChatCompleteText(messages: [
-        Map.of({
-          'role': 'user',
-          'content': userMessage,
-        })
-      ], maxToken: 1000, model: Gpt4OMiniChatModel());
+      final request = ChatCompleteText(
+          user: uid,
+          messages: _conversationHistory,
+          maxToken: 1000,
+          model: Gpt4OMiniChatModel());
 
       setState(() {
         _aiMessages.add('');
@@ -143,6 +146,8 @@ class _AiChatState extends State<AiChat> {
         setState(() {
           _aiMessages.last = (element.message!.content);
           _loadingResponse = false;
+          _conversationHistory
+              .add({'role': 'assistant', 'content': element.message!.content});
         });
       }
     }
@@ -150,6 +155,8 @@ class _AiChatState extends State<AiChat> {
 
   void _sendImage() async {
     if (_loadingResponse || _imageUrl == null) return;
+
+    final uid = await _authService.getCurrentUserUid();
 
     late final String userMessage;
     if (_textEditingController.text.isEmpty) {
@@ -160,6 +167,17 @@ class _AiChatState extends State<AiChat> {
 
     _textEditingController.clear();
 
+    _conversationHistory.add({
+      'role': 'user',
+      'content': [
+        {'type': 'text', 'text': userMessage},
+        {
+          'type': 'image_url',
+          'image_url': {'url': _imageUrl}
+        }
+      ]
+    });
+
     setState(() {
       _loadingResponse = true;
       _userMessages.add(UserMessage(userMessage, _imageFile));
@@ -168,6 +186,7 @@ class _AiChatState extends State<AiChat> {
     });
 
     final request = ChatCompleteText(
+      user: uid,
       messages: [
         {
           'role': 'user',
@@ -191,6 +210,7 @@ class _AiChatState extends State<AiChat> {
       String? responseText = response?.choices[0].message!.content;
       _aiMessages.last = responseText!;
       _loadingResponse = false;
+      _conversationHistory.add({'role': 'assistant', 'content': responseText});
     });
   }
 

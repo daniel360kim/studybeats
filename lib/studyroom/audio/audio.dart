@@ -70,6 +70,7 @@ class Audio {
   }
 
   void dispose() {
+    audioPlayer.pause();
     audioPlayer.dispose();
 
     // Log the song end in the cloud database

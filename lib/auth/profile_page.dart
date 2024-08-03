@@ -8,6 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:intl/intl.dart';
 
+class UserData {
+  String displayName;
+  String userCreationDate;
+
+  UserData(this.displayName, this.userCreationDate);
+}
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -56,41 +63,46 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         if (_profileImageUrl != null) buildProfilePicture(),
         const SizedBox(width: 20),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'John Doe',
-              style: TextStyle(
-                color: kFlourishAliceBlue,
-                fontSize: 20,
-              ),
-            ),
-            FutureBuilder<String>(
-              future: _getJoinedDate(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Text(
-                    'Joined ${snapshot.data}',
+        FutureBuilder<UserData>(
+          future: _getUserData(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    snapshot.data!.displayName,
+                    style: const TextStyle(
+                      color: kFlourishAliceBlue,
+                      fontSize: 20,
+                    ),
+                  ),
+                  Text(
+                    'Joined ${snapshot.data?.userCreationDate}',
                     style: const TextStyle(
                       color: kFlourishLightBlackish,
                       fontSize: 14,
                     ),
-                  );
-                } else {
-                  return const SizedBox();
-                }
-              },
-            ),
-          ],
+                  ),
+                ],
+              );
+            } else {
+              return const SizedBox();
+            }
+          },
         ),
       ],
     );
   }
 
-  Future<String> _getJoinedDate() async {
+  // TODO implement proper exception handling
+  Future<UserData> _getUserData() async {
     final DateTime creationDate = await _authService.getAccountCreationDate();
-    return DateFormat('MMM yyyy').format(creationDate);
+    final creationDateStr = DateFormat('MMM yyyy').format(creationDate);
+
+    final displayName = await _authService.getDisplayName();
+
+    return UserData(displayName, creationDateStr);
   }
 
   Widget buildProfilePicture() {

@@ -19,8 +19,6 @@ class CredentialBar extends StatefulWidget {
 }
 
 class _CredentialBarState extends State<CredentialBar> {
-
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -126,7 +124,7 @@ class _ProfilePictureState extends State<ProfilePicture>
   @override
   Widget build(BuildContext context) {
     if (_profileImageUrl == null) {
-      return const SizedBox();
+      return const CircularProgressIndicator();
     }
 
     return buildIconsMenu();

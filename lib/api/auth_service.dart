@@ -30,6 +30,7 @@ class AuthService {
     }
   }
 
+
   Future _registerWithFirestore(String name, String imageURL) async {
     try {
       _logger.i('Registering user with Firebase');
@@ -209,6 +210,47 @@ class AuthService {
     } else {
       _logger.e('Attempted to get account creation date while logged out');
       throw Exception();
+    }
+  }
+    Future<String> getCurrentUserUid() async {
+        final user = FirebaseAuth.instance.currentUser;
+
+    try {
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .get();
+
+        return doc.get('uid');
+      } else {
+        _logger.e('Attempted to get uid while logged out');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e('Unknown error while retrieving uid $e');
+      rethrow;
+    }
+  }
+
+  Future<String> getDisplayName() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    try {
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .get();
+
+        return doc.get('name');
+      } else {
+        _logger.e('Attempted to get display name while logged out');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e('Unknown error while retrieving user display name $e');
+      rethrow;
     }
   }
 
