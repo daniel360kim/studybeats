@@ -1,3 +1,6 @@
+import 'package:flourish_web/api/Stripe/product_service.dart';
+import 'package:flourish_web/api/Stripe/stripe_service.dart';
+import 'package:flourish_web/api/Stripe/subscription_service.dart';
 import 'package:universal_html/html.dart' as html;
 import 'dart:typed_data';
 
@@ -28,9 +31,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   final _authService = AuthService();
 
+  bool isProMember = false;
+
   @override
   void initState() {
     super.initState();
+    getMembershipStatus();
     // Fetch the profile image URL once during initialization
     updateProfilePictureUrl();
   }
@@ -40,6 +46,15 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _profileImageUrl = url;
       });
+    });
+  }
+
+  void getMembershipStatus() async {
+    final membershipStatus =
+        await StripeSubscriptionService().hasProMembership();
+    await StripeProductService().getActiveProducts();
+    setState(() {
+      isProMember = membershipStatus;
     });
   }
 
@@ -84,6 +99,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontSize: 14,
                     ),
                   ),
+                  if (isProMember)
+                    Text(
+                      'Pro Member!',
+                      style: TextStyle(color: kFlourishAliceBlue),
+                    ),
                 ],
               );
             } else {

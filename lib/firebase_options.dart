@@ -48,7 +48,6 @@ class DefaultFirebaseOptions {
     authDomain: 'flourish-web-fa343.firebaseapp.com',
     storageBucket: 'flourish-web-fa343.appspot.com',
     measurementId: 'G-7NRYNEC6P6',
-    
   );
 
   static const FirebaseOptions android = FirebaseOptions(

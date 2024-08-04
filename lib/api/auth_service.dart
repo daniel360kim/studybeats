@@ -30,7 +30,6 @@ class AuthService {
     }
   }
 
-
   Future _registerWithFirestore(String name, String imageURL) async {
     try {
       _logger.i('Registering user with Firebase');
@@ -212,8 +211,9 @@ class AuthService {
       throw Exception();
     }
   }
-    Future<String> getCurrentUserUid() async {
-        final user = FirebaseAuth.instance.currentUser;
+
+  Future<String> getCurrentUserUid() async {
+    final user = FirebaseAuth.instance.currentUser;
 
     try {
       if (user != null) {
@@ -298,46 +298,5 @@ class AuthService {
     final fileName = const Uuid().v4();
     _logger.i('Generating profile picture reference. Uuid: $fileName');
     return FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
-  }
-}
-
-class EmailValidator {
-  final String email;
-
-  EmailValidator(this.email);
-
-  bool isEmailValid() {
-    const String emailRegex =
-        r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)'
-        r'|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
-        r'\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+'
-        r'[a-zA-Z]{2,}))$';
-    final RegExp emailExp = RegExp(emailRegex);
-
-    return emailExp.hasMatch(email);
-  }
-
-  Future<bool> doesUserExist() async {
-    try {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(email).get();
-      return doc.exists;
-    } catch (e) {
-      throw Exception(e);
-    }
-  }
-}
-
-class PasswordValidator {
-  final String password;
-
-  PasswordValidator(this.password);
-
-  bool isLengthRequirementMet() {
-    return password.length >= 8;
-  }
-
-  bool isLetterRequirementMet() {
-    return RegExp(r'[a-zA-Z]').hasMatch(password);
   }
 }

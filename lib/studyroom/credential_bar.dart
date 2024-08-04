@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
+import 'package:flourish_web/api/urls.dart';
 import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/auth/profile_page.dart';
 import 'package:flourish_web/auth/signup/signup_page.dart';
@@ -123,14 +124,16 @@ class _ProfilePictureState extends State<ProfilePicture>
 
   @override
   Widget build(BuildContext context) {
-    if (_profileImageUrl == null) {
-      return const CircularProgressIndicator();
-    }
-
     return buildIconsMenu();
   }
 
   Widget buildIconsMenu() {
+    late final String pfpUrl;
+    if (_profileImageUrl == null) {
+      pfpUrl = kDefaultProfilePicture;
+    } else {
+      pfpUrl = _profileImageUrl!;
+    }
     return Column(
       children: [
         MouseRegion(
@@ -221,8 +224,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(30),
                           image: DecorationImage(
-                            image:
-                                CachedNetworkImageProvider(_profileImageUrl!),
+                            image: CachedNetworkImageProvider(pfpUrl),
                             fit: BoxFit.cover,
                           ),
                         ),

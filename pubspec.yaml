@@ -43,6 +43,7 @@ dependencies:
   dio: ^5.5.0+1
   universal_io: ^2.2.2
   logger: ^2.4.0
+  flutter_stripe: ^11.0.0
 
 
 
