@@ -1,5 +1,3 @@
-import 'package:flourish_web/api/Stripe/product_service.dart';
-import 'package:flourish_web/api/Stripe/stripe_service.dart';
 import 'package:flourish_web/api/Stripe/subscription_service.dart';
 import 'package:universal_html/html.dart' as html;
 import 'dart:typed_data';
@@ -52,7 +50,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void getMembershipStatus() async {
     final membershipStatus =
         await StripeSubscriptionService().hasProMembership();
-    await StripeProductService().getActiveProducts();
+   
     setState(() {
       isProMember = membershipStatus;
     });
@@ -100,7 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   if (isProMember)
-                    Text(
+                    const Text(
                       'Pro Member!',
                       style: TextStyle(color: kFlourishAliceBlue),
                     ),

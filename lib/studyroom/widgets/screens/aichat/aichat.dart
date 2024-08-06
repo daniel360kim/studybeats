@@ -45,7 +45,7 @@ class _AiChatState extends State<AiChat> {
 
   final List<UserMessage> _userMessages = [];
   final List<String> _aiMessages = [];
-  List<Map<String, dynamic>> _conversationHistory = [];
+  final List<Map<String, dynamic>> _conversationHistory = [];
 
   Uint8List? _imageFile;
   String? _imageUrl;

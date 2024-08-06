@@ -2,15 +2,12 @@ import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/auth/signup/create_password.dart';
-import 'package:flourish_web/auth/signup/signup_page.dart';
 import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:universal_html/js_util.dart';
 
 class EnterNamePage extends StatefulWidget {
   const EnterNamePage(

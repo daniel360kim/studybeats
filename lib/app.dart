@@ -1,4 +1,3 @@
-import 'package:flourish_web/auth/signup/name_page.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
 

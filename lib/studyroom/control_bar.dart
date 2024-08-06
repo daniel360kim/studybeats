@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flourish_web/studyroom/audio/objects.dart';
@@ -209,31 +210,19 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   Widget buildBackdrop() {
-    BorderRadius borderRadius = const BorderRadius.all(Radius.circular(20.0));
+    bool left = false;
+    bool right = false;
 
-    if (_showQueue || _showSongInfo || _showEqualizer) {
-      borderRadius = const BorderRadius.only(
-        topLeft: Radius.circular(20.0),
-        bottomLeft: Radius.circular(20.0),
-        bottomRight: Radius.circular(20.0),
-      );
-    }
-    if (_showSceneSelection || _showTimerSelection || _showAiChat) {
-      borderRadius = const BorderRadius.only(
-        topRight: Radius.circular(20.0),
-        bottomLeft: Radius.circular(20.0),
-        bottomRight: Radius.circular(20.0),
-      );
-    }
+    left = _showQueue || _showSongInfo || _showEqualizer;
+    right = _showSceneSelection || _showTimerSelection || _showAiChat;
 
-    if (!_showQueue &&
-        !_showSongInfo &&
-        !_showEqualizer &&
-        !_showSceneSelection &&
-        !_showTimerSelection &&
-        !_showAiChat) {
-      borderRadius = const BorderRadius.all(Radius.circular(20.0));
-    }
+    const enabledBorderRadius = Radius.circular(20.0);
+    BorderRadius borderRadius = BorderRadius.only(
+      topLeft: left ? enabledBorderRadius : Radius.zero,
+      topRight: right ? enabledBorderRadius : Radius.zero,
+      bottomLeft: enabledBorderRadius,
+      bottomRight: enabledBorderRadius,
+    );
 
     return ClipRRect(
       borderRadius: borderRadius,
