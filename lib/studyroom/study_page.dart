@@ -63,7 +63,7 @@ class _StudyRoomState extends State<StudyRoom> {
       setState(() {
         _loadingScene = false;
         this.scenes = scenes;
-        scene = scenes[2];
+        scene = scenes[1];
       });
     });
   }

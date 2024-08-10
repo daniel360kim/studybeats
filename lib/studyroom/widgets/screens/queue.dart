@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
@@ -7,11 +9,13 @@ class SongQueue extends StatefulWidget {
     super.key,
     required this.currentSong,
     required this.queue,
+    required this.songOrder,
     required this.onSongSelected,
   });
 
-  final Song currentSong;
-  final List<Song> queue;
+  final SongMetadata currentSong;
+  final List<SongMetadata> queue;
+  final List<SongMetadata> songOrder;
   final ValueChanged<int> onSongSelected;
 
   @override
@@ -23,6 +27,16 @@ class _SongQueueState extends State<SongQueue> {
     topLeft: Radius.circular(40.0),
     topRight: Radius.circular(40.0),
   );
+
+  // Method to find the index of the song in the songOrder based on its index in the queue
+  int getSongOrderIndex(int queueIndex) {
+    if (queueIndex < 0 || queueIndex >= widget.queue.length) {
+      return -1; // Return -1 if index is out of bounds
+    }
+
+    final songInQueue = widget.queue[queueIndex];
+    return widget.songOrder.indexWhere((song) => song.id == songInQueue.id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +84,7 @@ class _SongQueueState extends State<SongQueue> {
     );
   }
 
+  // In the buildCurrentSong method
   Widget buildCurrentSong() {
     return Align(
       alignment: Alignment.topLeft,
@@ -88,14 +103,20 @@ class _SongQueueState extends State<SongQueue> {
           ),
           const SizedBox(height: 10),
           QueueSongItem(
-              song: widget.currentSong,
-              onPressed: () =>
-                  widget.onSongSelected(widget.currentSong.id - 1)),
+            song: widget.currentSong,
+            onPressed: () {
+              // Find the index of the current song in the queue
+              final queueIndex = widget.queue.indexWhere((song) => song.id == widget.currentSong.id);
+              final songOrderIndex = getSongOrderIndex(queueIndex);
+              widget.onSongSelected(songOrderIndex);
+            },
+          ),
         ],
       ),
     );
   }
 
+  // In the buildQueue method
   Widget buildQueue() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,9 +140,8 @@ class _SongQueueState extends State<SongQueue> {
               return QueueSongItem(
                 song: widget.queue[index],
                 onPressed: () {
-                  widget.onSongSelected(
-                    widget.queue[index].id - 1,
-                  );
+                  final songOrderIndex = getSongOrderIndex(index);
+                  widget.onSongSelected(songOrderIndex); // Use the index directly
                 },
               );
             },
@@ -135,7 +155,7 @@ class _SongQueueState extends State<SongQueue> {
 class QueueSongItem extends StatefulWidget {
   const QueueSongItem({required this.song, required this.onPressed, super.key});
 
-  final Song song;
+  final SongMetadata song;
   final VoidCallback onPressed;
 
   @override
@@ -144,6 +164,7 @@ class QueueSongItem extends StatefulWidget {
 
 class _QueueSongItemState extends State<QueueSongItem> {
   bool _isHovering = false;
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -163,22 +184,21 @@ class _QueueSongItemState extends State<QueueSongItem> {
           padding: const EdgeInsets.all(10.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color:
-                _isHovering ? Colors.grey.withOpacity(0.5) : Colors.transparent,
+            color: _isHovering ? Colors.grey.withOpacity(0.5) : Colors.transparent,
           ),
           child: Row(
             children: [
               PlayButton(
                 isHovering: _isHovering,
                 onPressed: widget.onPressed,
-                thumbnailPath: widget.song.thumbnailPath,
+                thumbnailUrl: widget.song.artworkUrl100,
               ),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.song.name,
+                    widget.song.trackName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -187,7 +207,7 @@ class _QueueSongItemState extends State<QueueSongItem> {
                     ),
                   ),
                   Text(
-                    widget.song.artist,
+                    widget.song.artistName,
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black,
@@ -225,14 +245,14 @@ class _QueueSongItemState extends State<QueueSongItem> {
                       ),
                     )
                   : Text(
-                      formatDuration(widget.song.duration),
+                      formatDuration(widget.song.trackTime),
                       textAlign: TextAlign.left,
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.black,
                         fontFamily: 'Inter',
                       ),
-                    )
+                    ),
             ],
           ),
         ),
@@ -256,6 +276,7 @@ class PopupMenuDetails extends StatefulWidget {
 
   final IconData icon;
   final String text;
+
   @override
   State<PopupMenuDetails> createState() => _PopupMenuDetailsState();
 }
@@ -288,12 +309,12 @@ class PlayButton extends StatefulWidget {
     super.key,
     required this.isHovering,
     required this.onPressed,
-    required this.thumbnailPath,
+    required this.thumbnailUrl,
   });
 
   final bool isHovering;
   final VoidCallback onPressed;
-  final String thumbnailPath;
+  final String thumbnailUrl;
 
   @override
   State<PlayButton> createState() => _PlayButtonState();
@@ -306,8 +327,8 @@ class _PlayButtonState extends State<PlayButton> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Image.asset(
-          widget.thumbnailPath,
+        CachedNetworkImage(
+          imageUrl: widget.thumbnailUrl,
           height: 50,
           width: 50,
           fit: BoxFit.cover,

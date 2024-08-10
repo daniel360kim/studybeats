@@ -1,0 +1,38 @@
+{
+  "resultCount": 1,
+  "results": [
+    {
+      "wrapperType": "track",
+      "kind": "song",
+      "artistId": 1506160054,
+      "collectionId": 1732025672,
+      "trackId": 1732025673,
+      "artistName": "Simon Groß",
+      "collectionName": "The Castle In the Sky",
+      "trackName": "When the Stars Align",
+      "collectionCensoredName": "The Castle In the Sky",
+      "trackCensoredName": "When the Stars Align",
+      "artistViewUrl": "https://music.apple.com/us/artist/simon-gro%C3%9F/1506160054?uo=4",
+      "collectionViewUrl": "https://music.apple.com/us/album/when-the-stars-align/1732025672?i=1732025673&uo=4",
+      "trackViewUrl": "https://music.apple.com/us/album/when-the-stars-align/1732025672?i=1732025673&uo=4",
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/a1/3f/46/a13f468b-82bd-6cc3-deda-a1418fa9e39a/mzaf_16620510309065977875.plus.aac.p.m4a",
+      "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/4d/3b/6f/4d3b6f68-b244-cb03-3d39-8a0540f87fb2/f69a6596-657d-4da5-b68e-35c4ce95a9f4.jpg/30x30bb.jpg",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/4d/3b/6f/4d3b6f68-b244-cb03-3d39-8a0540f87fb2/f69a6596-657d-4da5-b68e-35c4ce95a9f4.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/4d/3b/6f/4d3b6f68-b244-cb03-3d39-8a0540f87fb2/f69a6596-657d-4da5-b68e-35c4ce95a9f4.jpg/100x100bb.jpg",
+      "collectionPrice": 6.93,
+      "trackPrice": 0.99,
+      "releaseDate": "2024-04-04T12:00:00Z",
+      "collectionExplicitness": "notExplicit",
+      "trackExplicitness": "notExplicit",
+      "discCount": 1,
+      "discNumber": 1,
+      "trackCount": 7,
+      "trackNumber": 1,
+      "trackTimeMillis": 188000,
+      "country": "USA",
+      "currency": "USD",
+      "primaryGenreName": "Instrumental",
+      "isStreamable": true
+    }
+  ]
+}

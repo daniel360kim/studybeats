@@ -1,5 +1,5 @@
 import 'package:flourish_web/animations.dart';
-import 'package:flourish_web/api/auth_service.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/auth/signup/create_password.dart';
 import 'package:flourish_web/auth/unknown_error.dart';

@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/waveform.dart';
 import 'package:flutter/cupertino.dart';
@@ -21,7 +23,7 @@ class EqualizerControls extends StatefulWidget {
     required this.onSpeedChange,
   });
 
-  final Song song;
+  final SongMetadata song;
   final Duration elapsedDuration;
   final ValueChanged<double> onSpeedChange;
 
@@ -58,7 +60,9 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                 buildHeader(),
                 const SizedBox(height: 10),
                 Waveform(
-                  song: widget.song,
+                  key: ValueKey(widget.song.waveformPath),
+                  waveformPath: widget.song.waveformPath,
+                  trackTime: widget.song.trackTime,
                   elapsedDuration: widget.elapsedDuration,
                 ),
                 const SizedBox(height: 10),
@@ -87,8 +91,8 @@ class _EqualizerControlsState extends State<EqualizerControls> {
         children: [
           Material(
               elevation: 3,
-              child: Image.asset(
-                widget.song.thumbnailPath,
+              child: CachedNetworkImage(
+                imageUrl: widget.song.artworkUrl100,
                 width: 100,
                 height: 100,
                 fit: BoxFit.cover,
@@ -99,7 +103,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                widget.song.name,
+                widget.song.trackName,
                 style: const TextStyle(
                   fontSize: 25,
                   fontWeight: FontWeight.bold,
@@ -107,7 +111,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
               ),
               const SizedBox(height: 5),
               Text(
-                widget.song.artist,
+                widget.song.artistName,
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black,

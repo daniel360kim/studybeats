@@ -3,7 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:flourish_web/api/auth_service.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

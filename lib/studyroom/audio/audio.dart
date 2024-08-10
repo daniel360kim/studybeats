@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:flourish_web/api/audio/audio_service.dart';
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
@@ -25,23 +28,26 @@ class Audio {
 
   TimerService songDurationTimer = TimerService();
 
-  List<Song> songs = [];
+  //List<SongMetadata> audioPlayer.sequence! = [];
   int currentSongIndex = 0;
-  Playlist playlistInfo = const Playlist(
-    id: 0,
-    name: '',
-    numSongs: 0,
-    playlistPath: '',
-  );
+
+  bool isAdvance =
+      false; // prevents autoAdvance position discontinuity from triggering when shuffling
+
+  final _playlist =
+      ConcatenatingAudioSource(children: [], useLazyPreparation: false);
 
   void initPlayer() async {
     try {
-      // Get the playlist info from the JSON file
-      playlistInfo = await getPlaylistInfo();
-      // Get the appropriate song data from the playlistInfo
-      songs = await getSongsInfo(playlistInfo);
+      final service = AudioService();
 
-      // Get info about the songs from the cloud database based on the playlistId
+      final playlist = await service.getPlaylistInfo(playlistId);
+      final audioSources = await service.getAudioSources(playlist);
+      await _playlist.addAll(audioSources);
+
+      await audioPlayer.setAudioSource(_playlist);
+
+      // Get info about the audioPlayer.sequence! from the cloud database based on the playlistId
       _cloudInfoHandler = SongCloudInfoHandler(playlistId: playlistId);
       await _cloudInfoHandler.init();
 
@@ -56,14 +62,23 @@ class Audio {
         },
       );
 
-      _setAudioSourceAsStream(songs[currentSongIndex].songPath);
-
-      // Go to the next song when the current song finishes
-      audioPlayer.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed) {
-          nextSong();
+      audioPlayer.positionDiscontinuityStream.listen((discontinuity) {
+        if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance) {
+          if (isAdvance) {
+            isAdvance = false;
+            return;
+          }
+          isLoaded.value = false;
+          if (currentSongIndex + 1 < audioPlayer.sequence!.length) {
+            currentSongIndex = currentSongIndex + 1;
+          } else {
+            currentSongIndex = 0;
+          }
+          isLoaded.value = true;
         }
       });
+
+      isLoaded.value = true;
     } catch (e) {
       rethrow;
     }
@@ -75,35 +90,6 @@ class Audio {
 
     // Log the song end in the cloud database
     _cloudInfoHandler.onSongEnd(currentSongIndex, getSongPlayedDuration());
-  }
-
-  Future<Playlist> getPlaylistInfo() async {
-    try {
-      String json =
-          await rootBundle.loadString('assets/audio/index/playlists.json');
-
-      List<dynamic> playlists = await jsonDecode(json);
-      List<Playlist> playlistList =
-          playlists.map((playlist) => Playlist.fromJson(playlist)).toList();
-
-      return playlistList.firstWhere((playlist) => playlist.id == playlistId);
-    } catch (e) {
-      _logger.e('Playlist info asset not found. $e');
-      rethrow;
-    }
-  }
-
-  Future<List<Song>> getSongsInfo(Playlist playlistInfo) async {
-    try {
-      String json = await rootBundle.loadString(playlistInfo.playlistPath);
-      List<dynamic> songs = await jsonDecode(json);
-      List<Song> songList = songs.map((song) => Song.fromJson(song)).toList();
-
-      return songList;
-    } catch (e) {
-      _logger.e('Song info for playlist ${playlistInfo.name} not found. $e');
-      rethrow;
-    }
   }
 
   void play() async {
@@ -147,36 +133,6 @@ class Audio {
     }
   }
 
-  void _setAudioSourceAsStream(String path) async {
-    try {
-      var loadStartTime = DateTime.now();
-      final file = await rootBundle.load(path);
-      var loadEndTime = DateTime.now();
-      var loadDuration = loadEndTime.difference(loadStartTime);
-      _logger.d('rootBundle.load time: ${loadDuration.inMilliseconds}ms');
-
-      var streamStartTime = DateTime.now();
-      final streamAudioSource = BufferAudioSource(file.buffer.asUint8List());
-      var streamEndTime = DateTime.now();
-      var streamDuration = streamEndTime.difference(streamStartTime);
-      _logger.d(
-          'BufferAudioSource creation time: ${streamDuration.inMilliseconds}ms');
-
-      var setStartTime = DateTime.now();
-      final audioSource = streamAudioSource;
-      await audioPlayer.setAudioSource(audioSource, preload: true);
-      var setEndTime = DateTime.now();
-      var setDuration = setEndTime.difference(setStartTime);
-      _logger.d(
-          'audioPlayer.setAudioSource time: ${setDuration.inMilliseconds}ms');
-
-      isLoaded.value = true;
-    } catch (e) {
-      _logger.e(e);
-      rethrow;
-    }
-  }
-
   void setSpeed(double speed) async {
     try {
       await audioPlayer.setSpeed(speed);
@@ -192,8 +148,7 @@ class Audio {
 
     isLoaded.value = false;
     try {
-      _setAudioSourceAsStream(songs[index].songPath);
-      await audioPlayer.seek(Duration.zero);
+      await audioPlayer.seek(Duration.zero, index: index);
       currentSongIndex = index;
 
       songDurationTimer.reset();
@@ -214,7 +169,7 @@ class Audio {
     isLoaded.value = false;
     int nextIndex = 0;
 
-    if (currentSongIndex + 1 < songs.length) {
+    if (currentSongIndex + 1 < audioPlayer.sequence!.length) {
       nextIndex = currentSongIndex + 1;
     } else {
       nextIndex = 0;
@@ -234,7 +189,7 @@ class Audio {
     if (currentSongIndex - 1 >= 0) {
       prevIndex = currentSongIndex - 1;
     } else {
-      prevIndex = songs.length - 1;
+      prevIndex = audioPlayer.sequence!.length - 1;
     }
     try {
       await seekToIndex(prevIndex).then((value) => isLoaded.value = true);
@@ -253,11 +208,33 @@ class Audio {
   }
 
   void shuffle() async {
-    songs.shuffle();
+    isAdvance = true;
+    // Get the current sequence of AudioSources
+    final sequence = audioPlayer.sequence;
+
+    if (sequence == null || sequence.isEmpty) {
+      return; // No songs to shuffle
+    }
+
+    // Shuffle the audio sources
+    final random = Random();
+    final shuffledSequence =
+        List<AudioSource>.from(sequence); // Create a mutable copy
+    shuffledSequence.shuffle(random); // Shuffle the list
+
+    // Replace the current sequence with the shuffled sequence
+    await audioPlayer
+        .setAudioSource(ConcatenatingAudioSource(children: shuffledSequence));
+
+    // Select a new random song index
+    currentSongIndex =
+        random.nextInt(shuffledSequence.length); // Select random index
+
     try {
       await seekToIndex(currentSongIndex);
+      print('');
     } catch (e) {
-      rethrow;
+      _logger.e('Failed to seek to shuffled song: $e');
     }
   }
 
@@ -273,32 +250,51 @@ class Audio {
   // Gets the current state of the player
   Stream<PlayerState> get playerStateStream => audioPlayer.playerStateStream;
 
-  Song getCurrentSongInfo() {
-    return songs[currentSongIndex];
+  SongMetadata getCurrentSongInfo() {
+    return audioPlayer.sequence![currentSongIndex].tag;
   }
 
-  Song getNextSongInfo() {
-    if (currentSongIndex + 1 < songs.length) {
-      return songs[currentSongIndex + 1];
+  SongMetadata getNextSongInfo() {
+    if (currentSongIndex + 1 < audioPlayer.sequence!.length) {
+      return audioPlayer.sequence![currentSongIndex + 1].tag;
     }
 
-    return songs[0];
+    return audioPlayer.sequence![0].tag;
   }
 
-  Song getPreviousSongInfo() {
+  SongMetadata getPreviousSongInfo() {
     if (currentSongIndex - 1 >= 0) {
-      return songs[currentSongIndex - 1];
+      return audioPlayer.sequence![currentSongIndex - 1].tag;
     }
-    return songs[songs.length - 1];
+    return audioPlayer.sequence![audioPlayer.sequence!.length - 1].tag;
   }
 
   Future getCurrentSongCloudInfo() async {
     return await _cloudInfoHandler.getSongCloudInfo(currentSongIndex);
   }
 
-  List<Song> getSongOrder() {
-    return songs.sublist(currentSongIndex + 1) +
-        songs.sublist(0, currentSongIndex);
+  List<SongMetadata> getSongOrder() {
+    // Get the current sequence of audio sources
+    final sequence = audioPlayer.sequence;
+
+    if (sequence == null || sequence.isEmpty) {
+      return []; // Return an empty list if no songs are available
+    }
+
+    // Create a list to hold the song order
+    List<SongMetadata> orderedSongs = [];
+
+    // Add songs starting from the current song index to the end
+    for (int i = currentSongIndex + 1; i < sequence.length - 1; i++) {
+      orderedSongs.add(sequence[i].tag);
+    }
+
+    // Add songs from the beginning of the list to the current song index
+    for (int i = 0; i < currentSongIndex; i++) {
+      orderedSongs.add(sequence[i].tag);
+    }
+
+    return orderedSongs;
   }
 }
 

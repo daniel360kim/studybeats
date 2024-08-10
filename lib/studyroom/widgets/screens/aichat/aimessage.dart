@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/api/urls.dart';
+import 'package:flourish_web/api/auth/urls.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';

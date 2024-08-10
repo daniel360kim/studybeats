@@ -1,3 +1,4 @@
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,7 @@ class SongInfo extends StatefulWidget {
     super.key,
   });
 
-  final Song song;
+  final SongMetadata song;
   final Stream<PositionData> positionData;
   final ValueChanged<Duration> onSeekRequested;
 
@@ -59,7 +60,7 @@ class _SongInfoState extends State<SongInfo> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    widget.song.name,
+                    widget.song.trackName,
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -67,7 +68,7 @@ class _SongInfoState extends State<SongInfo> {
                     ),
                   ),
                   Text(
-                    widget.song.artist,
+                    widget.song.artistName,
                     style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w300,

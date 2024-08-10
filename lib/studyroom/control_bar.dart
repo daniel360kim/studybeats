@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/audio.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
@@ -38,14 +39,17 @@ class Player extends StatefulWidget {
 class _PlayerState extends State<Player> with WidgetsBindingObserver {
   late final Audio _audio;
 
-  Song currentSongInfo = const Song(
+  SongMetadata currentSongInfo = SongMetadata(
+    artistName: 'Loading...',
+    collectionName: 'Loading...',
+    trackName: 'Loading...',
+    artworkUrl100: '',
+    releaseDate: DateTime.now(),
+    trackTime: 0.0,
+    genreName: 'Loading...',
     id: 0,
-    name: 'Loading...',
-    artist: 'Loading...',
-    duration: 0,
-    link: 'Loading...',
-    songPath: '',
-    thumbnailPath: '',
+    youtubeLink: '',
+    appleLink: '',
     waveformPath: '',
   );
 
@@ -56,7 +60,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     averagePlaytime: Duration.zero,
   );
 
-  List<Song> songQueue = [];
+  List<SongMetadata> songQueue = [];
 
   bool verticalLayout = false;
 
@@ -155,6 +159,10 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                   ? Align(
                       alignment: Alignment.bottomRight,
                       child: SongQueue(
+                        songOrder:
+                            _audio.audioPlayer.sequence!.map((audioSource) {
+                          return audioSource.tag as SongMetadata;
+                        }).toList(),
                         currentSong: currentSongInfo,
                         queue: songQueue,
                         onSongSelected: (index) {
@@ -282,7 +290,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
             return Controls(
               onShuffle: () {
                 _audio.shuffle();
-                updateSong();
               },
               onPrevious: _previousSong,
               onPlay: _audio.play,

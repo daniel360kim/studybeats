@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/api/auth_service.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +31,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool isProMember = false;
 
+  bool _loadingImagePicker = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void getMembershipStatus() async {
     final membershipStatus =
         await StripeSubscriptionService().hasProMembership();
-   
+
     setState(() {
       isProMember = membershipStatus;
     });
@@ -151,15 +153,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: BoxShape.circle,
                 color: kFlourishAliceBlue,
                 border: Border.all(
-                  color: Colors.blue,
+                  color: _loadingImagePicker ? kFlourishAliceBlue : Colors.blue,
                   width: 2,
                 ),
               ),
-              child: const Icon(
-                Icons.edit,
-                size: 15,
-                color: Colors.blue,
-              ),
+              child: _loadingImagePicker
+                  ? const CircularProgressIndicator()
+                  : const Icon(
+                      Icons.edit,
+                      size: 15,
+                      color: Colors.blue,
+                    ),
             ),
           ),
         ],
@@ -168,11 +172,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _pickImage() async {
+    setState(() => _loadingImagePicker = true);
     final file = await ImagePickerWeb.getImageAsFile();
-    // load the file for optimistic UI updates
+    // load the file for optimistic UI updates 
+    // TODO set loading to false when image picker cancel
     final reader = html.FileReader();
     reader.onLoadEnd.listen((event) {
       setState(() {
+        _loadingImagePicker = false;
         _imageFile = reader.result as Uint8List;
       });
     });
@@ -183,10 +190,13 @@ class _ProfilePageState extends State<ProfilePage> {
       updateProfilePictureUrl();
       setState(() {
         _imageFile = null;
+        _loadingImagePicker = false;
       });
     } catch (e) {
       setState(() {
+        // TODO HANDLE ERROR
         _imageFile = null;
+        _loadingImagePicker = false;
       });
     }
   }

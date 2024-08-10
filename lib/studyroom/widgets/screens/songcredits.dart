@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flourish_web/api/audio/audio_service.dart';
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
@@ -17,7 +19,7 @@ class SongCredits extends StatefulWidget {
     required this.song,
   });
 
-  final Song song;
+  final SongMetadata song;
 
   @override
   State<SongCredits> createState() => _SongCreditsState();
@@ -32,24 +34,20 @@ enum InfoType {
 class _SongCreditsState extends State<SongCredits> {
   InfoType _selectedSegment = InfoType.details;
 
-  int _sample_rate = 0;
-  int _channels = 1;
-  int _bit_depth = 0;
+  WaveformMetadata _metadata =
+      WaveformMetadata(sampleRate: 0, channels: 1, bitDepth: 0);
 
   Future loadSongInfo() async {
-    final json = await rootBundle.loadString(widget.song.waveformPath);
-    final data = jsonDecode(json);
+    final audioService = AudioService();
 
-    _sample_rate = data['sample_rate'];
-    _channels = data['channels'];
-    _bit_depth = data['bits'];
+    return audioService.getWaveformMetadata(widget.song.waveformPath);
   }
 
   @override
   void initState() {
     super.initState();
     loadSongInfo().then((value) {
-      setState(() {});
+      setState(() => _metadata = value);
     });
   }
 
@@ -136,7 +134,7 @@ class _SongCreditsState extends State<SongCredits> {
         Row(
           children: [
             Text(
-              widget.song.name,
+              widget.song.trackName,
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -158,7 +156,8 @@ class _SongCreditsState extends State<SongCredits> {
                         text: 'Copy link',
                       ),
                       onTap: () {
-                        Clipboard.setData(ClipboardData(text: widget.song.link))
+                        Clipboard.setData(
+                                ClipboardData(text: widget.song.youtubeLink))
                             .then((_) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -173,8 +172,9 @@ class _SongCreditsState extends State<SongCredits> {
                         text: 'Open',
                       ),
                       onTap: () async {
-                        if (await canLaunchUrl(Uri.parse(widget.song.link))) {
-                          await launchUrl(Uri.parse(widget.song.link));
+                        if (await canLaunchUrl(
+                            Uri.parse(widget.song.youtubeLink))) {
+                          await launchUrl(Uri.parse(widget.song.youtubeLink));
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -192,15 +192,15 @@ class _SongCreditsState extends State<SongCredits> {
           ],
         ),
         const SizedBox(height: 13),
-        getInfoText('Artist', widget.song.artist),
+        getInfoText('Artist', widget.song.artistName),
         const SizedBox(height: 3),
-        getInfoText('Duration', convertDuration(widget.song.duration)),
+        getInfoText('Duration', convertDuration(widget.song.trackTime)),
         const SizedBox(height: 16),
-        getInfoText('Sample Rate', '$_sample_rate Hz'),
+        getInfoText('Sample Rate', '${_metadata.sampleRate} Hz'),
         const SizedBox(height: 3),
-        getInfoText('Channels', '$_channels'),
+        getInfoText('Channels', '${_metadata.channels}'),
         const SizedBox(height: 3),
-        getInfoText('Bit Depth', '$_bit_depth bits'),
+        getInfoText('Bit Depth', '${_metadata.bitDepth} bits'),
       ],
     );
   }
@@ -234,9 +234,9 @@ class _SongCreditsState extends State<SongCredits> {
   Widget buildArtwork() {
     return Center(
       child: CachedNetworkImage(
-        imageUrl: widget.song.thumbnailPath,
+        imageUrl: widget.song.artworkUrl100.replaceAll('100x100', '600x600'),
         width: 500,
-        height: 288,
+        height: 500,
         fit: BoxFit.cover,
       ),
     );
