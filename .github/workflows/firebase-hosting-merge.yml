@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
         with:
-          node-version: '16' # specify your desired version
+          node-version: '20' # specify your desired version
       - run: npm -v # Check npm version
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
