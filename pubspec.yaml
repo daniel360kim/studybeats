@@ -76,4 +76,3 @@ flutter:
     - assets/scenes/
     - assets/brand/
     - assets/animations/
-    - .env
