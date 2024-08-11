@@ -12,6 +12,7 @@ jobs:
         with:
           node-version: '20' # specify your desired version
       - run: npm -v # Check npm version
+      - run: npm ci && npm run generate
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
