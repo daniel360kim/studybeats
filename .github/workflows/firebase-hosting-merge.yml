@@ -12,6 +12,10 @@ jobs:
           channel: beta
           cache: true
       - uses: actions/checkout@v2
+      - name: Decode base64 secrets
+        run: echo $SECRETS_FILE_CONTENTS | base64 -d > lib/secrets.dart
+        env:
+          SECRETS_FILE_CONTENTS: ${{ secrets.SECRETS_FILE_CONTENTS }}
       - run: flutter build web --no-tree-shake-icons
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:

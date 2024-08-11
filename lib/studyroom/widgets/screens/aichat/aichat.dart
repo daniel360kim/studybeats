@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flourish_web/secrets.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -7,7 +8,6 @@ import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:uuid/uuid.dart';
 
@@ -33,7 +33,7 @@ class _AiChatState extends State<AiChat> {
   final ScrollController _scrollController = ScrollController();
 
   final OpenAI openAi = OpenAI.instance.build(
-      token: dotenv.env['OPENAI_PROJECT_API_KEY'],
+      token: OPENAI_PROJECT_API_KEY,
       baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
       enableLog: true);
 

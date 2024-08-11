@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart'
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
+import 'package:flourish_web/secrets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'firebase_options.dart';
@@ -36,7 +36,7 @@ class ApplicationState extends ChangeNotifier {
       EmailAuthProvider(),
       GoogleProvider(
           clientId:
-              dotenv.env['GOOGLE_SIGNIN_CLIENT_ID']!,),
+              GOOGLE_SIGNIN_CLIENT_ID,),
     ]);
 
     FirebaseAuth.instance.userChanges().listen((user) {
