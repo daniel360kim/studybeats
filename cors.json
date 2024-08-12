@@ -1,0 +1,7 @@
+[
+    {
+      "origin": ["https://flourish-web-fa343.web.app/"],
+      "method": ["GET"],
+      "maxAgeSeconds": 3600
+    }
+  ]

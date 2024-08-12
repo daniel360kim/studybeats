@@ -1,22 +1,39 @@
 name: Deploy to Firebase Hosting on merge
+
 on:
   push:
     branches:
       - main
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+      
       - uses: subosito/flutter-action@v2.2.1
         with:
           channel: beta
           cache: true
-      - uses: actions/checkout@v2
+      
       - name: Decode base64 secrets
         run: echo $SECRETS_FILE_CONTENTS | base64 -d > lib/secrets.dart
         env:
           SECRETS_FILE_CONTENTS: ${{ secrets.SECRETS_FILE_CONTENT }}
-      - run: flutter build web --no-tree-shake-icons
+      
+      - name: Install Google Cloud SDK
+        run: |
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          sudo apt-get install apt-transport-https ca-certificates gnupg -y
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          sudo apt-get update && sudo apt-get install google-cloud-sdk -y
+      
+      - name: Set CORS Configuration
+        run: gsutil cors set ./cors.json ${{ secrets.BUCKET_NAME }}
+      
+      - name: Build Flutter Web App
+        run: flutter build web --no-tree-shake-icons
+      
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
