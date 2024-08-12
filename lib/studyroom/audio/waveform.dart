@@ -1,9 +1,5 @@
-import 'dart:convert';
 import 'package:flourish_web/api/audio/audio_service.dart';
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:shimmer/shimmer.dart';

@@ -96,50 +96,6 @@ class Playlist {
   String toString() => jsonEncode(toJson());
 }
 
-BackgroundSound _$SoundFxFromJson(Map<String, dynamic> json) {
-  return BackgroundSound(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    soundPath: json['soundfxPath'] as String,
-    iconId: json['iconId'] as int,
-    fontFamily: json['fontFamily'] as String,
-  );
-}
-
-Map<String, dynamic> _$SoundFxToJson(BackgroundSound instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'soundfxPath': instance.soundPath,
-      'iconId': instance.iconId,
-      'fontFamily': instance.fontFamily,
-    };
-
-@JsonSerializable()
-class BackgroundSound {
-  final int id;
-  final String name;
-  final String soundPath;
-  final int iconId;
-  final String fontFamily;
-
-  const BackgroundSound({
-    required this.id,
-    required this.name,
-    required this.soundPath,
-    required this.iconId,
-    required this.fontFamily,
-  });
-
-  factory BackgroundSound.fromJson(Map<String, dynamic> json) =>
-      _$SoundFxFromJson(json);
-
-  Map<String, dynamic> toJson() => _$SoundFxToJson(this);
-
-  @override
-  String toString() => jsonEncode(toJson());
-}
-
 SongCloudInfo _$SongCloudInfoFromJson(Map<String, dynamic> json) {
   return SongCloudInfo(
     isFavorite: json['isFavorite'] as bool,

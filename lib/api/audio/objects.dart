@@ -103,3 +103,35 @@ class WaveformMetadata {
   factory WaveformMetadata.fromJson(Map<String, dynamic> json) =>
       _$WaveformMetadataFromJson(json);
 }
+
+
+BackgroundSound _$SoundFxFromJson(Map<String, dynamic> json) {
+  return BackgroundSound(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    soundPath: json['soundfxPath'] as String,
+    iconId: json['iconId'] as int,
+    fontFamily: json['fontFamily'] as String,
+  );
+}
+
+@JsonSerializable()
+class BackgroundSound {
+  final int id;
+  final String name;
+  final String soundPath;
+  final int iconId;
+  final String fontFamily;
+
+  const BackgroundSound({
+    required this.id,
+    required this.name,
+    required this.soundPath,
+    required this.iconId,
+    required this.fontFamily,
+  });
+
+  factory BackgroundSound.fromJson(Map<String, dynamic> json) =>
+      _$SoundFxFromJson(json);
+
+}

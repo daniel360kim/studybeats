@@ -1,5 +1,4 @@
 import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
 import 'package:flutter/material.dart';
 

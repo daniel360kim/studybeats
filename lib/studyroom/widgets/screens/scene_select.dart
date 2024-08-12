@@ -2,7 +2,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/studytools/scene.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';

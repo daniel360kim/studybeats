@@ -1,10 +1,8 @@
-import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/audio/audio_service.dart';
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

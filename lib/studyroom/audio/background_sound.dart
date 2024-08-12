@@ -1,13 +1,12 @@
-import 'dart:convert';
-
-import 'package:flourish_web/studyroom/audio/objects.dart';
+import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:quiver/async.dart';
 
 import 'volumebar.dart';
+import 'package:flourish_web/api/audio/sfx_service.dart';
+import 'package:flourish_web/studyroom/audio/objects.dart';
 
 class BackgroundSoundControl extends StatefulWidget {
   const BackgroundSoundControl(
@@ -24,19 +23,16 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
     with WidgetsBindingObserver {
   late Offset _offset;
   bool _selected = false;
+  bool _loading = true;
 
   final _player = AudioPlayer();
   CountdownTimer? _timer;
   final double _volume = 0.5;
   double _volumeBeforeFade = 0.5;
 
-  BackgroundSound backgroundSound = const BackgroundSound(
-    id: 0,
-    name: '',
-    soundPath: '',
-    iconId: 0,
-    fontFamily: '',
-  );
+  final _sfxService = SfxService();
+
+  BackgroundSound? backgroundSound;
 
   Future<void> _loadBackgroundSoundControl() async {
     final session = await AudioSession.instance;
@@ -47,16 +43,9 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
       print('A stream error occurred: $e');
     });
 
-    String json = await rootBundle.loadString('assets/background/index.json');
-    List<dynamic> backgroundSounds = await jsonDecode(json);
-    List<BackgroundSound> backgroundSoundList = backgroundSounds
-        .map((backgroundSound) => BackgroundSound.fromJson(backgroundSound))
-        .toList();
-
-    backgroundSound = backgroundSoundList
-        .firstWhere((backgroundSound) => backgroundSound.id == widget.id);
-
-    await _player.setAudioSource(AudioSource.asset(backgroundSound.soundPath));
+    backgroundSound = await _sfxService.getBackgroundSoundInfo(widget.id);
+    final audioUrl = await _sfxService.getBackgroundSoundUrl(backgroundSound!);
+    await _player.setAudioSource(AudioSource.uri(Uri.parse(audioUrl)));
 
     // Make the audio player repeat the song when it ends
     _player.processingStateStream.listen((state) {
@@ -64,16 +53,18 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
         _player.seek(Duration.zero);
       }
     });
+
+    // Mark loading as complete
+    setState(() {
+      _loading = false;
+    });
   }
 
   @override
   void initState() {
     super.initState();
     _offset = widget.initialPosition;
-    _loadBackgroundSoundControl().then((_) {
-      setState(() {});
-    });
-    
+    _loadBackgroundSoundControl();
   }
 
   @override
@@ -117,34 +108,36 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
             },
             child: Column(
               children: [
-                Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: _selected
-                        ? Colors.white.withOpacity(0.5)
-                        : Colors.black.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-
-                  child: IconButton(
-                    icon: Icon(
-                      IconData(
-                        backgroundSound.iconId,
-                        fontFamily: backgroundSound.fontFamily,
+                _loading
+                    ? ShimmerLoadingWidget() // Replace this with your shimmer or loading widget
+                    : Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: _selected
+                              ? Colors.white.withOpacity(0.5)
+                              : Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            IconData(
+                              backgroundSound!.iconId,
+                              fontFamily: backgroundSound!.fontFamily,
+                            ),
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            _selected
+                                ? fadeOutAndStop(startVolume: _volume)
+                                : play();
+                            setState(() {
+                              _selected = !_selected;
+                            });
+                          },
+                        ),
                       ),
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _selected ? fadeOutAndStop(startVolume: _volume) : play();
-                      setState(() {
-                        _selected = !_selected;
-                      });
-                    },
-                    color: Colors.black,
-                  ),
-                ),
-                if (_selected) const SizedBox(height: 5),
-                if (_selected) buildControls(),
+                if (_selected && !_loading) const SizedBox(height: 5),
+                if (_selected && !_loading) buildControls(),
               ],
             ),
           ),
@@ -195,5 +188,19 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
 
   Future<void> setVolume(double volume) async {
     await _player.setVolume(volume);
+  }
+}
+
+class ShimmerLoadingWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 50,
+      width: 50,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        shape: BoxShape.circle,
+      ),
+    );
   }
 }
