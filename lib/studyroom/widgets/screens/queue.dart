@@ -190,7 +190,7 @@ class _QueueSongItemState extends State<QueueSongItem> {
               PlayButton(
                 isHovering: _isHovering,
                 onPressed: widget.onPressed,
-                thumbnailUrl: widget.song.artworkUrl100,
+                thumbnailUrl: widget.song.artworkUrl100, //TODO handle nulls
               ),
               const SizedBox(width: 10),
               Column(
@@ -244,7 +244,7 @@ class _QueueSongItemState extends State<QueueSongItem> {
                       ),
                     )
                   : Text(
-                      formatDuration(widget.song.trackTime),
+                      formatDuration(widget.song.trackTime), // TODO Handle nulls
                       textAlign: TextAlign.left,
                       style: const TextStyle(
                         fontSize: 14,

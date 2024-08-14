@@ -59,7 +59,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                 buildHeader(),
                 const SizedBox(height: 10),
                 Waveform(
-                  key: ValueKey(widget.song.waveformPath),
+                  key: ValueKey(widget.song.waveformPath), // TODO Handle nulls
                   waveformPath: widget.song.waveformPath,
                   trackTime: widget.song.trackTime,
                   elapsedDuration: widget.elapsedDuration,
@@ -91,7 +91,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
           Material(
               elevation: 3,
               child: CachedNetworkImage(
-                imageUrl: widget.song.artworkUrl100,
+                imageUrl: widget.song.artworkUrl100, // TODO handle nulls
                 width: 100,
                 height: 100,
                 fit: BoxFit.cover,

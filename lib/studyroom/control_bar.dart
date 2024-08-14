@@ -43,13 +43,12 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     collectionName: 'Loading...',
     trackName: 'Loading...',
     artworkUrl100: '',
-    releaseDate: DateTime.now(),
     trackTime: 0.0,
-    genreName: 'Loading...',
     id: 0,
     youtubeLink: '',
     appleLink: '',
     waveformPath: '',
+    songPath: '',
   );
 
   SongCloudInfo currentCloudSongInfo = const SongCloudInfo(

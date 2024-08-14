@@ -6,7 +6,6 @@ import 'package:quiver/async.dart';
 
 import 'volumebar.dart';
 import 'package:flourish_web/api/audio/sfx_service.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
 
 class BackgroundSoundControl extends StatefulWidget {
   const BackgroundSoundControl(
@@ -109,7 +108,7 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
             child: Column(
               children: [
                 _loading
-                    ? ShimmerLoadingWidget() // Replace this with your shimmer or loading widget
+                    ? const ShimmerLoadingWidget() // Replace this with your shimmer or loading widget
                     : Container(
                         height: 50,
                         decoration: BoxDecoration(
@@ -192,6 +191,8 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
 }
 
 class ShimmerLoadingWidget extends StatelessWidget {
+  const ShimmerLoadingWidget({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Container(

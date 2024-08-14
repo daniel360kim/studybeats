@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/audio/itunes_service.dart';
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/api/audio/urls.dart';
 import 'package:flourish_web/log_printer.dart';
@@ -34,63 +33,41 @@ class AudioService {
     }
   }
 
-  Future<List<SongReference>> getSongReferences(Playlist playlistInfo) async {
-    try {
-      final jsonRef = _storageRef.child(playlistInfo.playlistPath);
-      final url = await jsonRef.getDownloadURL();
-
-      final response = await _fetchJsonData(url);
-      List<dynamic> songs = await jsonDecode(response);
-      List<SongReference> songRefList =
-          songs.map((song) => SongReference.fromJson(song)).toList();
-
-      _logger.i(
-          'Found ${songRefList.length} songs in playlist ${playlistInfo.name}');
-
-      if (songRefList.length != playlistInfo.numSongs) {
-        _logger.w(
-            'Parsed songs for playlist ${playlistInfo.name} does not have the same length as parsed playlist info');
-      }
-      return songRefList;
-    } catch (e) {
-      _logger.e('Unexpected error while parsing song list: $e');
-      rethrow;
-    }
-  }
-
   Future<List<AudioSource>> getAudioSources(Playlist playlistInfo) async {
     final startTime = DateTime.now();
     try {
       _logger.i('Generating song uris...');
-      final songRefs = await getSongReferences(playlistInfo);
 
-      List<AudioSource> sources = [];
-      final itunesService = ITunesService();
+      final jsonRef = _storageRef.child(playlistInfo.playlistPath);
+      final url = await jsonRef.getDownloadURL();
 
-      // Prepare a list of future download URL requests
-      final List<Future<String>> urlFutures = songRefs.map((ref) {
-        final songRef = _storageRef.child(ref.path!);
-        return songRef.getDownloadURL();
-      }).toList();
+      final response = await _fetchJsonData(url);
 
-      // Await all futures to resolve simultaneously
-      final List<String> urls = await Future.wait(urlFutures);
+      List<dynamic> metadataList = await jsonDecode(response);
 
-      // Process each song reference with its corresponding URL
-      for (int i = 0; i < songRefs.length; i++) {
-        final ref = songRefs[i];
-        final uri = Uri.parse(urls[i]);
-        final songMetadata =
-            await itunesService.getSongMetadata(ref.appleLink!, ref);
+      if (metadataList.length != playlistInfo.numSongs) {
+        _logger.w(
+            'Playlist info num songs does not match number of metadata elements found');
+      }
 
-        sources.add(AudioSource.uri(uri, tag: songMetadata));
+      List<SongMetadata> sources = metadataList
+          .map((metadata) => SongMetadata.fromJson(metadata))
+          .toList();
+
+      List<AudioSource> audioSources = [];
+
+      for (final source in sources) {
+        final jsonRef = _storageRef.child(source.songPath); // error handle nulls TODO
+        final uri = Uri.parse(await jsonRef.getDownloadURL());
+
+        audioSources.add(AudioSource.uri(uri, tag: source));
       }
 
       final endTime = DateTime.now();
       _logger.d(
           'Getting audio sources took ${endTime.difference(startTime).inMilliseconds} ms');
 
-      return sources;
+      return audioSources;
     } catch (e) {
       _logger.e('Unexpected error while generating song uris. $e');
       rethrow;
