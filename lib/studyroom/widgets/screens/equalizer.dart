@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
+import 'package:shimmer/shimmer.dart';
+
 enum Speed { x_5, x1, x1_5, x2 }
 
 Map<Speed, double> speedValues = {
@@ -22,7 +24,7 @@ class EqualizerControls extends StatefulWidget {
     required this.onSpeedChange,
   });
 
-  final SongMetadata song;
+  final SongMetadata? song;
   final Duration elapsedDuration;
   final ValueChanged<double> onSpeedChange;
 
@@ -58,12 +60,14 @@ class _EqualizerControlsState extends State<EqualizerControls> {
               children: [
                 buildHeader(),
                 const SizedBox(height: 10),
-                Waveform(
-                  key: ValueKey(widget.song.waveformPath), // TODO Handle nulls
-                  waveformPath: widget.song.waveformPath,
-                  trackTime: widget.song.trackTime,
-                  elapsedDuration: widget.elapsedDuration,
-                ),
+                widget.song == null
+                    ? _buildShimmerWaveformPlaceholder()
+                    : Waveform(
+                        key: ValueKey(widget.song!.waveformPath),
+                        waveformPath: widget.song!.waveformPath,
+                        trackTime: widget.song!.trackTime,
+                        elapsedDuration: widget.elapsedDuration,
+                      ),
                 const SizedBox(height: 10),
                 buildSpeedControls(),
               ],
@@ -89,35 +93,40 @@ class _EqualizerControlsState extends State<EqualizerControls> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Material(
-              elevation: 3,
-              child: CachedNetworkImage(
-                imageUrl: widget.song.artworkUrl100, // TODO handle nulls
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-              )),
-          const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                widget.song.trackName,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                widget.song.artistName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-              ),
-            ],
+            elevation: 3,
+            child: widget.song == null
+                ? _buildShimmerThumbnailPlaceholder()
+                : CachedNetworkImage(
+                    imageUrl: widget.song!.artworkUrl100,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
           ),
+          const SizedBox(width: 20),
+          widget.song == null
+              ? _buildShimmerTextPlaceholder()
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.song!.trackName,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      widget.song!.artistName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
         ],
       ),
     );
@@ -141,6 +150,57 @@ class _EqualizerControlsState extends State<EqualizerControls> {
             widget.onSpeedChange(speedValues[value]!);
           });
         },
+      ),
+    );
+  }
+
+  Widget _buildShimmerThumbnailPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: 100,
+        height: 100,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildShimmerTextPlaceholder() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            width: 150,
+            height: 25,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            width: 100,
+            height: 16,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShimmerWaveformPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: 50,
+        color: Colors.white,
       ),
     );
   }

@@ -56,6 +56,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+dependency_overrides:
+  fading_edge_scrollview: ^4.1.1
+
 flutter:
   fonts:
     - family: Inter

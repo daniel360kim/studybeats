@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
+import 'package:marquee/marquee.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SongCredits extends StatefulWidget {
@@ -16,7 +18,7 @@ class SongCredits extends StatefulWidget {
     required this.song,
   });
 
-  final SongMetadata song;
+  final SongMetadata? song;
 
   @override
   State<SongCredits> createState() => _SongCreditsState();
@@ -37,7 +39,7 @@ class _SongCreditsState extends State<SongCredits> {
   Future loadSongInfo() async {
     final audioService = AudioService();
 
-    return audioService.getWaveformMetadata(widget.song.waveformPath);
+    return audioService.getWaveformMetadata(widget.song?.waveformPath ?? '');
   }
 
   @override
@@ -130,13 +132,11 @@ class _SongCreditsState extends State<SongCredits> {
       children: [
         Row(
           children: [
-            Text(
-              widget.song.trackName,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
-              ),
+            Expanded(
+              child: widget.song == null
+                  ? _buildShimmerTextPlaceholder()
+                  : _buildMarqueeText(widget.song!.trackName,
+                      fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Spacer(),
             Theme(
@@ -153,15 +153,17 @@ class _SongCreditsState extends State<SongCredits> {
                         text: 'Copy link',
                       ),
                       onTap: () {
-                        Clipboard.setData(
-                                ClipboardData(text: widget.song.youtubeLink))
-                            .then((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Link copied to clipboard')),
-                          );
-                        });
-                      }, // TODO copy the song link on tap
+                        if (widget.song != null) {
+                          Clipboard.setData(
+                                  ClipboardData(text: widget.song!.youtubeLink))
+                              .then((_) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Link copied to clipboard')),
+                            );
+                          });
+                        }
+                      },
                     ),
                     PopupMenuItem(
                       child: const PopupMenuDetails(
@@ -170,15 +172,15 @@ class _SongCreditsState extends State<SongCredits> {
                       ),
                       onTap: () async {
                         if (await canLaunchUrl(
-                            Uri.parse(widget.song.youtubeLink))) {
-                          await launchUrl(Uri.parse(widget.song.youtubeLink));
+                            Uri.parse(widget.song?.youtubeLink ?? ''))) {
+                          await launchUrl(Uri.parse(widget.song!.youtubeLink));
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Could not launch URL')),
                           );
                         }
-                      }, // TODO open the song in the app
+                      },
                     ),
                   ];
                 },
@@ -189,9 +191,13 @@ class _SongCreditsState extends State<SongCredits> {
           ],
         ),
         const SizedBox(height: 13),
-        getInfoText('Artist', widget.song.artistName),
+        widget.song == null
+            ? _buildShimmerTextPlaceholder()
+            : getInfoText('Artist', widget.song!.artistName),
         const SizedBox(height: 3),
-        getInfoText('Duration', convertDuration(widget.song.trackTime)),
+        widget.song == null
+            ? _buildShimmerTextPlaceholder()
+            : getInfoText('Duration', convertDuration(widget.song!.trackTime)),
         const SizedBox(height: 16),
         getInfoText('Sample Rate', '${_metadata.sampleRate} Hz'),
         const SizedBox(height: 3),
@@ -228,14 +234,49 @@ class _SongCreditsState extends State<SongCredits> {
     );
   }
 
+  Widget _buildMarqueeText(String text,
+      {double fontSize = 15, FontWeight fontWeight = FontWeight.normal}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textSpan = TextSpan(
+          text: text,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+            fontFamily: 'Inter',
+            color: Colors.black,
+          ),
+        );
+        final textPainter = TextPainter(
+          text: textSpan,
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+        )..layout(minWidth: 0, maxWidth: constraints.maxWidth);
+
+        if (textPainter.didExceedMaxLines) {
+          return Marquee(
+            text: text,
+            style: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+          );
+        } else {
+          return Text(text,
+              style: TextStyle(fontSize: fontSize, fontWeight: fontWeight));
+        }
+      },
+    );
+  }
+
   Widget buildArtwork() {
     return Center(
-      child: CachedNetworkImage(
-        imageUrl: widget.song.artworkUrl100.replaceAll('100x100', '600x600'),
-        width: 500,
-        height: 500,
-        fit: BoxFit.cover,
-      ),
+      child: widget.song == null
+          ? _buildShimmerArtworkPlaceholder()
+          : CachedNetworkImage(
+              imageUrl:
+                  widget.song!.artworkUrl100.replaceAll('100x100', '600x600'),
+              width: 300,
+              height: 300,
+              fit: BoxFit.cover,
+            ),
     );
   }
 
@@ -258,20 +299,33 @@ class _SongCreditsState extends State<SongCredits> {
     final int minutes = (duration / 60).floor();
     final int seconds = (duration % 60).floor();
 
-    String minutesStr = '';
-    if (minutes < 10) {
-      minutesStr = '0$minutes';
-    } else {
-      minutesStr = minutes.toString();
-    }
-
-    String secondsStr = '';
-    if (seconds < 10) {
-      secondsStr = '0$seconds';
-    } else {
-      secondsStr = seconds.toString();
-    }
+    String minutesStr = minutes < 10 ? '0$minutes' : minutes.toString();
+    String secondsStr = seconds < 10 ? '0$seconds' : seconds.toString();
 
     return '$minutesStr:$secondsStr';
+  }
+
+  Widget _buildShimmerTextPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: double.infinity,
+        height: 20,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildShimmerArtworkPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: 500,
+        height: 500,
+        color: Colors.white,
+      ),
+    );
   }
 }

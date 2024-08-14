@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/audio/objects.dart';
+import 'package:flourish_web/log_printer.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
+import 'package:shimmer/shimmer.dart';
 class SongQueue extends StatefulWidget {
   const SongQueue({
     super.key,
@@ -12,9 +14,9 @@ class SongQueue extends StatefulWidget {
     required this.onSongSelected,
   });
 
-  final SongMetadata currentSong;
-  final List<SongMetadata> queue;
-  final List<SongMetadata> songOrder;
+  final SongMetadata? currentSong;
+  final List<SongMetadata>? queue;
+  final List<SongMetadata>? songOrder;
   final ValueChanged<int> onSongSelected;
 
   @override
@@ -27,18 +29,21 @@ class _SongQueueState extends State<SongQueue> {
     topRight: Radius.circular(40.0),
   );
 
-  // Method to find the index of the song in the songOrder based on its index in the queue
   int getSongOrderIndex(int queueIndex) {
-    if (queueIndex < 0 || queueIndex >= widget.queue.length) {
-      return -1; // Return -1 if index is out of bounds
+    if (queueIndex < 0 || queueIndex >= (widget.queue?.length ?? 0)) {
+      return -1;
     }
 
-    final songInQueue = widget.queue[queueIndex];
-    return widget.songOrder.indexWhere((song) => song.id == songInQueue.id);
+    final songInQueue = widget.queue![queueIndex];
+    return widget.songOrder?.indexWhere((song) => song.id == songInQueue.id) ?? -1;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = widget.queue == null || widget.songOrder == null;
+    final isQueueEmpty = widget.queue == null || widget.queue!.isEmpty;
+    final isSongOrderEmpty = widget.songOrder == null || widget.songOrder!.isEmpty;
+
     return Container(
       padding: const EdgeInsets.only(right: 10, left: 10),
       width: 500,
@@ -59,7 +64,11 @@ class _SongQueueState extends State<SongQueue> {
                 const SizedBox(height: 40),
                 buildCurrentSong(),
                 const SizedBox(height: 10),
-                buildQueue(),
+                isLoading 
+                    ? _buildLoadingIndicator() 
+                    : isQueueEmpty && isSongOrderEmpty 
+                        ? _buildEmptyState() 
+                        : buildQueue(),
               ],
             ),
           ),
@@ -83,7 +92,6 @@ class _SongQueueState extends State<SongQueue> {
     );
   }
 
-  // In the buildCurrentSong method
   Widget buildCurrentSong() {
     return Align(
       alignment: Alignment.topLeft,
@@ -104,10 +112,11 @@ class _SongQueueState extends State<SongQueue> {
           QueueSongItem(
             song: widget.currentSong,
             onPressed: () {
-              // Find the index of the current song in the queue
-              final queueIndex = widget.queue.indexWhere((song) => song.id == widget.currentSong.id);
-              final songOrderIndex = getSongOrderIndex(queueIndex);
-              widget.onSongSelected(songOrderIndex);
+              if (widget.currentSong?.id != null) {
+                final queueIndex = widget.queue?.indexWhere((song) => song.id == widget.currentSong!.id) ?? -1;
+                final songOrderIndex = getSongOrderIndex(queueIndex);
+                widget.onSongSelected(songOrderIndex);
+              }
             },
           ),
         ],
@@ -115,7 +124,6 @@ class _SongQueueState extends State<SongQueue> {
     );
   }
 
-  // In the buildQueue method
   Widget buildQueue() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,13 +142,13 @@ class _SongQueueState extends State<SongQueue> {
           height: MediaQuery.of(context).size.height - 80 * 2 - 289,
           child: ListView.builder(
             shrinkWrap: true,
-            itemCount: widget.queue.length,
+            itemCount: widget.queue?.length ?? 0,
             itemBuilder: (context, index) {
               return QueueSongItem(
-                song: widget.queue[index],
+                song: widget.queue?[index],
                 onPressed: () {
                   final songOrderIndex = getSongOrderIndex(index);
-                  widget.onSongSelected(songOrderIndex); // Use the index directly
+                  widget.onSongSelected(songOrderIndex);
                 },
               );
             },
@@ -149,12 +157,33 @@ class _SongQueueState extends State<SongQueue> {
       ],
     );
   }
+
+  Widget _buildLoadingIndicator() {
+    return const Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Text(
+        'No songs available',
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.white,
+          fontFamily: 'Inter',
+        ),
+      ),
+    );
+  }
 }
 
 class QueueSongItem extends StatefulWidget {
   const QueueSongItem({required this.song, required this.onPressed, super.key});
 
-  final SongMetadata song;
+  final SongMetadata? song;
   final VoidCallback onPressed;
 
   @override
@@ -183,78 +212,95 @@ class _QueueSongItemState extends State<QueueSongItem> {
           padding: const EdgeInsets.all(10.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: _isHovering ? Colors.grey.withOpacity(0.5) : Colors.transparent,
+            color:
+                _isHovering ? Colors.grey.withOpacity(0.5) : Colors.transparent,
           ),
-          child: Row(
-            children: [
-              PlayButton(
-                isHovering: _isHovering,
-                onPressed: widget.onPressed,
-                thumbnailUrl: widget.song.artworkUrl100, //TODO handle nulls
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.song.trackName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                      fontFamily: 'Inter',
+          child: widget.song == null
+              ? _buildShimmerPlaceholder()
+              : Row(
+                  children: [
+                    PlayButton(
+                      isHovering: _isHovering,
+                      onPressed: widget.onPressed,
+                      thumbnailUrl: widget.song!.artworkUrl100,
                     ),
-                  ),
-                  Text(
-                    widget.song.artistName,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black,
-                      fontFamily: 'Inter',
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.song!.trackName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        Text(
+                          widget.song!.artistName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              _isHovering
-                  ? Theme(
-                      data: ThemeData(
-                        popupMenuTheme: const PopupMenuThemeData(
-                            elevation: 5, color: Color.fromRGBO(57, 57, 57, 1)),
-                      ),
-                      child: PopupMenuButton(
-                        itemBuilder: (context) {
-                          return [
-                            const PopupMenuItem(
-                              child: PopupMenuDetails(
-                                icon: Icons.info,
-                                text: 'Details',
-                              ),
+                    const Spacer(),
+                    _isHovering
+                        ? Theme(
+                            data: ThemeData(
+                              popupMenuTheme: const PopupMenuThemeData(
+                                  elevation: 5,
+                                  color: Color.fromRGBO(57, 57, 57, 1)),
                             ),
-                            const PopupMenuItem(
-                              child: PopupMenuDetails(
-                                icon: Icons.share,
-                                text: 'Share',
-                              ),
+                            child: PopupMenuButton(
+                              itemBuilder: (context) {
+                                return [
+                                  const PopupMenuItem(
+                                    child: PopupMenuDetails(
+                                      icon: Icons.info,
+                                      text: 'Details',
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    child: PopupMenuDetails(
+                                      icon: Icons.share,
+                                      text: 'Share',
+                                    ),
+                                  ),
+                                ];
+                              },
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.more_horiz),
                             ),
-                          ];
-                        },
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.more_horiz),
-                      ),
-                    )
-                  : Text(
-                      formatDuration(widget.song.trackTime), // TODO Handle nulls
-                      textAlign: TextAlign.left,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-            ],
-          ),
+                          )
+                        : Text(
+                            widget.song?.trackTime != null
+                                ? formatDuration(widget.song!.trackTime)
+                                : formatDuration(0),
+                            textAlign: TextAlign.left,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                  ],
+                ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        height: 70,
+        color: Colors.white,
       ),
     );
   }
@@ -313,7 +359,7 @@ class PlayButton extends StatefulWidget {
 
   final bool isHovering;
   final VoidCallback onPressed;
-  final String thumbnailUrl;
+  final String? thumbnailUrl;
 
   @override
   State<PlayButton> createState() => _PlayButtonState();
@@ -321,17 +367,25 @@ class PlayButton extends StatefulWidget {
 
 class _PlayButtonState extends State<PlayButton> {
   bool _isButtonHovering = false;
+  final _logger = getLogger('PlayButton');
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        CachedNetworkImage(
-          imageUrl: widget.thumbnailUrl,
-          height: 50,
-          width: 50,
-          fit: BoxFit.cover,
-        ),
+        widget.thumbnailUrl != null
+            ? CachedNetworkImage(
+                imageUrl: widget.thumbnailUrl!,
+                placeholder: (context, url) => _buildShimmerPlaceholder(),
+                errorWidget: (context, url, error) {
+                  _logger.e(error);
+                  return const Icon(Icons.error);
+                },
+                height: 50,
+                width: 50,
+                fit: BoxFit.cover,
+              )
+            : _buildShimmerPlaceholder(),
         if (widget.isHovering)
           Positioned(
             top: 0,
@@ -365,6 +419,16 @@ class _PlayButtonState extends State<PlayButton> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildShimmerPlaceholder() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        color: Colors.white,
+      ),
     );
   }
 }

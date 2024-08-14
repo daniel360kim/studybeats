@@ -5,58 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-Song _$SongFromJson(Map<String, dynamic> json) {
-  return Song(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    artist: json['artist'] as String,
-    duration: json['duration'] as double,
-    songPath: json['songPath'] as String,
-    thumbnailPath: json['thumbnailPath'] as String,
-    link: json['link'] as String,
-    waveformPath: json['waveformPath'] as String,
-  );
-}
-
-Map<String, dynamic> _$SongToJson(Song instance) => <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'artist': instance.artist,
-      'duration': instance.duration,
-      'songPath': instance.songPath,
-      'thumbnailPath': instance.thumbnailPath,
-      'link': instance.link,
-      'waveformPath': instance.waveformPath,
-    };
-
-@JsonSerializable()
-class Song {
-  final int id;
-  final String name;
-  final String artist;
-  final double duration;
-  final String songPath;
-  final String thumbnailPath;
-  final String link;
-  final String waveformPath;
-
-  const Song({
-    required this.id,
-    required this.name,
-    required this.artist,
-    required this.duration,
-    required this.songPath,
-    required this.thumbnailPath,
-    required this.link,
-    this.waveformPath = '',
-  });
-
-  factory Song.fromJson(Map<String, dynamic> json) => _$SongFromJson(json);
-  Map<String, dynamic> toJson() => _$SongToJson(this);
-
-  @override
-  String toString() => jsonEncode(toJson());
-}
 
 Playlist _$PlaylistFromJson(Map<String, dynamic> json) {
   return Playlist(

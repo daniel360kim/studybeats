@@ -38,18 +38,9 @@ class Player extends StatefulWidget {
 class _PlayerState extends State<Player> with WidgetsBindingObserver {
   late final Audio _audio;
 
-  SongMetadata currentSongInfo = SongMetadata(
-    artistName: 'Loading...',
-    collectionName: 'Loading...',
-    trackName: 'Loading...',
-    artworkUrl100: '',
-    trackTime: 0.0,
-    id: 0,
-    youtubeLink: '',
-    appleLink: '',
-    waveformPath: '',
-    songPath: '',
-  );
+  SongMetadata? currentSongInfo;
+  List<SongMetadata> songQueue = [];
+  List<SongMetadata> songOrder = [];
 
   SongCloudInfo currentCloudSongInfo = const SongCloudInfo(
     isFavorite: false,
@@ -58,14 +49,10 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     averagePlaytime: Duration.zero,
   );
 
-  List<SongMetadata> songQueue = [];
-
   bool verticalLayout = false;
-
   bool _showQueue = false;
   bool _showSongInfo = false;
   bool _showEqualizer = false;
-
   bool _showSceneSelection = false;
   bool _showTimerSelection = false;
   bool _showAiChat = false;
@@ -75,13 +62,18 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     super.initState();
 
     _audio = Audio(playlistId: widget.playlistId);
+    initAudio();
 
-    _audio.initPlayer();
     _audio.isLoaded.addListener(() {
       if (_audio.isLoaded.value) {
         updateSong();
       }
     });
+  }
+
+  void initAudio() async {
+    _audio.initPlayer();
+    updateSong();
   }
 
   @override
@@ -103,6 +95,8 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     setState(() {
       currentSongInfo = _audio.getCurrentSongInfo();
       songQueue = _audio.getSongOrder();
+      songOrder =
+          _audio.getSongOrder(); // Assuming this method returns song order
     });
 
     _audio.getCurrentSongCloudInfo().then((value) {
@@ -125,7 +119,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                   ? Align(
                       alignment: Alignment.bottomLeft,
                       child: SceneSelector(
-                        song: currentSongInfo,
                         scenes: widget.scenes,
                       ),
                     )
@@ -136,11 +129,22 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                       child: PomodoroTimer(
                         onStartPressed: (value) {
                           widget.onShowTimer(value);
-                          // Unselect the timer icon on the control bar
                           SceneControls(
-                            onChatPressed: (value) {},
-                            onScreneSelectPressed: (value) {},
-                            onTimerPressed: (value) {},
+                            onChatPressed: (value) {
+                              setState(() {
+                                _showAiChat = value;
+                              });
+                            },
+                            onScreneSelectPressed: (value) {
+                              setState(() {
+                                _showSceneSelection = value;
+                              });
+                            },
+                            onTimerPressed: (value) {
+                              setState(() {
+                                _showTimerSelection = value;
+                              });
+                            },
                           ).handleTimerPressed(_sceneControlsKey);
                         },
                       ),
@@ -157,12 +161,9 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                   ? Align(
                       alignment: Alignment.bottomRight,
                       child: SongQueue(
-                        songOrder:
-                            _audio.audioPlayer.sequence!.map((audioSource) {
-                          return audioSource.tag as SongMetadata;
-                        }).toList(),
+                        songOrder: songOrder.isEmpty ? null : songOrder,
                         currentSong: currentSongInfo,
-                        queue: songQueue,
+                        queue: songQueue.isEmpty ? null : songQueue,
                         onSongSelected: (index) {
                           _audio.play();
                           _audio.seekToIndex(index).then((value) {

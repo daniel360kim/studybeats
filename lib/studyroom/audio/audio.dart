@@ -78,7 +78,8 @@ class Audio {
 
       isLoaded.value = true;
     } catch (e) {
-      rethrow;
+      _logger.e('Error with songcloudinfo handler');
+      // TODO handle this error
     }
   }
 

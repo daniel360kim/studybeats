@@ -54,15 +54,15 @@ class AudioService {
           .map((metadata) => SongMetadata.fromJson(metadata))
           .toList();
 
-      List<AudioSource> audioSources = [];
-
-      for (final source in sources) {
-        final jsonRef =
-            _storageRef.child(source.songPath); // error handle nulls TODO
+      // Fetch all URLs concurrently
+      List<Future<AudioSource>> audioSourceFutures =
+          sources.map((source) async {
+        final jsonRef = _storageRef.child(source.songPath); // Handle nulls TODO
         final uri = Uri.parse(await jsonRef.getDownloadURL());
+        return AudioSource.uri(uri, tag: source);
+      }).toList();
 
-        audioSources.add(AudioSource.uri(uri, tag: source));
-      }
+      final audioSources = await Future.wait(audioSourceFutures);
 
       final endTime = DateTime.now();
       _logger.d(

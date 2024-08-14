@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flourish_web/app_state.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/background_sound.dart';
 import 'package:flourish_web/studyroom/control_bar.dart';
 import 'package:flourish_web/studyroom/credential_bar.dart';
@@ -24,17 +23,6 @@ class _StudyRoomState extends State<StudyRoom> {
   bool _loadingScene = true;
   PomodoroDurations timerDurations =
       PomodoroDurations(Duration.zero, Duration.zero);
-
-  List<Song> songQueue = [];
-  Song currentSongInfo = const Song(
-    id: 0,
-    name: 'Loading...',
-    artist: 'Loading...',
-    duration: 0,
-    link: 'Loading...',
-    songPath: '',
-    thumbnailPath: '',
-  );
 
   StudyScene scene = const StudyScene(
     id: 0,
