@@ -19,7 +19,9 @@ class UserMessage {
 }
 
 class AiChat extends StatefulWidget {
-  const AiChat({super.key});
+  const AiChat({required this.onClose, super.key});
+
+  final VoidCallback onClose;
 
   @override
   State<AiChat> createState() => _AiChatState();
@@ -51,6 +53,8 @@ class _AiChatState extends State<AiChat> {
   String? _imageUrl;
 
   final _authService = AuthService();
+
+  int numCharacters = 0;
 
   @override
   void initState() {
@@ -106,6 +110,9 @@ class _AiChatState extends State<AiChat> {
   }
 
   void _sendMessage() {
+    setState(() {
+      numCharacters = 0;
+    });
     if (_imageFile == null) {
       _sendTextOnly();
     } else {
@@ -216,97 +223,109 @@ class _AiChatState extends State<AiChat> {
 
   @override
   Widget build(BuildContext context) {
-    const BorderRadius borderRadius =
-        BorderRadius.only(topLeft: Radius.circular(40.0));
-    return SizedBox(
-      width: 400,
-      child: KeyboardListener(
-        focusNode: _keyboardListenerFocusNode,
-        onKeyEvent: (event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.enter) {
-            _sendMessage();
-          }
+    const BorderRadius borderRadius = BorderRadius.all(Radius.circular(10.0));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: SizedBox(
+        width: 400,
+        height: MediaQuery.of(context).size.height - 80 - 40,
+        child: KeyboardListener(
+          focusNode: _keyboardListenerFocusNode,
+          onKeyEvent: (event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.enter) {
+              _sendMessage();
+            }
 
-          if (event is KeyDownEvent &&
-              (event.logicalKey == LogicalKeyboardKey.control ||
-                  event.logicalKey == LogicalKeyboardKey.meta)) {
-            setState(() {
-              _isPasting = true;
-            });
-          }
+            if (event is KeyDownEvent &&
+                (event.logicalKey == LogicalKeyboardKey.control ||
+                    event.logicalKey == LogicalKeyboardKey.meta)) {
+              setState(() {
+                _isPasting = true;
+              });
+            }
 
-          if (event is KeyUpEvent &&
-              (event.logicalKey == LogicalKeyboardKey.control ||
-                  event.logicalKey == LogicalKeyboardKey.meta)) {
-            setState(() {
-              _isPasting = false;
-            });
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.only(left: 10),
-          height: MediaQuery.of(context).size.height - 80,
-          child: ClipRRect(
-            borderRadius: borderRadius,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Color.fromRGBO(220, 220, 220, 1),
-                  borderRadius: borderRadius,
-                ),
-                child: Stack(
-                  children: [
-                    Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            itemCount:
-                                _userMessages.length + _aiMessages.length,
-                            itemBuilder: (context, index) {
-                              final isUser = index % 2 == 0;
-                              final message = isUser
-                                  ? _userMessages[index ~/ 2].message
-                                  : _aiMessages[index ~/ 2];
-
-                              final imageFile = isUser
-                                  ? _userMessages[index ~/ 2].imageFile
-                                  : null;
-
-                              return AiMessage(
-                                isUser: isUser,
-                                message: message,
-                                profilePictureUrl: _profilePictureUrl,
-                                imageFile: imageFile,
-                                onCopyIconPressed: (value) =>
-                                    _copyToClipboard(value),
-                                isLoadingResponse: _loadingResponse &&
-                                    index + 1 ==
-                                        _aiMessages.length +
-                                            _userMessages
-                                                .length, //only set loading to true if it is the last message
-                              );
-                            },
-                          ),
-                        ),
-                        buildTextInputFields(),
+            if (event is KeyUpEvent &&
+                (event.logicalKey == LogicalKeyboardKey.control ||
+                    event.logicalKey == LogicalKeyboardKey.meta)) {
+              setState(() {
+                _isPasting = false;
+              });
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.only(left: 10),
+            height: MediaQuery.of(context).size.height - 80,
+            child: ClipRRect(
+              borderRadius: borderRadius,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Color(0xFFE0E7FF), // Light purple (at the bottom)
+                        Color(
+                            0xFFF7F8FC) // Lighter almost white (at the top)Ending color at the top
                       ],
                     ),
-                    Visibility(
-                      visible: _showScrollToBottomButton,
-                      child: Positioned(
-                        bottom: 80,
-                        right: 20,
-                        child: FloatingActionButton(
-                          mini: true,
-                          onPressed: _scrollToBottom,
-                          child: const Icon(Icons.arrow_downward),
+                    borderRadius: borderRadius,
+                  ),
+                  child: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          buildTopBar(),
+                          Expanded(
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              itemCount:
+                                  _userMessages.length + _aiMessages.length,
+                              itemBuilder: (context, index) {
+                                final isUser = index % 2 == 0;
+                                final message = isUser
+                                    ? _userMessages[index ~/ 2].message
+                                    : _aiMessages[index ~/ 2];
+
+                                final imageFile = isUser
+                                    ? _userMessages[index ~/ 2].imageFile
+                                    : null;
+
+                                return AiMessage(
+                                  isUser: isUser,
+                                  message: message,
+                                  profilePictureUrl: _profilePictureUrl,
+                                  imageFile: imageFile,
+                                  onCopyIconPressed: (value) =>
+                                      _copyToClipboard(value),
+                                  isLoadingResponse: _loadingResponse &&
+                                      index + 1 ==
+                                          _aiMessages.length +
+                                              _userMessages
+                                                  .length, //only set loading to true if it is the last message
+                                );
+                              },
+                            ),
+                          ),
+                          buildTextInputFields(),
+                        ],
+                      ),
+                      Visibility(
+                        visible: _showScrollToBottomButton,
+                        child: Positioned(
+                          bottom: 150,
+                          right: 20,
+                          child: FloatingActionButton(
+                            mini: true,
+                            onPressed: _scrollToBottom,
+                            child: const Icon(Icons.arrow_downward),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -316,87 +335,109 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
+  Widget buildTopBar() {
+    return Container(
+        height: 60,
+        color: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Row(
+          children: [
+            const Spacer(),
+            IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close))
+          ],
+        ));
+  }
+
   Widget buildTextInputFields() {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-        child: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(10.0),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        decoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(
+              Radius.circular(20.0),
             ),
-            color: Color.fromRGBO(170, 170, 170, 1),
-          ),
-          padding: const EdgeInsets.symmetric(
-            vertical: 10.0,
-            horizontal: 30.0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_imageFile != null)
-                ImagePreview(
-                    imageFile: _imageFile,
-                    onDelete: () {
-                      setState(() {
-                        _imageFile = null;
-                      });
-                    }),
-              Row(
-                children: [
-                  Expanded(
-                      child: TextField(
-                    controller: _textEditingController,
-                    focusNode: _textInputFocusNode,
-                    cursorColor: kFlourishBlackish,
-                    maxLines:
-                        7, // Set this to null to let the TextField grow vertically
-                    minLines: 1, // Start with a single line
-                    textInputAction: TextInputAction
-                        .newline, // Set action to newline (multiline input)
-                    decoration: InputDecoration(
-                      focusColor: kFlourishBlackish,
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(
-                          color:
-                              kFlourishBlackish, // Set the border color when focused
-                        ),
-                      ),
-                      hoverColor: kFlourishBlackish,
-                      hintText: 'Type a message',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    inputFormatters: [
-                      if (_isPasting)
-                        NoEnterInputFormatter() // keep a new line from forming in the next message when enter is sent
-                      // Add more formatters if needed
-                    ],
-                    onChanged: (text) {
-                      if (text.contains('\n')) {
-                        // Remove the newline character
-                        _textEditingController.text = text.replaceAll('\n', '');
-                        // Place the cursor at the end of the text
-                        _textEditingController.selection =
-                            TextSelection.fromPosition(TextPosition(
-                                offset: _textEditingController.text.length));
-                      }
-                    },
-                  )),
-                  IconButton(
-                    icon: const Icon(Icons.image_outlined),
-                    onPressed: _pickImage,
+            color: kFlourishAliceBlue),
+        padding: const EdgeInsets.symmetric(
+          vertical: 10.0,
+          horizontal: 10.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_imageFile != null)
+              ImagePreview(
+                  imageFile: _imageFile,
+                  onDelete: () {
+                    setState(() {
+                      _imageFile = null;
+                    });
+                  }),
+            TextField(
+              controller: _textEditingController,
+              focusNode: _textInputFocusNode,
+              cursorColor: kFlourishBlackish,
+              maxLines:
+                  7, // Set this to null to let the TextField grow vertically
+              minLines: 1, // Start with a single line
+              textInputAction: TextInputAction
+                  .newline, // Set action to newline (multiline input)
+              decoration: const InputDecoration(
+                focusColor: kFlourishBlackish,
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color:
+                        kFlourishBlackish, // Set the border color when focused
+                    width: 0.1,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_upward_sharp),
-                    onPressed: _sendMessage,
+                ),
+                hoverColor: kFlourishBlackish,
+                hintText: 'Ask me anything...',
+                border: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors
+                        .transparent, // Set the border color when not focused
+                    width: 0.1,
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(1000),
+
+                if (_isPasting)
+                  NoEnterInputFormatter() // keep a new line from forming in the next message when enter is sent
+                // Add more formatters if needed
+              ],
+              onChanged: (text) {
+                setState(() {
+                  numCharacters = text.length;
+                });
+                if (text.contains('\n')) {
+                  // Remove the newline character
+                  _textEditingController.text = text.replaceAll('\n', '');
+                  // Place the cursor at the end of the text
+                  _textEditingController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _textEditingController.text.length));
+                }
+              },
+            ),
+            const SizedBox(height: 5),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.image_outlined),
+                  onPressed: _pickImage,
+                ),
+                const Spacer(),
+                Text('$numCharacters/1000'),
+                const SizedBox(width: 15.0),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

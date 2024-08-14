@@ -81,7 +81,9 @@ class AiMessage extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isUser ? Colors.blue[100] : Colors.green[100],
+        color: isUser
+            ? kFlourishAdobe.withOpacity(0.5)
+            : Colors.blue[100]!.withOpacity(0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -101,16 +103,17 @@ class AiMessage extends StatelessWidget {
               )
             ],
           ),
-          if (isUser && imageFile != null) Container(
-                height: 140,
-                width: 140,
-                alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                    image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: MemoryImage(imageFile!),
-                )),
-              ),
+          if (isUser && imageFile != null)
+            Container(
+              height: 140,
+              width: 140,
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                  image: DecorationImage(
+                fit: BoxFit.cover,
+                image: MemoryImage(imageFile!),
+              )),
+            ),
           Row(
             children: [
               Expanded(

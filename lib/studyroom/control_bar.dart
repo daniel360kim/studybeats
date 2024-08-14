@@ -55,7 +55,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   bool _showEqualizer = false;
   bool _showSceneSelection = false;
   bool _showTimerSelection = false;
-  bool _showAiChat = false;
+  bool _showAiChat = true;
 
   @override
   void initState() {
@@ -151,9 +151,16 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                     )
                   : const SizedBox.shrink(),
               _showAiChat
-                  ? const Align(
-                      alignment: Alignment.bottomLeft,
-                      child: AiChat(),
+                  ? Positioned(
+                      bottom: 1000,
+                      left: 10,
+                      child: AiChat(
+                        onClose: () {
+                          setState(() {
+                            _showAiChat = false;
+                          });
+                        },
+                      ),
                     )
                   : const SizedBox.shrink(),
               if (_showQueue || _showSongInfo || _showEqualizer) const Spacer(),
@@ -161,11 +168,16 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                   ? Align(
                       alignment: Alignment.bottomRight,
                       child: SongQueue(
-                        songOrder: _audio.audioPlayer.sequence!.map((audioSource) {
-                          return audioSource.tag as SongMetadata;
-                        }).toList().isEmpty ? null : _audio.audioPlayer.sequence!.map((audioSource) {
-                          return audioSource.tag as SongMetadata;
-                        }).toList(),
+                        songOrder: _audio.audioPlayer.sequence!
+                                .map((audioSource) {
+                                  return audioSource.tag as SongMetadata;
+                                })
+                                .toList()
+                                .isEmpty
+                            ? null
+                            : _audio.audioPlayer.sequence!.map((audioSource) {
+                                return audioSource.tag as SongMetadata;
+                              }).toList(),
                         currentSong: currentSongInfo,
                         queue: songQueue.isEmpty ? null : songQueue,
                         onSongSelected: (index) {
@@ -225,7 +237,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     bool right = false;
 
     left = _showQueue || _showSongInfo || _showEqualizer;
-    right = _showSceneSelection || _showTimerSelection || _showAiChat;
+    right = _showSceneSelection || _showTimerSelection;
 
     const enabledBorderRadius = Radius.circular(20.0);
     BorderRadius borderRadius = BorderRadius.only(
@@ -234,6 +246,15 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
       bottomLeft: enabledBorderRadius,
       bottomRight: enabledBorderRadius,
     );
+
+    if (left && right) {
+      borderRadius = const BorderRadius.only(
+        topLeft: Radius.zero,
+        topRight: Radius.zero,
+        bottomLeft: enabledBorderRadius,
+        bottomRight: enabledBorderRadius,
+      );
+    }
 
     return ClipRRect(
       borderRadius: borderRadius,
