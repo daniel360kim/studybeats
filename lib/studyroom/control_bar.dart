@@ -161,7 +161,11 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                   ? Align(
                       alignment: Alignment.bottomRight,
                       child: SongQueue(
-                        songOrder: songOrder.isEmpty ? null : songOrder,
+                        songOrder: _audio.audioPlayer.sequence!.map((audioSource) {
+                          return audioSource.tag as SongMetadata;
+                        }).toList().isEmpty ? null : _audio.audioPlayer.sequence!.map((audioSource) {
+                          return audioSource.tag as SongMetadata;
+                        }).toList(),
                         currentSong: currentSongInfo,
                         queue: songQueue.isEmpty ? null : songQueue,
                         onSongSelected: (index) {
