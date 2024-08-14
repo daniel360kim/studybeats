@@ -57,7 +57,8 @@ class AudioService {
       List<AudioSource> audioSources = [];
 
       for (final source in sources) {
-        final jsonRef = _storageRef.child(source.songPath); // error handle nulls TODO
+        final jsonRef =
+            _storageRef.child(source.songPath); // error handle nulls TODO
         final uri = Uri.parse(await jsonRef.getDownloadURL());
 
         audioSources.add(AudioSource.uri(uri, tag: source));
@@ -101,7 +102,8 @@ class AudioService {
 
       return List.castFrom(data['data']);
     } catch (e) {
-      _logger.e('Unexpected error while getting waveform data. $e');
+      _logger.e(
+          'Unexpected error while getting waveform data for $waveformPath $e');
       rethrow;
     }
   }
@@ -114,7 +116,8 @@ class AudioService {
       final response = await _fetchJsonData(url);
       return WaveformMetadata.fromJson(jsonDecode(response));
     } catch (e) {
-      _logger.e('Unexpected error while getting waveform metadata. $e');
+      _logger.e(
+          'Unexpected error while getting waveform metadata for $waveformPath $e');
       rethrow;
     }
   }

@@ -1,20 +1,18 @@
 import 'package:json_annotation/json_annotation.dart';
 
 SongMetadata _$SongMetadataFromJson(Map<String, dynamic> json) {
-
-    return SongMetadata(
-      artistName: json['artistName'] as String,
-      collectionName: json['collectionName'] as String,
-      trackName: json['trackName'] as String,
-      artworkUrl100: json['artworkUrl100'] as String,
-      trackTime: (json['trackTime'] as int) / 1000,
-      id: json['id'] as int,
-      youtubeLink: json['link'] as String,
-      appleLink: json['appleMusicLink'] as String,
-      waveformPath: json['waveformPath'] as String,
-      songPath: json['songPath'] as String,
-    );
-  
+  return SongMetadata(
+    artistName: json['artistName'] as String,
+    collectionName: json['collectionName'] as String,
+    trackName: json['trackName'] as String,
+    artworkUrl100: json['artworkUrl100'] as String,
+    trackTime: (json['trackTime'] as int) / 1000,
+    id: json['id'] as int,
+    youtubeLink: json['link'] as String,
+    appleLink: json['appleMusicLink'] as String,
+    waveformPath: json['waveformPath'] as String,
+    songPath: json['songPath'] as String,
+  );
 }
 
 @JsonSerializable()
