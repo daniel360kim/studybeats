@@ -1,64 +1,79 @@
+// open_ai_service.dart
+
 import 'dart:typed_data';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/secrets.dart';
-import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
+import 'package:uuid/uuid.dart';
 
 class OpenAiService {
-  final _logger = getLogger('OpenAi Service');
+  final AuthService _authService;
+  final OpenAI _openAi;
 
-  final List<UserMessage> _userMessages = [];
+  List<Map<String, dynamic>> _conversationHistory = [];
   final List<String> _aiMessages = [];
-  final List<Map<String, dynamic>> _conversationHistory = [];
+  final List<String> _userMessages = [];
+  bool _loadingResponse = false;
 
-  final OpenAI openAi = OpenAI.instance.build(
-      token: OPENAI_PROJECT_API_KEY,
-      baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
-      enableLog: true);
+  OpenAiService()
+      : _authService = AuthService(),
+        _openAi = OpenAI.instance.build(
+          token: OPENAI_PROJECT_API_KEY,
+          baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
+          enableLog: true,
+        );
 
-  final _authService = AuthService();
+  List<Map<String, dynamic>> get conversationHistory => _conversationHistory;
+  List<String> get aiMessages => _aiMessages;
+  List<String> get userMessages => _userMessages;
+  bool get loadingResponse => _loadingResponse;
 
+  Future<void> sendMessage(String message, {Uint8List? imageFile, String? imageUrl}) async {
+    if (_loadingResponse) return;
 
-  Future<void> sendTextOnly(String userMessage) async {
-    try {
-      final uid = await _authService.getCurrentUserUid();
-      _conversationHistory.add({'role': 'user', 'content': userMessage});
-      _userMessages.add(UserMessage(userMessage, null));
-
-      final request = ChatCompleteText(
-          user: uid,
-          messages: _conversationHistory,
-          maxToken: 1000,
-          model: Gpt4OMiniChatModel());
-
-      final response = await openAi.onChatCompletion(request: request);
-
-      for (var element in response!.choices) {
-        _aiMessages.last = (element.message!.content);
-        _conversationHistory
-            .add({'role': 'assistant', 'content': element.message!.content});
-      }
-    } catch (e) {
-      _logger.e('Unexpected error while sending text only: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> sendImage(String userMessage, String imageUrl) async {
+    _loadingResponse = true;
     final uid = await _authService.getCurrentUserUid();
 
-    _conversationHistory.add({
-      'role': 'user',
-      'content': [
-        {'type': 'text', 'text': userMessage},
-        {
-          'type': 'image_url',
-          'image_url': {'url': imageUrl}
-        }
-      ]
-    });
+    _userMessages.add(message);
+    _conversationHistory.add({'role': 'user', 'content': message});
 
+    if (imageFile != null && imageUrl != null) {
+      _conversationHistory.add({
+        'role': 'user',
+        'content': [
+          {'type': 'text', 'text': message},
+          {'type': 'image_url', 'image_url': {'url': imageUrl}}
+        ]
+      });
+    }
+
+    final request = ChatCompleteText(
+      user: uid,
+      messages: _conversationHistory,
+      maxToken: 1000,
+      model: Gpt4OMiniChatModel(),
+    );
+
+    final response = await _openAi.onChatCompletion(request: request);
+
+    if (response != null && response.choices.isNotEmpty) {
+      final aiMessage = response.choices.first.message?.content ?? '';
+      _aiMessages.add(aiMessage);
+      _conversationHistory.add({
+        'role': 'assistant',
+        'content': aiMessage,
+      });
+    }
+
+    _loadingResponse = false;
+  }
+
+  Future<String?> uploadImageAndGetUrl(Uint8List file) async {
+    final fileName = const Uuid().v4();
+    final storageRef = FirebaseStorage.instance.ref().child('images/$fileName');
+    await storageRef.putData(file);
+    return await storageRef.getDownloadURL();
   }
 }

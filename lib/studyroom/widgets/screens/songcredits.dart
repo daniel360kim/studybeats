@@ -254,8 +254,8 @@ class _SongCreditsState extends State<SongCredits> {
         )..layout(minWidth: 0, maxWidth: constraints.maxWidth);
 
         if (textPainter.didExceedMaxLines) {
-          return Marquee(
-            text: text,
+          return Text(
+            text,
             style: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
           );
         } else {

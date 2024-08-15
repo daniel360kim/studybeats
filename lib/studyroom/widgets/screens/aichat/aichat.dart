@@ -12,8 +12,8 @@ import 'package:image_picker_web/image_picker_web.dart';
 import 'package:uuid/uuid.dart';
 
 class UserMessage {
-  String message;
-  Uint8List? imageFile;
+  final String message;
+  final Uint8List? imageFile;
 
   UserMessage(this.message, this.imageFile);
 }
@@ -30,30 +30,27 @@ class AiChat extends StatefulWidget {
 class _AiChatState extends State<AiChat> {
   final FocusNode _keyboardListenerFocusNode = FocusNode();
   final FocusNode _textInputFocusNode = FocusNode();
-
   final TextEditingController _textEditingController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
   final OpenAI openAi = OpenAI.instance.build(
-      token: OPENAI_PROJECT_API_KEY,
-      baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
-      enableLog: true);
+    token: OPENAI_PROJECT_API_KEY,
+    baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
+    enableLog: true,
+  );
+  final AuthService _authService = AuthService();
 
   bool _isPasting = false;
   bool _showScrollToBottomButton = false;
   bool _loadingResponse = false;
-
+  bool _showError = false;
   String? _profilePictureUrl;
+  Uint8List? _imageFile;
+  String? _imageUrl;
+  String _errorMessage = '';
 
   final List<UserMessage> _userMessages = [];
   final List<String> _aiMessages = [];
   final List<Map<String, dynamic>> _conversationHistory = [];
-
-  Uint8List? _imageFile;
-  String? _imageUrl;
-
-  final _authService = AuthService();
-
   int numCharacters = 0;
 
   @override
@@ -63,25 +60,18 @@ class _AiChatState extends State<AiChat> {
     _scrollController.addListener(_scrollListener);
   }
 
-  void _getProfileUrl() async {
-    await _authService.getProfilePictureUrl().then((value) {
-      setState(() {
-        _profilePictureUrl = value;
-      });
+  Future<void> _getProfileUrl() async {
+    final url = await _authService.getProfilePictureUrl();
+    setState(() {
+      _profilePictureUrl = url;
     });
   }
 
   void _scrollListener() {
-    if (_scrollController.position.pixels <
-        _scrollController.position.maxScrollExtent) {
-      setState(() {
-        _showScrollToBottomButton = true;
-      });
-    } else {
-      setState(() {
-        _showScrollToBottomButton = false;
-      });
-    }
+    setState(() {
+      _showScrollToBottomButton = _scrollController.position.pixels <
+          _scrollController.position.maxScrollExtent;
+    });
   }
 
   void _copyToClipboard(String text) {
@@ -93,10 +83,10 @@ class _AiChatState extends State<AiChat> {
 
   @override
   void dispose() {
-    super.dispose();
     _textEditingController.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    super.dispose();
   }
 
   void _scrollToBottom() {
@@ -109,223 +99,193 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  void _sendMessage() {
-    setState(() {
-      numCharacters = 0;
-    });
+  Future<void> _sendMessage() async {
     if (_imageFile == null) {
-      _sendTextOnly();
+      await _sendTextOnly();
     } else {
-      _sendImage();
+      await _sendImage();
     }
   }
 
-  void _sendTextOnly() async {
-    if (_textEditingController.text.isNotEmpty && !_loadingResponse) {
-      final uid = await _authService.getCurrentUserUid();
-      final userMessage = _textEditingController.text;
+  Future<void> _sendTextOnly() async {
+    if (_textEditingController.text.isEmpty || _loadingResponse) return;
 
+    final uid = await _authService.getCurrentUserUid();
+    final userMessage = _textEditingController.text;
+
+    setState(() {
+      _loadingResponse = true;
+      _userMessages.add(UserMessage(userMessage, null));
       _conversationHistory.add({'role': 'user', 'content': userMessage});
-
-      setState(() {
-        _loadingResponse = true;
-        _userMessages.add(UserMessage(userMessage, null));
-      });
-
-      // Clear the text field and ensure it's focused again
       _textEditingController.clear();
+      numCharacters = 0;
       FocusScope.of(context).requestFocus(_textInputFocusNode);
       _scrollToBottom();
+      _aiMessages.add('');
+      _showError = false;
+    });
 
+    try {
       final request = ChatCompleteText(
-          user: uid,
-          messages: _conversationHistory,
-          maxToken: 1000,
-          model: Gpt4OMiniChatModel());
-
-      setState(() {
-        _aiMessages.add('');
-      });
+        user: uid,
+        messages: _conversationHistory,
+        maxToken: 1000,
+        model: Gpt4OMiniChatModel(),
+      );
 
       final response = await openAi.onChatCompletion(request: request);
 
-      for (var element in response!.choices) {
-        setState(() {
-          _aiMessages.last = (element.message!.content);
-          _loadingResponse = false;
-          _conversationHistory
-              .add({'role': 'assistant', 'content': element.message!.content});
-        });
-      }
+      setState(() {
+        _loadingResponse = false;
+        _aiMessages.last = response!.choices.first.message!.content;
+        _conversationHistory
+            .add({'role': 'assistant', 'content': _aiMessages.last});
+      });
+    } catch (e) {
+      setState(() {
+        _loadingResponse = false;
+        _showError = true;
+        _errorMessage = 'Failed to get response from API: $e';
+      });
     }
   }
 
-  void _sendImage() async {
+  Future<void> _sendImage() async {
     if (_loadingResponse || _imageUrl == null) return;
 
     final uid = await _authService.getCurrentUserUid();
-
-    late final String userMessage;
-    if (_textEditingController.text.isEmpty) {
-      userMessage = '';
-    } else {
-      userMessage = _textEditingController.text;
-    }
-
-    _textEditingController.clear();
-
-    _conversationHistory.add({
-      'role': 'user',
-      'content': [
-        {'type': 'text', 'text': userMessage},
-        {
-          'type': 'image_url',
-          'image_url': {'url': _imageUrl}
-        }
-      ]
-    });
+    final userMessage = _textEditingController.text;
 
     setState(() {
       _loadingResponse = true;
       _userMessages.add(UserMessage(userMessage, _imageFile));
       _aiMessages.add('');
       _imageFile = null;
+      _showError = false;
     });
 
-    final request = ChatCompleteText(
-      user: uid,
-      messages: [
-        {
-          'role': 'user',
-          'content': [
-            {'type': 'text', 'text': userMessage},
-            {
-              'type': 'image_url',
-              'image_url': {'url': _imageUrl}
-            }
-          ]
-        }
-      ],
-      maxToken: 1000,
-      model: Gpt4OMiniChatModel(),
-    );
+    try {
+      final request = ChatCompleteText(
+        user: uid,
+        messages: [
+          {
+            'role': 'user',
+            'content': [
+              {'type': 'text', 'text': userMessage},
+              {
+                'type': 'image_url',
+                'image_url': {'url': _imageUrl}
+              }
+            ]
+          }
+        ],
+        maxToken: 1000,
+        model: Gpt4OMiniChatModel(),
+      );
 
-    final response = await openAi.onChatCompletion(request: request);
+      final response = await openAi.onChatCompletion(request: request);
 
-    setState(() {
-      _imageUrl = null;
-      String? responseText = response?.choices[0].message!.content;
-      _aiMessages.last = responseText!;
-      _loadingResponse = false;
-      _conversationHistory.add({'role': 'assistant', 'content': responseText});
-    });
+      setState(() {
+        _imageUrl = null;
+        _aiMessages.last = response!.choices.first.message!.content;
+        _conversationHistory
+            .add({'role': 'assistant', 'content': _aiMessages.last});
+        _loadingResponse = false;
+      });
+    } catch (e) {
+      setState(() {
+        _imageUrl = null;
+        _loadingResponse = false;
+        _showError = true;
+        _errorMessage = 'Failed to get response from API: $e';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const BorderRadius borderRadius = BorderRadius.all(Radius.circular(10.0));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: SizedBox(
         width: 400,
-        height: MediaQuery.of(context).size.height - 80 - 40,
+        height: MediaQuery.of(context).size.height - 120,
         child: KeyboardListener(
           focusNode: _keyboardListenerFocusNode,
-          onKeyEvent: (event) {
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.enter) {
-              _sendMessage();
-            }
-
-            if (event is KeyDownEvent &&
-                (event.logicalKey == LogicalKeyboardKey.control ||
-                    event.logicalKey == LogicalKeyboardKey.meta)) {
-              setState(() {
-                _isPasting = true;
-              });
-            }
-
-            if (event is KeyUpEvent &&
-                (event.logicalKey == LogicalKeyboardKey.control ||
-                    event.logicalKey == LogicalKeyboardKey.meta)) {
-              setState(() {
-                _isPasting = false;
-              });
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.only(left: 10),
-            height: MediaQuery.of(context).size.height - 80,
-            child: ClipRRect(
-              borderRadius: borderRadius,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Color(0xFFE0E7FF), // Light purple (at the bottom)
-                        Color(
-                            0xFFF7F8FC) // Lighter almost white (at the top)Ending color at the top
-                      ],
-                    ),
-                    borderRadius: borderRadius,
-                  ),
-                  child: Stack(
-                    children: [
-                      Column(
-                        children: [
-                          buildTopBar(),
-                          Expanded(
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              itemCount:
-                                  _userMessages.length + _aiMessages.length,
-                              itemBuilder: (context, index) {
-                                final isUser = index % 2 == 0;
-                                final message = isUser
-                                    ? _userMessages[index ~/ 2].message
-                                    : _aiMessages[index ~/ 2];
-
-                                final imageFile = isUser
-                                    ? _userMessages[index ~/ 2].imageFile
-                                    : null;
-
-                                return AiMessage(
-                                  isUser: isUser,
-                                  message: message,
-                                  profilePictureUrl: _profilePictureUrl,
-                                  imageFile: imageFile,
-                                  onCopyIconPressed: (value) =>
-                                      _copyToClipboard(value),
-                                  isLoadingResponse: _loadingResponse &&
-                                      index + 1 ==
-                                          _aiMessages.length +
-                                              _userMessages
-                                                  .length, //only set loading to true if it is the last message
-                                );
-                              },
-                            ),
-                          ),
-                          buildTextInputFields(),
-                        ],
-                      ),
-                      Visibility(
-                        visible: _showScrollToBottomButton,
-                        child: Positioned(
-                          bottom: 150,
-                          right: 20,
-                          child: FloatingActionButton(
-                            mini: true,
-                            onPressed: _scrollToBottom,
-                            child: const Icon(Icons.arrow_downward),
-                          ),
-                        ),
-                      ),
+          onKeyEvent: _handleKeyEvent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Color(0xFFE0E7FF),
+                      Color(0xFFF7F8FC),
                     ],
                   ),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        buildTopBar(),
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            itemCount:
+                                _userMessages.length + _aiMessages.length,
+                            itemBuilder: (context, index) {
+                              final isUser = index.isEven;
+                              final message = isUser
+                                  ? _userMessages[index ~/ 2].message
+                                  : _aiMessages[index ~/ 2];
+                              final imageFile = isUser
+                                  ? _userMessages[index ~/ 2].imageFile
+                                  : null;
+
+                              return AiMessage(
+                                isUser: isUser,
+                                message: message,
+                                profilePictureUrl: _profilePictureUrl,
+                                imageFile: imageFile,
+                                onCopyIconPressed: _copyToClipboard,
+                                isLoadingResponse: _loadingResponse &&
+                                    index + 1 ==
+                                        _aiMessages.length +
+                                            _userMessages.length,
+                              );
+                            },
+                          ),
+                        ),
+                        if (_showError)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              _errorMessage,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        buildTextInputFields(),
+                      ],
+                    ),
+                    if (_showScrollToBottomButton)
+                      Positioned(
+                        bottom: 150,
+                        right: 20,
+                        child: FloatingActionButton(
+                          mini: true,
+                          onPressed: _scrollToBottom,
+                          child: const Icon(Icons.arrow_downward),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -335,88 +295,90 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.enter) {
+        _sendMessage();
+      } else if (event.logicalKey == LogicalKeyboardKey.control ||
+          event.logicalKey == LogicalKeyboardKey.meta) {
+        setState(() {
+          _isPasting = true;
+        });
+      }
+    } else if (event is KeyUpEvent &&
+        (event.logicalKey == LogicalKeyboardKey.control ||
+            event.logicalKey == LogicalKeyboardKey.meta)) {
+      setState(() {
+        _isPasting = false;
+      });
+    }
+  }
+
   Widget buildTopBar() {
     return Container(
-        height: 60,
-        color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Row(
-          children: [
-            const Spacer(),
-            IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close))
-          ],
-        ));
+      height: 60,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(
+        children: [
+          const Spacer(),
+          IconButton(
+            onPressed: widget.onClose,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget buildTextInputFields() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Container(
-        decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(
-              Radius.circular(20.0),
-            ),
-            color: kFlourishAliceBlue),
-        padding: const EdgeInsets.symmetric(
-          vertical: 10.0,
-          horizontal: 10.0,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20.0),
+          color: kFlourishAliceBlue,
         ),
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_imageFile != null)
               ImagePreview(
-                  imageFile: _imageFile,
-                  onDelete: () {
-                    setState(() {
-                      _imageFile = null;
-                    });
-                  }),
+                imageFile: _imageFile,
+                onDelete: () => setState(() => _imageFile = null),
+              ),
             TextField(
               controller: _textEditingController,
               focusNode: _textInputFocusNode,
               cursorColor: kFlourishBlackish,
-              maxLines:
-                  7, // Set this to null to let the TextField grow vertically
-              minLines: 1, // Start with a single line
-              textInputAction: TextInputAction
-                  .newline, // Set action to newline (multiline input)
+              maxLines: 7,
+              minLines: 1,
+              textInputAction: TextInputAction.newline,
               decoration: const InputDecoration(
                 focusColor: kFlourishBlackish,
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color:
-                        kFlourishBlackish, // Set the border color when focused
-                    width: 0.1,
-                  ),
+                  borderSide: BorderSide(color: kFlourishBlackish, width: 0.1),
                 ),
                 hoverColor: kFlourishBlackish,
                 hintText: 'Ask me anything...',
                 border: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Colors
-                        .transparent, // Set the border color when not focused
-                    width: 0.1,
-                  ),
+                  borderSide: BorderSide(color: Colors.transparent, width: 0.1),
                 ),
               ),
               inputFormatters: [
                 LengthLimitingTextInputFormatter(1000),
-
-                if (_isPasting)
-                  NoEnterInputFormatter() // keep a new line from forming in the next message when enter is sent
-                // Add more formatters if needed
+                if (_isPasting) NoEnterInputFormatter(),
               ],
               onChanged: (text) {
                 setState(() {
                   numCharacters = text.length;
                 });
                 if (text.contains('\n')) {
-                  // Remove the newline character
                   _textEditingController.text = text.replaceAll('\n', '');
-                  // Place the cursor at the end of the text
                   _textEditingController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: _textEditingController.text.length));
+                    TextPosition(offset: _textEditingController.text.length),
+                  );
                 }
               },
             ),
@@ -443,27 +405,25 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
-  void _pickImage() async {
+  Future<void> _pickImage() async {
     final file = await ImagePickerWeb.getImageAsFile();
+    if (file == null) return;
 
-    // load the file for optimistic UI updates
     final reader = html.FileReader();
-    reader.onLoadEnd.listen((event) {
+    reader.onLoadEnd.listen((_) {
       setState(() {
         _imageFile = reader.result as Uint8List;
       });
     });
-
-    reader.readAsArrayBuffer(file!);
+    reader.readAsArrayBuffer(file);
 
     final filename = const Uuid().v4();
     final ref = FirebaseStorage.instance.ref().child('openai/$filename');
     await ref.putBlob(file);
-
     _imageUrl = await ref.getDownloadURL();
   }
 
-  void _disposeImage() async {
+  Future<void> _disposeImage() async {
     if (_imageUrl == null) return;
     final ref = FirebaseStorage.instance.refFromURL(_imageUrl!);
     await ref.delete();
@@ -473,11 +433,11 @@ class _AiChatState extends State<AiChat> {
 class ImagePreview extends StatefulWidget {
   const ImagePreview({
     super.key,
-    required Uint8List? imageFile,
+    required this.imageFile,
     required this.onDelete,
-  }) : _imageFile = imageFile;
+  });
 
-  final Uint8List? _imageFile;
+  final Uint8List? imageFile;
   final VoidCallback onDelete;
 
   @override
@@ -490,16 +450,8 @@ class _ImagePreviewState extends State<ImagePreview> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (event) {
-        setState(() {
-          _isHovering = true;
-        });
-      },
-      onExit: (event) {
-        setState(() {
-          _isHovering = false;
-        });
-      },
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
       child: Column(
         children: [
           Stack(
@@ -507,21 +459,19 @@ class _ImagePreviewState extends State<ImagePreview> {
               Container(
                 height: 140,
                 width: 140,
-                alignment: Alignment.centerLeft,
                 decoration: BoxDecoration(
-                    image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: MemoryImage(widget._imageFile!),
-                )),
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: MemoryImage(widget.imageFile!),
+                  ),
+                ),
               ),
               if (_isHovering)
                 Positioned(
                   right: 0,
                   child: IconButton(
-                    icon: const Icon(
-                      Icons.remove_circle_outline_outlined,
-                      color: Colors.white,
-                    ),
+                    icon: const Icon(Icons.remove_circle_outline_outlined,
+                        color: Colors.white),
                     onPressed: widget.onDelete,
                   ),
                 ),
@@ -538,12 +488,9 @@ class NoEnterInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-    // Check if the new text contains newline characters
     if (newValue.text.contains('\n')) {
-      // Return old value to ignore the newline input
       return oldValue;
     }
-    // Otherwise, accept the new value
     return newValue;
   }
 }

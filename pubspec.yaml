@@ -51,6 +51,8 @@ dependencies:
   
 
   http: any
+  marquee_text: ^2.5.0+1
+  text_marquee: ^0.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

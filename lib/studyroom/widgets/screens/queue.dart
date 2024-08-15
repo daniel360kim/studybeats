@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:shimmer/shimmer.dart';
+
 class SongQueue extends StatefulWidget {
   const SongQueue({
     super.key,
@@ -35,14 +36,16 @@ class _SongQueueState extends State<SongQueue> {
     }
 
     final songInQueue = widget.queue![queueIndex];
-    return widget.songOrder?.indexWhere((song) => song.id == songInQueue.id) ?? -1;
+    return widget.songOrder?.indexWhere((song) => song.id == songInQueue.id) ??
+        -1;
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = widget.queue == null || widget.songOrder == null;
     final isQueueEmpty = widget.queue == null || widget.queue!.isEmpty;
-    final isSongOrderEmpty = widget.songOrder == null || widget.songOrder!.isEmpty;
+    final isSongOrderEmpty =
+        widget.songOrder == null || widget.songOrder!.isEmpty;
 
     return Container(
       padding: const EdgeInsets.only(right: 10, left: 10),
@@ -64,10 +67,10 @@ class _SongQueueState extends State<SongQueue> {
                 const SizedBox(height: 40),
                 buildCurrentSong(),
                 const SizedBox(height: 10),
-                isLoading 
-                    ? _buildLoadingIndicator() 
-                    : isQueueEmpty && isSongOrderEmpty 
-                        ? _buildEmptyState() 
+                isLoading
+                    ? _buildLoadingIndicator()
+                    : isQueueEmpty && isSongOrderEmpty
+                        ? _buildEmptyState()
                         : buildQueue(),
               ],
             ),
@@ -113,7 +116,9 @@ class _SongQueueState extends State<SongQueue> {
             song: widget.currentSong,
             onPressed: () {
               if (widget.currentSong?.id != null) {
-                final queueIndex = widget.queue?.indexWhere((song) => song.id == widget.currentSong!.id) ?? -1;
+                final queueIndex = widget.queue?.indexWhere(
+                        (song) => song.id == widget.currentSong!.id) ??
+                    -1;
                 final songOrderIndex = getSongOrderIndex(queueIndex);
                 widget.onSongSelected(songOrderIndex);
               }

@@ -74,6 +74,10 @@ class AuthService {
     }
   }
 
+  bool isUserLoggedIn() {
+    return FirebaseAuth.instance.currentUser != null;
+  }
+
   Future<void> signUpInWithGoogle() async {
     try {
       _logger.i('Attempting to sign in with Google');
