@@ -15,6 +15,9 @@ jobs:
         with:
           channel: beta
           cache: true
+    
+      - name: Disable web caching
+        run: bash ./build-web.sh
       
       - name: Decode base64 secrets
         run: echo $SECRETS_FILE_CONTENTS | base64 -d > lib/secrets.dart
