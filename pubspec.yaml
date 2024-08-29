@@ -36,7 +36,10 @@ dependencies:
     git:
       url: https://github.com/daniel360kim/chat_gpt_sdk.git
       ref: main
-  flutter_math_fork: ^0.7.2
+  flutter_math_fork:
+    git:
+      url: https://github.com/daniel360kim/flutter_math_fork
+      ref: master
   flutter_markdown: ^0.7.3
   lottie: ^3.1.2
   dio: ^5.5.0+1
