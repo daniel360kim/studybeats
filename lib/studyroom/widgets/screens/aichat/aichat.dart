@@ -171,6 +171,7 @@ class _AiChatState extends State<AiChat> {
       _aiMessages.add('');
       _imageFile = null;
       _showError = false;
+      _textEditingController.clear();
     });
 
     try {

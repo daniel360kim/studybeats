@@ -4,32 +4,24 @@ import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/audio.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
-import 'package:flourish_web/studyroom/studytools/scene.dart';
 import 'package:flourish_web/studyroom/widgets/controls/playlist_controls.dart';
-import 'package:flourish_web/studyroom/widgets/controls/scene_controls.dart';
 import 'package:flourish_web/studyroom/widgets/controls/songinfo.dart';
 import 'package:flourish_web/studyroom/widgets/controls/volume.dart';
-import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
 import 'package:flourish_web/studyroom/widgets/screens/equalizer.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
-import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
 import 'package:flourish_web/studyroom/widgets/screens/songcredits.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shimmer/shimmer.dart';
 import 'widgets/controls/music_controls.dart';
 
 class Player extends StatefulWidget {
   const Player({
     required this.playlistId,
-    required this.scenes,
-    required this.onShowTimer,
     super.key,
   });
 
   final int playlistId;
-  final List<StudyScene> scenes;
-  final ValueChanged<PomodoroDurations> onShowTimer;
 
   @override
   State<Player> createState() => _PlayerState();
@@ -53,9 +45,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   bool _showQueue = false;
   bool _showSongInfo = false;
   bool _showEqualizer = false;
-  bool _showSceneSelection = false;
-  bool _showTimerSelection = false;
-  bool _showAiChat = false;
 
   @override
   void initState() {
@@ -78,6 +67,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('app state changed to $state');
     if (state == AppLifecycleState.resumed) {
       _audio.audioPlayer.play();
     } else {
@@ -108,6 +98,17 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    if (_audio.audioPlayer.sequence == null) {
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Container(
+          height: 80,
+          width: MediaQuery.of(context).size.width,
+          color: Colors.white,
+        ),
+      );
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -115,55 +116,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              _showSceneSelection
-                  ? Align(
-                      alignment: Alignment.bottomLeft,
-                      child: SceneSelector(
-                        scenes: widget.scenes,
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-              _showTimerSelection
-                  ? Align(
-                      alignment: Alignment.bottomLeft,
-                      child: PomodoroTimer(
-                        onStartPressed: (value) {
-                          widget.onShowTimer(value);
-                          SceneControls(
-                            onChatPressed: (value) {
-                              setState(() {
-                                _showAiChat = value;
-                              });
-                            },
-                            onScreneSelectPressed: (value) {
-                              setState(() {
-                                _showSceneSelection = value;
-                              });
-                            },
-                            onTimerPressed: (value) {
-                              setState(() {
-                                _showTimerSelection = value;
-                              });
-                            },
-                          ).handleTimerPressed(_sceneControlsKey);
-                        },
-                        onClose: () {},
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-              _showAiChat
-                  ? Positioned(
-                      bottom: 1000,
-                      left: 10,
-                      child: AiChat(
-                        onClose: () {
-                          setState(() {
-                            _showAiChat = false;
-                          });
-                        },
-                      ),
-                    )
-                  : const SizedBox.shrink(),
               if (_showQueue || _showSongInfo || _showEqualizer) const Spacer(),
               _showQueue
                   ? Align(
@@ -217,8 +169,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
             ]),
         Align(
           alignment: Alignment.bottomCenter,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 20.0),
+          child: SizedBox(
             width: MediaQuery.of(context).size.width,
             height: verticalLayout ? 300 : 80,
             child: Stack(
@@ -235,27 +186,16 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   Widget buildBackdrop() {
     bool left = false;
-    bool right = false;
 
     left = _showQueue || _showSongInfo || _showEqualizer;
-    right = _showSceneSelection || _showTimerSelection;
 
     const enabledBorderRadius = Radius.circular(20.0);
     BorderRadius borderRadius = BorderRadius.only(
       topLeft: left ? enabledBorderRadius : Radius.zero,
-      topRight: right ? enabledBorderRadius : Radius.zero,
+      topRight: enabledBorderRadius,
       bottomLeft: enabledBorderRadius,
       bottomRight: enabledBorderRadius,
     );
-
-    if (left && right) {
-      borderRadius = const BorderRadius.only(
-        topLeft: Radius.zero,
-        topRight: Radius.zero,
-        bottomLeft: enabledBorderRadius,
-        bottomRight: enabledBorderRadius,
-      );
-    }
 
     return ClipRRect(
       borderRadius: borderRadius,
@@ -284,28 +224,8 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     });
   }
 
-  final GlobalKey<SceneControlsState> _sceneControlsKey =
-      GlobalKey<SceneControlsState>();
-
   List<Widget> buildControlWidgets() {
     return [
-      SceneControls(
-          key: _sceneControlsKey,
-          onScreneSelectPressed: (value) {
-            setState(() {
-              _showSceneSelection = value;
-            });
-          },
-          onChatPressed: (value) {
-            setState(() {
-              _showAiChat = value;
-            });
-          },
-          onTimerPressed: (value) {
-            setState(() {
-              _showTimerSelection = value;
-            });
-          }),
       StreamBuilder<PlayerState>(
         stream: _audio.audioPlayer.playerStateStream,
         builder: (context, snapshot) {
@@ -384,10 +304,12 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
     try {
       await _audio.nextSong();
-      setState(() async {
-        currentCloudSongInfo = await _audio.getCurrentSongCloudInfo();
+      final songCloudInfo = await _audio.getCurrentSongCloudInfo();
+      setState(() {
+        currentCloudSongInfo = songCloudInfo;
       });
     } catch (e) {
+      
       // TODO implement proper error handling within the ui
       // TODO detect if the exception was caused by the songcloudinfo API call
       // or if it from the nextSong api call
@@ -405,8 +327,9 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
     try {
       await _audio.previousSong();
-      setState(() async {
-        currentCloudSongInfo = await _audio.getCurrentSongCloudInfo();
+      final songCloudInfo = await _audio.getCurrentSongCloudInfo();
+      setState(()  {
+        currentCloudSongInfo = songCloudInfo;
       });
     } catch (e) {
       // TODO implement proper error handling within the ui
