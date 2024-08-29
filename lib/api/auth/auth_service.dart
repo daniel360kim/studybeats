@@ -81,11 +81,11 @@ class AuthService {
   Future<void> signUpInWithGoogle() async {
     try {
       _logger.i('Attempting to sign in with Google');
-      final GoogleSignInAccount? googleUser =
+       GoogleSignInAccount? googleUser =
           await googleSignIn.signInSilently();
 
       if (googleUser == null) {
-        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+       googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
           _logger.e('Google user returned null');
           throw Exception();
