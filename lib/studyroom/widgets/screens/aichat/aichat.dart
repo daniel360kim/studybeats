@@ -135,9 +135,18 @@ class _AiChatState extends State<AiChat> {
 
       final response = await openAi.onChatCompletion(request: request);
 
+      if (response!.choices.first.message!.content.isEmpty) {
+        setState(() {
+          _loadingResponse = false;
+          _showError = true;
+          _errorMessage = 'Failed to get response from API';
+        });
+        return;
+      }
+
       setState(() {
         _loadingResponse = false;
-        _aiMessages.last = response!.choices.first.message!.content;
+        _aiMessages.last = response.choices.first.message!.content;
         _conversationHistory
             .add({'role': 'assistant', 'content': _aiMessages.last});
       });
@@ -204,89 +213,82 @@ class _AiChatState extends State<AiChat> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: SizedBox(
-        width: 400,
-        height: MediaQuery.of(context).size.height - 120,
-        child: KeyboardListener(
-          focusNode: _keyboardListenerFocusNode,
-          onKeyEvent: _handleKeyEvent,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10.0),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Color(0xFFE0E7FF),
-                      Color(0xFFF7F8FC),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: Stack(
-                  children: [
-                    Column(
-                      children: [
-                        buildTopBar(),
-                        Expanded(
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            itemCount:
-                                _userMessages.length + _aiMessages.length,
-                            itemBuilder: (context, index) {
-                              final isUser = index.isEven;
-                              final message = isUser
-                                  ? _userMessages[index ~/ 2].message
-                                  : _aiMessages[index ~/ 2];
-                              final imageFile = isUser
-                                  ? _userMessages[index ~/ 2].imageFile
-                                  : null;
-
-                              return AiMessage(
-                                isUser: isUser,
-                                message: message,
-                                profilePictureUrl: _profilePictureUrl,
-                                imageFile: imageFile,
-                                onCopyIconPressed: _copyToClipboard,
-                                isLoadingResponse: _loadingResponse &&
-                                    index + 1 ==
-                                        _aiMessages.length +
-                                            _userMessages.length,
-                              );
-                            },
-                          ),
-                        ),
-                        if (_showError)
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              _errorMessage,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        buildTextInputFields(),
-                      ],
-                    ),
-                    if (_showScrollToBottomButton)
-                      Positioned(
-                        bottom: 150,
-                        right: 20,
-                        child: FloatingActionButton(
-                          mini: true,
-                          onPressed: _scrollToBottom,
-                          child: const Icon(Icons.arrow_downward),
-                        ),
-                      ),
+    return SizedBox(
+      width: 400,
+      height: MediaQuery.of(context).size.height - 80,
+      child: KeyboardListener(
+        focusNode: _keyboardListenerFocusNode,
+        onKeyEvent: _handleKeyEvent,
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color(0xFFE0E7FF),
+                    Color(0xFFF7F8FC),
                   ],
                 ),
+              ),
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      buildTopBar(),
+                      Expanded(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          itemCount: _userMessages.length + _aiMessages.length,
+                          itemBuilder: (context, index) {
+                            final isUser = index.isEven;
+                            final message = isUser
+                                ? _userMessages[index ~/ 2].message
+                                : _aiMessages[index ~/ 2];
+                            final imageFile = isUser
+                                ? _userMessages[index ~/ 2].imageFile
+                                : null;
+
+                            return AiMessage(
+                              isUser: isUser,
+                              message: message,
+                              profilePictureUrl: _profilePictureUrl,
+                              imageFile: imageFile,
+                              onCopyIconPressed: _copyToClipboard,
+                              isLoadingResponse: _loadingResponse &&
+                                  index + 1 ==
+                                      _aiMessages.length + _userMessages.length,
+                            );
+                          },
+                        ),
+                      ),
+                      if (_showError)
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            _errorMessage,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      buildTextInputFields(),
+                    ],
+                  ),
+                  if (_showScrollToBottomButton)
+                    Positioned(
+                      bottom: 150,
+                      right: 20,
+                      child: FloatingActionButton(
+                        mini: true,
+                        onPressed: _scrollToBottom,
+                        child: const Icon(Icons.arrow_downward),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

@@ -147,6 +147,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                             },
                           ).handleTimerPressed(_sceneControlsKey);
                         },
+                        onClose: () {},
                       ),
                     )
                   : const SizedBox.shrink(),

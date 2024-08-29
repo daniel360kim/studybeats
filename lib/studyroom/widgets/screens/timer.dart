@@ -1,7 +1,6 @@
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 class PomodoroDurations {
   Duration studyTime;
@@ -12,11 +11,13 @@ class PomodoroDurations {
 
 class PomodoroTimer extends StatefulWidget {
   const PomodoroTimer({
+    required this.onClose,
     required this.onStartPressed,
     super.key,
   });
 
   final ValueChanged<PomodoroDurations> onStartPressed;
+  final VoidCallback onClose;
 
   @override
   State<PomodoroTimer> createState() => _PomodoroTimerState();
@@ -35,125 +36,145 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
 
   @override
   Widget build(BuildContext context) {
-    const BorderRadius borderRadius = BorderRadius.only(
-      topLeft: Radius.circular(40.0),
-      topRight: Radius.circular(40.0),
-    );
     return SizedBox(
       width: 300,
-      height: 400,
+      height: MediaQuery.of(context).size.height - 80,
       child: Container(
-        padding: const EdgeInsets.only(left: 10),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-            child: Container(
-              decoration: const BoxDecoration(
-                  color: Color.fromRGBO(170, 170, 170, 0.7),
-                  borderRadius: borderRadius),
-              child: Swiper(
-                itemCount: 2,
-                loop: false,
-                itemWidth: 80,
-                itemHeight: 50,
-                physics: const NeverScrollableScrollPhysics(),
-                controller: _swiperController,
-                itemBuilder: (BuildContext context, int index) {
-                  switch (index) {
-                    case 0:
-                      return TimerSwiperItem(
-                        title: 'Study Time',
-                        hourLowerValue: 0,
-                        hourUpperValue: 24,
-                        minuteLowerValue: 0,
-                        minuteUpperValue: 59,
-                        initialHourValue: 0,
-                        initialMinuteValue: 25,
-                        onDurationSelected: (value) {
-                          studyTime = value;
-                        },
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: kFlourishBlackish,
-                            backgroundColor: kFlourishCyan,
-                            overlayColor: kFlourishBlackish.withOpacity(0.1),
-                            minimumSize: const Size(200, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                          onPressed: () => _swiperController.next(),
-                          child: const Text(
-                            'Next',
-                            style: TextStyle(
-                              color: kFlourishBlackish,
-                              fontSize: 15,
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    case 1:
-                      return TimerSwiperItem(
-                        title: 'Break Time',
-                        hourLowerValue: 0,
-                        hourUpperValue: 24,
-                        minuteLowerValue: 0,
-                        minuteUpperValue: 59,
-                        initialHourValue: 0,
-                        initialMinuteValue: 5,
-                        onDurationSelected: (value) {
-                          breakTime = value;
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              color: kFlourishAliceBlue,
-                              icon: const Icon(Icons.arrow_back_ios),
-                              onPressed: () => _swiperController.previous(),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                foregroundColor: kFlourishBlackish,
-                                backgroundColor: kFlourishCyan,
-                                overlayColor:
-                                    kFlourishBlackish.withOpacity(0.1),
-                                minimumSize: const Size(125, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                              ),
-                              onPressed: () {
-                                PomodoroDurations durations =
-                                    PomodoroDurations(studyTime, breakTime);
-                                widget.onStartPressed(durations);
-                              },
-                              child: const Text(
-                                'Start',
-                                style: TextStyle(
-                                  color: kFlourishBlackish,
-                                  fontSize: 15,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    default:
-                      return const Placeholder();
-                  }
-                },
-              ),
-            ),
-          ),
+        decoration: const BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+              Color(0xFFE0E7FF),
+              Color(0xFFF7F8FC),
+            ])),
+        child: Column(
+          children: [
+            buildTopBar(),
+            buildTimerSwiper(),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget buildTopBar() {
+    return Container(
+      height: 40,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(
+        children: [
+          const Spacer(),
+          IconButton(
+            onPressed: widget.onClose,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildTimerSwiper() {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height - 80 - 40,
+      child: Swiper(
+        itemCount: 2,
+        loop: false,
+        itemWidth: 80,
+        itemHeight: 50,
+        physics: const NeverScrollableScrollPhysics(),
+        controller: _swiperController,
+        itemBuilder: (BuildContext context, int index) {
+          switch (index) {
+            case 0:
+              return TimerSwiperItem(
+                title: 'Study Time',
+                hourLowerValue: 0,
+                hourUpperValue: 24,
+                minuteLowerValue: 0,
+                minuteUpperValue: 59,
+                initialHourValue: 0,
+                initialMinuteValue: 25,
+                onDurationSelected: (value) {
+                  studyTime = value;
+                },
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: kFlourishBlackish,
+                    backgroundColor: kFlourishCyan,
+                    overlayColor: kFlourishBlackish.withOpacity(0.1),
+                    minimumSize: const Size(200, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  onPressed: () => _swiperController.next(),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(
+                      color: kFlourishBlackish,
+                      fontSize: 15,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            case 1:
+              return TimerSwiperItem(
+                title: 'Break Time',
+                hourLowerValue: 0,
+                hourUpperValue: 24,
+                minuteLowerValue: 0,
+                minuteUpperValue: 59,
+                initialHourValue: 0,
+                initialMinuteValue: 5,
+                onDurationSelected: (value) {
+                  breakTime = value;
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      color: kFlourishAliceBlue,
+                      icon: const Icon(Icons.arrow_back_ios),
+                      onPressed: () => _swiperController.previous(),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: kFlourishBlackish,
+                        backgroundColor: kFlourishCyan,
+                        overlayColor: kFlourishBlackish.withOpacity(0.1),
+                        minimumSize: const Size(125, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: () {
+                        PomodoroDurations durations =
+                            PomodoroDurations(studyTime, breakTime);
+                        widget.onStartPressed(durations);
+                      },
+                      child: const Text(
+                        'Start',
+                        style: TextStyle(
+                          color: kFlourishBlackish,
+                          fontSize: 15,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            default:
+              return const Placeholder();
+          }
+        },
       ),
     );
   }
