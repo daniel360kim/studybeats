@@ -198,6 +198,7 @@ class _StudyRoomState extends State<StudyRoom> {
                 ),
               )
             : Player(
+                key: ValueKey(_playlistId),
                 playlistId: _playlistId!,
               ),
         Positioned(
