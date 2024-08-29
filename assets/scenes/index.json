@@ -1,0 +1,27 @@
+[
+    {
+        "id": 1,
+        "name": "Jazz Cafe",
+        "playlistId": 2,
+        "scenePath": "assets/scenes/jazzcafe.jpeg",
+        "backgroundIds": [1, 2, 3],
+        "fontTheme": "Inter"
+    },
+    {
+
+        "id": 2,
+        "name": "Asian Garden",
+        "playlistId": 1,
+        "scenePath": "assets/scenes/asian.jpeg",
+        "backgroundIds": [1, 2, 3],
+        "fontTheme": "Inter"
+    },
+    {
+        "id": 3,
+        "name": "Synthwave City",
+        "playlistId": 3,
+        "scenePath": "assets/scenes/synthwave.jpeg",
+        "backgroundIds": [1, 2, 3],
+        "fontTheme": "Inter"   
+    }
+]

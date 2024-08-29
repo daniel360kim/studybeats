@@ -1,17 +1,15 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/api/scenes/objects.dart';
-import 'package:flourish_web/api/scenes/scene_service.dart';
+import 'dart:convert';
+
 import 'package:flourish_web/app_state.dart';
-import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/studyroom/audio/background_sound.dart';
 import 'package:flourish_web/studyroom/control_bar.dart';
 import 'package:flourish_web/studyroom/credential_bar.dart';
-import 'package:flourish_web/studyroom/side_widget_bar.dart';
+import 'package:flourish_web/studyroom/studytools/scene.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart'; // Add the shimmer package
 
 class StudyRoom extends StatefulWidget {
   const StudyRoom({super.key});
@@ -25,96 +23,37 @@ class _StudyRoomState extends State<StudyRoom> {
   bool _loadingScene = true;
   PomodoroDurations timerDurations =
       PomodoroDurations(Duration.zero, Duration.zero);
-  SceneData? _currentScene;
-  List<SceneData> _sceneList = [];
 
-  final SceneService _sceneService = SceneService();
+  StudyScene scene = const StudyScene(
+    id: 0,
+    name: 'Loading...',
+    playlistId: 0,
+    scenePath: 'Loading...',
+    backgroundIds: [0],
+    fontTheme: 'Loading...',
+  );
 
-  String? _backgroundImageUrl;
+  List<StudyScene> scenes = [];
 
-  int? _playlistId;
+  Future initScenes() async {
+    String json = await rootBundle.loadString('assets/scenes/index.json');
+    List<dynamic> scenes = await jsonDecode(json);
+    List<StudyScene> sceneList =
+        scenes.map((scene) => StudyScene.fromJson(scene)).toList();
 
-  final _logger = getLogger('StudyRoom Page Widget');
+    return sceneList;
+  }
 
   @override
   void initState() {
     super.initState();
-    initScenes();
-  }
-
-  void initScenes() {
-    try {
-      _sceneService.getSceneData().then((value) async {
-        if (value.isEmpty) {
-          _logger.e('No scenes found');
-          setState(() {
-            _currentScene = null;
-            _backgroundImageUrl = null;
-            _loadingScene = true;
-            _playlistId = null;
-          });
-          return;
-        }
-        final backgroundUrl =
-            await _sceneService.getBackgroundImageUrl(value[2]);
-
-        setState(() {
-          _sceneList = value;
-          _currentScene = _sceneList[2];
-
-          if (_currentScene == null) {
-            _logger.e('No scenes found');
-            _currentScene = null;
-            _backgroundImageUrl = null;
-            _loadingScene = true;
-            _playlistId = null;
-            return;
-          }
-
-          _backgroundImageUrl = backgroundUrl;
-          _playlistId = _currentScene!.playlistId;
-          _loadingScene = false;
-        });
-      });
-    } catch (e) {
+    initScenes().then((scenes) {
       setState(() {
-        _currentScene = null;
-        _backgroundImageUrl = null;
-        _loadingScene = true;
-        _playlistId = null;
+        _loadingScene = false;
+        this.scenes = scenes;
+        scene = scenes[1];
       });
-    }
-  }
-
-  void changeScene(int id) async {
-    try {
-      setState(() {
-        _currentScene = _sceneList.firstWhere((scene) => scene.id == id);
-      });
-
-      if (_currentScene == null) {
-        _logger.e('Scene with id $id not found');
-        return;
-      }
-
-      final url = await _sceneService.getBackgroundImageUrl(_currentScene!);
-      setState(() {
-        _backgroundImageUrl = url;
-        if (_currentScene == null) {
-          _logger.e('No scenes found');
-          _currentScene = null;
-          _backgroundImageUrl = null;
-          _loadingScene = true;
-          _playlistId = null;
-          return;
-        }
-        _playlistId = _currentScene!.playlistId;
-      });
-    } catch (e) {
-      _logger.e('Error while changing scene $e');
-      _currentScene = null;
-      _backgroundImageUrl = null;
-    }
+    });
   }
 
   @override
@@ -136,7 +75,7 @@ class _StudyRoomState extends State<StudyRoom> {
                   },
                 )
               : const SizedBox.shrink(),
-          // buildMainControls(),
+          //buildMainControls(),
         ],
       ),
     );
@@ -145,60 +84,26 @@ class _StudyRoomState extends State<StudyRoom> {
   Widget buildBackgroundImage() {
     return Stack(
       children: [
-        _loadingScene || _currentScene == null || _backgroundImageUrl == null
-            ? Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: Colors.white,
-                ),
-              )
-            : CachedNetworkImage(imageUrl: _backgroundImageUrl!),
-        _loadingScene || _currentScene == null || _backgroundImageUrl == null
-            ? Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Container(
-                  height: MediaQuery.of(context).size.height - 80,
-                  width: 50,
-                  color: Colors.white,
-                ),
-              )
-            : Positioned(
-                top: 0,
-                left: 0,
-                child: SideWidgetBar(
-                  onShowTimer: (value) {
-                    setState(() {
-                      timerDurations = value;
-                      _showTimer = true;
-                    });
-                  },
-                  onSceneChanged: (id) {
-                    changeScene(id);
-                  },
-                  currentScene: _currentScene!,
-                  currentSceneBackgroundUrl: _backgroundImageUrl!,
-                ),
-              ),
+        Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(scene.scenePath),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
         buildBackgroundNoiseControls(),
-        _loadingScene || _currentScene == null || _playlistId == null
-            ? Align(
-                alignment: Alignment.bottomCenter,
-                child: Shimmer.fromColors(
-                  baseColor: Colors.grey[600]!,
-                  highlightColor: Colors.grey[300]!,
-                  child: Container(
-                    width: MediaQuery.of(context).size.width,
-                    height: 80,
-                    color: Colors.grey,
-                  ),
-                ),
-              )
+        _loadingScene
+            ? const SizedBox.shrink()
             : Player(
-                playlistId: _playlistId!,
+                playlistId: scene.playlistId,
+                scenes: scenes,
+                onShowTimer: (value) {
+                  setState(() {
+                    timerDurations = value;
+                    _showTimer = true;
+                  });
+                },
               ),
         Positioned(
           top: 20,
@@ -215,6 +120,7 @@ class _StudyRoomState extends State<StudyRoom> {
     );
   }
 
+  // TODO make the offsets dynamic based on the screen size so they are not clipped out of view
   Widget buildBackgroundNoiseControls() {
     return const Stack(
       children: [

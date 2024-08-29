@@ -81,11 +81,10 @@ class AuthService {
   Future<void> signUpInWithGoogle() async {
     try {
       _logger.i('Attempting to sign in with Google');
-       GoogleSignInAccount? googleUser =
-          await googleSignIn.signInSilently();
+      GoogleSignInAccount? googleUser = await googleSignIn.signInSilently();
 
       if (googleUser == null) {
-       googleUser = await googleSignIn.signIn();
+        googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
           _logger.e('Google user returned null');
           throw Exception();
@@ -93,7 +92,7 @@ class AuthService {
       }
 
       final GoogleSignInAuthentication googleAuth =
-          await googleUser!.authentication;
+          await googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
