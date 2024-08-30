@@ -57,8 +57,7 @@ class _SongCreditsState extends State<SongCredits> {
       topLeft: Radius.circular(40.0),
       topRight: Radius.circular(40.0),
     );
-    return Container(
-      padding: const EdgeInsets.only(right: 10),
+    return SizedBox(
       width: 500,
       height: MediaQuery.of(context).size.height - 80 * 5,
       child: ClipRRect(

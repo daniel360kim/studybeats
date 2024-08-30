@@ -104,13 +104,16 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (_audio.audioPlayer.sequence == null) {
-      return Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
-        child: Container(
-          height: 80,
-          width: MediaQuery.of(context).size.width,
-          color: Colors.white,
+      return Align(
+        alignment: Alignment.bottomCenter,
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            height: 80,
+            width: MediaQuery.of(context).size.width,
+            color: Colors.white,
+          ),
         ),
       );
     }
@@ -190,20 +193,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   Widget buildBackdrop() {
-    bool left = false;
-
-    left = _showQueue || _showSongInfo || _showEqualizer;
-
-    const enabledBorderRadius = Radius.circular(20.0);
-    BorderRadius borderRadius = BorderRadius.only(
-      topLeft: left ? enabledBorderRadius : Radius.zero,
-      topRight: enabledBorderRadius,
-      bottomLeft: enabledBorderRadius,
-      bottomRight: enabledBorderRadius,
-    );
-
     return ClipRRect(
-      borderRadius: borderRadius,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
         child: Container(

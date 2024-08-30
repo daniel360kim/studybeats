@@ -48,8 +48,7 @@ class _SongQueueState extends State<SongQueue> {
     final isSongOrderEmpty =
         widget.songOrder == null || widget.songOrder!.isEmpty;
 
-    return Container(
-      padding: const EdgeInsets.only(right: 10, left: 10),
+    return SizedBox(
       width: 500,
       height: MediaQuery.of(context).size.height - 80 * 2,
       child: ClipRRect(
@@ -82,7 +81,7 @@ class _SongQueueState extends State<SongQueue> {
   }
 
   Widget buildHeader() {
-    return  Align(
+    return Align(
       alignment: Alignment.topLeft,
       child: Text(
         'Queue',
@@ -90,7 +89,6 @@ class _SongQueueState extends State<SongQueue> {
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: Colors.white,
-
         ),
       ),
     );
@@ -103,13 +101,12 @@ class _SongQueueState extends State<SongQueue> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-         Text(
+          Text(
             'Playing Now',
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
-    
             ),
           ),
           const SizedBox(height: 10),
@@ -134,7 +131,7 @@ class _SongQueueState extends State<SongQueue> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-         Text(
+        Text(
           'Up Next',
           style: GoogleFonts.inter(
             fontSize: 18,
@@ -172,13 +169,12 @@ class _SongQueueState extends State<SongQueue> {
   }
 
   Widget _buildEmptyState() {
-    return  Center(
+    return Center(
       child: Text(
         'No songs available',
         style: GoogleFonts.inter(
           fontSize: 16,
           color: Colors.white,
-
         ),
       ),
     );
@@ -235,19 +231,17 @@ class _QueueSongItemState extends State<QueueSongItem> {
                       children: [
                         Text(
                           widget.song!.trackName,
-                          style:  GoogleFonts.inter(
+                          style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
-                        
                           ),
                         ),
                         Text(
                           widget.song!.artistName,
-                          style:  GoogleFonts.inter(
+                          style: GoogleFonts.inter(
                             fontSize: 14,
                             color: Colors.black,
-                     
                           ),
                         ),
                       ],
@@ -286,10 +280,9 @@ class _QueueSongItemState extends State<QueueSongItem> {
                                 ? formatDuration(widget.song!.trackTime)
                                 : formatDuration(0),
                             textAlign: TextAlign.left,
-                            style:  GoogleFonts.inter(
+                            style: GoogleFonts.inter(
                               fontSize: 14,
                               color: Colors.black,
-                       
                             ),
                           ),
                   ],
@@ -344,9 +337,8 @@ class _PopupMenuDetailsState extends State<PopupMenuDetails> {
         const SizedBox(width: 10),
         Text(
           widget.text,
-          style:  GoogleFonts.inter(
+          style: GoogleFonts.inter(
             color: Colors.white,
- 
           ),
         ),
       ],

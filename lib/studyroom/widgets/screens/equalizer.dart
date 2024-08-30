@@ -42,8 +42,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
       topRight: Radius.circular(40.0),
     );
 
-    return Container(
-      padding: const EdgeInsets.only(right: 10),
+    return SizedBox(
       width: 500,
       height: MediaQuery.of(context).size.height - 80 * 5,
       child: ClipRRect(
