@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:audio_session/audio_session.dart';
 import 'package:flourish_web/api/audio/audio_service.dart';
 import 'package:flourish_web/api/audio/objects.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
@@ -35,6 +36,8 @@ class Audio {
   final _playlist =
       ConcatenatingAudioSource(children: [], useLazyPreparation: false);
 
+  final _authService = AuthService();
+
   void initPlayer() async {
     try {
       final service = AudioService();
@@ -47,7 +50,8 @@ class Audio {
 
       // Get info about the audioPlayer.sequence! from the cloud database based on the playlistId
       _cloudInfoHandler = SongCloudInfoHandler(playlistId: playlistId);
-      await _cloudInfoHandler.init();
+
+      if (_authService.isUserLoggedIn()) await _cloudInfoHandler.init();
 
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.speech());
@@ -88,7 +92,9 @@ class Audio {
     audioPlayer.dispose();
 
     // Log the song end in the cloud database
-    _cloudInfoHandler.onSongEnd(currentSongIndex, getSongPlayedDuration());
+    if (_authService.isUserLoggedIn()) {
+      _cloudInfoHandler.onSongEnd(currentSongIndex, getSongPlayedDuration());
+    }
   }
 
   void play() async {
@@ -112,6 +118,9 @@ class Audio {
   }
 
   Future setFavorite(bool isFavorite) async {
+    if (!_authService.isUserLoggedIn()) {
+      return;
+    }
     try {
       await _cloudInfoHandler.setFavorite(currentSongIndex, isFavorite);
     } catch (e) {
@@ -142,8 +151,10 @@ class Audio {
   }
 
   Future seekToIndex(int index) async {
-    await _cloudInfoHandler.onSongEnd(
-        currentSongIndex, getSongPlayedDuration());
+    if (_authService.isUserLoggedIn()) {
+      await _cloudInfoHandler.onSongEnd(
+          currentSongIndex, getSongPlayedDuration());
+    }
 
     isLoaded.value = false;
     try {
@@ -268,6 +279,7 @@ class Audio {
     return audioPlayer.sequence![audioPlayer.sequence!.length - 1].tag;
   }
 
+  // Caller should check if the user is logged in before calling this function
   Future getCurrentSongCloudInfo() async {
     return await _cloudInfoHandler.getSongCloudInfo(currentSongIndex);
   }

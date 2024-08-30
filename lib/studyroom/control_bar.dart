@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flourish_web/api/audio/objects.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/audio.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
@@ -46,6 +47,8 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   bool _showSongInfo = false;
   bool _showEqualizer = false;
 
+  final _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
@@ -89,11 +92,13 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
           _audio.getSongOrder(); // Assuming this method returns song order
     });
 
-    _audio.getCurrentSongCloudInfo().then((value) {
-      setState(() {
-        currentCloudSongInfo = value;
+    if (_authService.isUserLoggedIn()) {
+      _audio.getCurrentSongCloudInfo().then((value) {
+        setState(() {
+          currentCloudSongInfo = value;
+        });
       });
-    });
+    }
   }
 
   @override
@@ -244,7 +249,9 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                 _toggleFavorite(value);
               },
               isPlaying: playing,
-              isFavorite: currentCloudSongInfo.isFavorite,
+              isFavorite: _authService.isUserLoggedIn()
+                  ? currentCloudSongInfo.isFavorite
+                  : false,
             );
           } else {
             return const SizedBox.shrink();
@@ -280,6 +287,9 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   void _toggleFavorite(bool isFavorite) async {
+    if (!_authService.isUserLoggedIn()) {
+      return;
+    }
     setState(() {
       currentCloudSongInfo =
           currentCloudSongInfo.copyWith(isFavorite: isFavorite);
@@ -304,12 +314,14 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
     try {
       await _audio.nextSong();
-      final songCloudInfo = await _audio.getCurrentSongCloudInfo();
-      setState(() {
-        currentCloudSongInfo = songCloudInfo;
-      });
+
+      if (_authService.isUserLoggedIn()) {
+        final songCloudInfo = await _audio.getCurrentSongCloudInfo();
+        setState(() {
+          currentCloudSongInfo = songCloudInfo;
+        });
+      }
     } catch (e) {
-      
       // TODO implement proper error handling within the ui
       // TODO detect if the exception was caused by the songcloudinfo API call
       // or if it from the nextSong api call
@@ -328,7 +340,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     try {
       await _audio.previousSong();
       final songCloudInfo = await _audio.getCurrentSongCloudInfo();
-      setState(()  {
+      setState(() {
         currentCloudSongInfo = songCloudInfo;
       });
     } catch (e) {
