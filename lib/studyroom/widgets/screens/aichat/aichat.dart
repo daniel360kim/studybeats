@@ -109,8 +109,17 @@ class _AiChatState extends State<AiChat> {
 
   Future<void> _sendTextOnly() async {
     if (_textEditingController.text.isEmpty || _loadingResponse) return;
-
-    final uid = await _authService.getCurrentUserUid();
+    String uid = '';
+    try {
+      uid = await _authService.getCurrentUserUid();
+    } catch (e) {
+      setState(() {
+        _loadingResponse = false;
+        _showError = true;
+        _errorMessage = 'Cannot get response while logged out: $e';
+      });
+      return;
+    }
     final userMessage = _textEditingController.text;
 
     setState(() {
@@ -161,8 +170,16 @@ class _AiChatState extends State<AiChat> {
 
   Future<void> _sendImage() async {
     if (_loadingResponse || _imageUrl == null) return;
-
-    final uid = await _authService.getCurrentUserUid();
+    String uid = '';
+    try {
+      uid = await _authService.getCurrentUserUid();
+    } catch (e) {
+      setState(() {
+        _loadingResponse = false;
+        _showError = true;
+        _errorMessage = 'Must be signed in to use API: $e';
+      });
+    }
     final userMessage = _textEditingController.text;
 
     setState(() {

@@ -8,6 +8,7 @@ import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CreatePasswordPage extends StatefulWidget {
   const CreatePasswordPage({required this.username, super.key});
@@ -66,14 +67,13 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Next',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             color: kFlourishBlackish,
                             fontSize: 16,
-                            fontFamily: 'Inter',
                             fontWeight: FontWeight.bold,
-                          ),
+                          )
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -119,15 +119,16 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
           ),
         ),
         const SizedBox(height: 5),
-        const Text(
+       Text(
           'Flourish',
+
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 24,
-            fontFamily: 'Inter',
             fontWeight: FontWeight.bold,
           ),
+         
         ),
       ],
     );
@@ -140,12 +141,11 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
           alignment: Alignment.centerLeft,
           child: Row(
             children: [
-              const Text(
+             Text(
                 'Create a password',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: kFlourishAliceBlue,
                   fontSize: 17,
-                  fontFamily: 'Inter',
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -187,13 +187,14 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+         Text(
           'Already have an account?',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 15,
-            fontFamily: 'Inter',
+
           ),
+         
         ),
         TextButton(
           onPressed: () {
@@ -202,12 +203,11 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
-          child: const Text(
+          child:  Text(
             'Log In',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,
@@ -222,10 +222,9 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+         Text(
           'Password must contain:',
-          style: TextStyle(
-            fontFamily: 'Inter',
+          style: GoogleFonts.inter(
             fontSize: 14,
             color: kFlourishAliceBlue,
             fontWeight: FontWeight.bold,
@@ -302,10 +301,9 @@ class _PasswordChecklistItemState extends State<PasswordChecklistItem> {
         const SizedBox(width: 5),
         Text(
           widget.text,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 12,
             color: color,
-            fontFamily: 'Inter',
           ),
         ),
       ],

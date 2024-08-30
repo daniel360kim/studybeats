@@ -11,6 +11,7 @@ import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -75,12 +76,11 @@ class _SignupPageState extends State<SignupPage> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
-                              child: const Text(
+                              child:  Text(
                                 'Next',
-                                style: TextStyle(
+                                style: GoogleFonts.inter(
                                   color: kFlourishBlackish,
                                   fontSize: 16,
-                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -113,7 +113,7 @@ class _SignupPageState extends State<SignupPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/google.png',
                         text: 'Sign up with Google',
-                        fontFamily: 'Roboto',
+                        
                       ),
                       const SizedBox(height: 10),
                       CredentialSigninButton(
@@ -137,7 +137,7 @@ class _SignupPageState extends State<SignupPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/microsoft.png',
                         text: 'Sign up with Microsoft',
-                        fontFamily: 'SegoeUI',
+                    
                       ),
                       const SizedBox(height: 40),
                       buildBackToLoginWidgets(),
@@ -167,13 +167,12 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ),
           const SizedBox(height: 5),
-          const Text(
+           Text(
             'Sign up to start studying',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 36,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -185,14 +184,13 @@ class _SignupPageState extends State<SignupPage> {
   Widget buildTextFields() {
     return Column(
       children: [
-        const Align(
+         Align(
           alignment: Alignment.centerLeft,
           child: Text(
             'Email address',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -218,12 +216,11 @@ class _SignupPageState extends State<SignupPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+         Text(
           'Already have an account?',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 15,
-            fontFamily: 'Inter',
           ),
         ),
         TextButton(
@@ -233,12 +230,11 @@ class _SignupPageState extends State<SignupPage> {
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
-          child: const Text(
+          child:  Text(
             'Log in',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,

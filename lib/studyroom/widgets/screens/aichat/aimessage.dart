@@ -6,21 +6,19 @@ import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 
 final kStyleSheet = MarkdownStyleSheet(
-  p: const TextStyle(
+  p: GoogleFonts.inter(
     fontSize: 15,
-    fontFamily: 'Inter',
   ),
-  h1: const TextStyle(
+  h1: GoogleFonts.inter(
     fontSize: 18,
-    fontFamily: 'Inter',
     fontWeight: FontWeight.bold,
   ),
-  h2: const TextStyle(
+  h2: GoogleFonts.inter(
     fontSize: 22,
-    fontFamily: 'Inter',
     fontWeight: FontWeight.bold,
   ),
 );
@@ -94,9 +92,8 @@ class AiMessage extends StatelessWidget {
               const SizedBox(width: 5),
               SelectableText(
                 messageTitle,
-                style: const TextStyle(
+                style: GoogleFonts.inter(
                   fontSize: 15,
-                  fontFamily: 'Inter',
                   color: kFlourishBlackish,
                   fontWeight: FontWeight.bold,
                 ),
@@ -120,7 +117,7 @@ class AiMessage extends StatelessWidget {
                 child: isUser
                     ? SelectableText(
                         message,
-                        style: const TextStyle(fontSize: 16),
+                        style: GoogleFonts.inter(fontSize: 16),
                       )
                     : isLoadingResponse
                         ? SizedBox(
@@ -195,9 +192,8 @@ class AiParser extends StatelessWidget {
                 controller: scrollController,
                 child: Math.tex(
                   content,
-                  textStyle: const TextStyle(
+                  textStyle: GoogleFonts.inter(
                     fontSize: 18,
-                    fontFamily: 'Inter',
                   ),
                 ),
               ),

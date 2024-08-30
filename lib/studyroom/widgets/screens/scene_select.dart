@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
 import 'package:flourish_web/api/scenes/scene_service.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
 import 'package:shimmer/shimmer.dart';
@@ -93,10 +94,9 @@ class _SceneSelectorState extends State<SceneSelector> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Current Scene',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
+                          style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -112,10 +112,9 @@ class _SceneSelectorState extends State<SceneSelector> {
                         const SizedBox(
                           height: 20,
                         ),
-                        const Text(
+                        Text(
                           'Select Scene',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
+                          style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -229,12 +228,10 @@ class _SceneSelectorState extends State<SceneSelector> {
                   Center(
                     child: Text(
                       scene.name,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall!.copyWith(
-                                fontSize: 16,
-                                fontFamily: scene.fontTheme,
-                                color: Colors.white,
-                              ),
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],

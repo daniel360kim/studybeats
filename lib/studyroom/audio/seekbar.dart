@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SeekBar extends StatefulWidget {
   final Duration duration;
@@ -185,8 +186,7 @@ void showSliderDialog({
           child: Column(
             children: [
               Text('${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
-                  style: const TextStyle(
-                      fontFamily: 'Fixed',
+                  style:  GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 24.0)),
               Slider(

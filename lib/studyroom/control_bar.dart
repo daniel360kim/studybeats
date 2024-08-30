@@ -146,15 +146,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                         },
                       ),
                     )
-                  :Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
-        child: Container(
-          height: 80,
-          width: MediaQuery.of(context).size.width,
-          color: Colors.white,
-        ),
-      ),
+                  : const SizedBox.shrink(),
               _showSongInfo
                   ? Align(
                       alignment: Alignment.bottomRight,

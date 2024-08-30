@@ -1,13 +1,13 @@
 
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CredentialSigninButton extends StatefulWidget {
   const CredentialSigninButton({
     required this.backgroundColor,
     required this.logoPath,
     required this.text,
-    required this.fontFamily,
     required this.onPressed,
     super.key,
   });
@@ -15,7 +15,6 @@ class CredentialSigninButton extends StatefulWidget {
   final Color backgroundColor;
   final String logoPath;
   final String text;
-  final String fontFamily;
   final VoidCallback onPressed;
 
   @override
@@ -69,10 +68,10 @@ class _CredentialSigninButtonState extends State<CredentialSigninButton> {
                 const SizedBox(width: 10),
                 Text(
                   widget.text,
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     color: kFlourishAliceBlue,
                     fontSize: 16,
-                    fontFamily: widget.fontFamily,
+    
                     fontWeight: FontWeight.bold,
                   ),
                 ),

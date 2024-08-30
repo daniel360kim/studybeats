@@ -1,6 +1,7 @@
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginTextField extends StatefulWidget {
   const LoginTextField(
@@ -58,16 +59,14 @@ class _LoginTextFieldState extends State<LoginTextField> {
             ),
           ),
           placeholder: widget.hintText,
-          placeholderStyle: Theme.of(context).textTheme.titleSmall!.copyWith(
-                color: kFlourishLightBlackish,
-                fontSize: 15,
-                fontFamily: 'Inter',
-              ),
-          style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                color: kFlourishAliceBlue,
-                fontSize: 15,
-                fontFamily: 'Inter',
-              ),
+          placeholderStyle: GoogleFonts.inter(
+            color: kFlourishLightBlackish,
+            fontSize: 15,
+          ),
+          style: GoogleFonts.inter(
+            color: kFlourishAliceBlue,
+            fontSize: 15,
+          ),
           cursorColor: kFlourishAliceBlue,
           keyboardType: widget.keyboardType,
           textInputAction: TextInputAction.next,

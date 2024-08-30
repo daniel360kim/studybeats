@@ -1,6 +1,7 @@
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PomodoroDurations {
   Duration studyTime;
@@ -110,12 +111,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                     ),
                   ),
                   onPressed: () => _swiperController.next(),
-                  child: const Text(
+                  child:  Text(
                     'Next',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: kFlourishBlackish,
                       fontSize: 15,
-                      fontFamily: 'Inter',
+          
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -158,12 +159,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                             PomodoroDurations(studyTime, breakTime);
                         widget.onStartPressed(durations);
                       },
-                      child: const Text(
+                      child:  Text(
                         'Start',
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           color: kFlourishBlackish,
                           fontSize: 15,
-                          fontFamily: 'Inter',
+  
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -222,9 +223,9 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
         children: [
           const SizedBox(height: 30),
           Text(widget.title,
-              style: const TextStyle(
+              style:  GoogleFonts.inter(
                 fontSize: 30,
-                fontFamily: 'Inter',
+
                 color: kFlourishBlackish,
                 fontWeight: FontWeight.w600,
               )),
@@ -382,7 +383,7 @@ class _TimeSliderState extends State<TimeSlider> {
       alignment: Alignment.center,
       child: RichText(
         text: TextSpan(
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 40,
             color: textColor,
           ),

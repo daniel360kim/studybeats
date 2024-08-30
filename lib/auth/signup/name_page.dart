@@ -8,6 +8,7 @@ import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class EnterNamePage extends StatefulWidget {
   const EnterNamePage(
@@ -67,12 +68,12 @@ class _EnterNamePageState extends State<EnterNamePage> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            child: const Text(
+                            child:  Text(
                               'Sign Up',
-                              style: TextStyle(
+                              style: GoogleFonts.inter(
                                 color: kFlourishBlackish,
                                 fontSize: 16,
-                                fontFamily: 'Inter',
+    
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -120,13 +121,12 @@ class _EnterNamePageState extends State<EnterNamePage> {
           ),
         ),
         const SizedBox(height: 5),
-        const Text(
+         Text(
           'Flourish',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 24,
-            fontFamily: 'Inter',
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -137,30 +137,28 @@ class _EnterNamePageState extends State<EnterNamePage> {
   Widget buildTextFields() {
     return Column(
       children: [
-        const Align(
+         Align(
           alignment: Alignment.centerLeft,
           child: Row(
             children: [
               Text(
                 'Name',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: kFlourishAliceBlue,
                   fontSize: 17,
-                  fontFamily: 'Inter',
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
         ),
-        const Align(
+         Align(
           alignment: Alignment.centerLeft,
           child: Text(
             'This name will appear on your profile',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishLightBlackish,
               fontSize: 13,
-              fontFamily: 'Inter',
             ),
           ),
         ),
@@ -186,12 +184,11 @@ class _EnterNamePageState extends State<EnterNamePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+         Text(
           'Already have an account?',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 15,
-            fontFamily: 'Inter',
           ),
         ),
         TextButton(
@@ -201,12 +198,11 @@ class _EnterNamePageState extends State<EnterNamePage> {
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
-          child: const Text(
+          child:  Text(
             'Log in',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,
@@ -284,10 +280,9 @@ class _PasswordChecklistItemState extends State<PasswordChecklistItem> {
         const SizedBox(width: 5),
         Text(
           widget.text,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 12,
             color: color,
-            fontFamily: 'Inter',
           ),
         ),
       ],

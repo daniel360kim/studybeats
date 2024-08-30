@@ -1,6 +1,7 @@
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:marquee/marquee.dart'; // Add this package to your pubspec.yaml
 
@@ -81,10 +82,10 @@ class _SongInfoState extends State<SongInfo> {
                                   alignment: Alignment.centerRight,
                                   child: Text(
                                     _formatDuration(remaining),
-                                    style: const TextStyle(
+                                    style:  GoogleFonts.inter(
                                       color: Colors.black,
                                       fontSize: 8.0,
-                                      fontFamily: 'Inter',
+                                
                                     ),
                                   ),
                                 )
@@ -115,10 +116,10 @@ class _SongInfoState extends State<SongInfo> {
       builder: (context, constraints) {
         final textSpan = TextSpan(
           text: text,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: fontSize,
             fontWeight: fontWeight,
-            fontFamily: 'Inter',
+        
             color: Colors.black,
           ),
         );
@@ -131,12 +132,12 @@ class _SongInfoState extends State<SongInfo> {
         if (textPainter.didExceedMaxLines) {
           return Marquee(
             text: text,
-            style: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+            style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
             velocity: 50.0,
           );
         } else {
           return Text(text,
-              style: TextStyle(fontSize: fontSize, fontWeight: fontWeight));
+              style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight));
         }
       },
     );

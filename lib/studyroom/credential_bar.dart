@@ -11,6 +11,7 @@ import 'package:flourish_web/auth/subscription_page.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 
 class CredentialBar extends StatefulWidget {
@@ -50,11 +51,11 @@ class _CredentialBarState extends State<CredentialBar> {
             foregroundColor: kFlourishAliceBlue,
             minimumSize: const Size(120, 60),
           ),
-          child: const Text(
+          child:  Text(
             'Sign up',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 16,
-              fontFamily: 'Inter',
+
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -69,11 +70,11 @@ class _CredentialBarState extends State<CredentialBar> {
             foregroundColor: kFlourishBlackish,
             minimumSize: const Size(120, 60),
           ),
-          child: const Text(
+          child:  Text(
             'Log in',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 16,
-              fontFamily: 'Inter',
+
               fontWeight: FontWeight.bold,
             ),
           ),

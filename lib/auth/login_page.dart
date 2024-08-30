@@ -11,6 +11,7 @@ import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -85,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/google.png',
                         text: 'Sign in with Google',
-                        fontFamily: 'Roboto',
+                
                       ),
                       const SizedBox(height: 10),
                       CredentialSigninButton(
@@ -109,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/microsoft.png',
                         text: 'Sign in with Microsoft',
-                        fontFamily: 'SegoeUI',
+           
                       ),
                       const SizedBox(height: 40),
                       Container(
@@ -137,14 +138,14 @@ class _LoginPageState extends State<LoginPage> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Log in',
-                                style: TextStyle(
+                                style: GoogleFonts.inter(
                                   color: kFlourishBlackish,
                                   fontSize: 16,
-                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.bold,
                                 ),
+                                
                               ),
                             ),
                       const SizedBox(height: 20),
@@ -174,14 +175,14 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(height: 5),
-        const Text(
+        Text(
           'Log In',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 36,
-            fontFamily: 'Inter',
             fontWeight: FontWeight.bold,
           ),
+        
         )
       ],
     );
@@ -190,16 +191,16 @@ class _LoginPageState extends State<LoginPage> {
   Widget buildTextFields() {
     return Column(
       children: [
-        const Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Text(
             'Email',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
             ),
+            
           ),
         ),
         const SizedBox(height: 13),
@@ -217,12 +218,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
         Row(
           children: [
-            const Text(
+            Text(
               'Password',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: kFlourishAliceBlue,
                 fontSize: 15,
-                fontFamily: 'Inter',
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -262,16 +262,16 @@ class _LoginPageState extends State<LoginPage> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {},
-            child: const Text(
+            child: Text(
               'Forgot password?',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: kFlourishAliceBlue,
                 fontSize: 12,
-                fontFamily: 'Inter',
                 fontWeight: FontWeight.bold,
                 decoration: TextDecoration.underline,
                 decorationColor: kFlourishAliceBlue,
               ),
+              
             ),
           ),
         ),
@@ -283,12 +283,11 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+         Text(
           'Don\'t have an account? ',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 15,
-            fontFamily: 'Inter',
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -299,12 +298,13 @@ class _LoginPageState extends State<LoginPage> {
           onPressed: () {
             Navigator.of(context).push(noTransition(const SignupPage()));
           },
-          child: const Text(
+          child:  Text(
             'Sign up',
-            style: TextStyle(
+            style: GoogleFonts.inter(
+              
+    
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,

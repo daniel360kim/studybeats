@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:marquee/marquee.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -96,13 +97,10 @@ class _SongCreditsState extends State<SongCredits> {
               selectedColor: kFlourishLightBlue,
               unselectedColor: Colors.white,
               borderColor: kFlourishLightBlue,
-              children: const {
-                InfoType.details:
-                    Text('Details', style: TextStyle(fontFamily: 'Inter')),
-                InfoType.artwork:
-                    Text('Artwork', style: TextStyle(fontFamily: 'Inter')),
-                InfoType.album:
-                    Text('Album', style: TextStyle(fontFamily: 'Inter')),
+              children: {
+                InfoType.details: Text('Details', style: GoogleFonts.inter()),
+                InfoType.artwork: Text('Artwork', style: GoogleFonts.inter()),
+                InfoType.album: Text('Album', style: GoogleFonts.inter()),
               },
               onValueChanged: (InfoType value) {
                 setState(() {
@@ -214,19 +212,19 @@ class _SongCreditsState extends State<SongCredits> {
         children: [
           TextSpan(
             text: '$heading: ',
-            style: const TextStyle(
+            style:  GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              fontFamily: 'Inter',
+  
             ),
           ),
           TextSpan(
             text: text,
-            style: const TextStyle(
+            style:  GoogleFonts.inter(
               fontSize: 15,
               color: Colors.black,
-              fontFamily: 'Inter',
+    
             ),
           ),
         ],
@@ -240,10 +238,10 @@ class _SongCreditsState extends State<SongCredits> {
       builder: (context, constraints) {
         final textSpan = TextSpan(
           text: text,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: fontSize,
             fontWeight: fontWeight,
-            fontFamily: 'Inter',
+
             color: Colors.black,
           ),
         );
@@ -256,11 +254,11 @@ class _SongCreditsState extends State<SongCredits> {
         if (textPainter.didExceedMaxLines) {
           return Text(
             text,
-            style: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+            style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
           );
         } else {
           return Text(text,
-              style: TextStyle(fontSize: fontSize, fontWeight: fontWeight));
+              style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight));
         }
       },
     );
@@ -281,14 +279,14 @@ class _SongCreditsState extends State<SongCredits> {
   }
 
   Widget buildAlbum() {
-    return const Column(
+    return  Column(
       children: [
         Text(
           'Album:',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 16,
             color: Colors.black,
-            fontFamily: 'Inter',
+
           ),
         ),
       ],

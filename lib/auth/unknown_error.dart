@@ -1,5 +1,6 @@
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class UnknownError extends StatelessWidget {
   const UnknownError({super.key});
@@ -16,17 +17,19 @@ class UnknownError extends StatelessWidget {
             Radius.circular(25.0),
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.error_outline,
               color: kFlourishAliceBlue,
             ),
-            SizedBox(width: 5),
+            const SizedBox(width: 5),
             Text(
               'Something went wrong.',
-              style: TextStyle(color: kFlourishAliceBlue, fontFamily: 'Inter'),
+              style: GoogleFonts.inter(
+                color: kFlourishAliceBlue,
+              ),
             ),
           ],
         ),

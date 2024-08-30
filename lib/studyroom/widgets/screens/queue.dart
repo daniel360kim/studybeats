@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
 import 'package:shimmer/shimmer.dart';
@@ -81,15 +82,15 @@ class _SongQueueState extends State<SongQueue> {
   }
 
   Widget buildHeader() {
-    return const Align(
+    return  Align(
       alignment: Alignment.topLeft,
       child: Text(
         'Queue',
-        style: TextStyle(
+        style: GoogleFonts.inter(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: Colors.white,
-          fontFamily: 'Inter',
+
         ),
       ),
     );
@@ -102,13 +103,13 @@ class _SongQueueState extends State<SongQueue> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Text(
+         Text(
             'Playing Now',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              fontFamily: 'Inter',
+    
             ),
           ),
           const SizedBox(height: 10),
@@ -133,13 +134,12 @@ class _SongQueueState extends State<SongQueue> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+         Text(
           'Up Next',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.white,
-            fontFamily: 'Inter',
           ),
         ),
         const SizedBox(height: 10),
@@ -172,13 +172,13 @@ class _SongQueueState extends State<SongQueue> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return  Center(
       child: Text(
         'No songs available',
-        style: TextStyle(
+        style: GoogleFonts.inter(
           fontSize: 16,
           color: Colors.white,
-          fontFamily: 'Inter',
+
         ),
       ),
     );
@@ -235,19 +235,19 @@ class _QueueSongItemState extends State<QueueSongItem> {
                       children: [
                         Text(
                           widget.song!.trackName,
-                          style: const TextStyle(
+                          style:  GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
-                            fontFamily: 'Inter',
+                        
                           ),
                         ),
                         Text(
                           widget.song!.artistName,
-                          style: const TextStyle(
+                          style:  GoogleFonts.inter(
                             fontSize: 14,
                             color: Colors.black,
-                            fontFamily: 'Inter',
+                     
                           ),
                         ),
                       ],
@@ -286,10 +286,10 @@ class _QueueSongItemState extends State<QueueSongItem> {
                                 ? formatDuration(widget.song!.trackTime)
                                 : formatDuration(0),
                             textAlign: TextAlign.left,
-                            style: const TextStyle(
+                            style:  GoogleFonts.inter(
                               fontSize: 14,
                               color: Colors.black,
-                              fontFamily: 'Inter',
+                       
                             ),
                           ),
                   ],
@@ -344,9 +344,9 @@ class _PopupMenuDetailsState extends State<PopupMenuDetails> {
         const SizedBox(width: 10),
         Text(
           widget.text,
-          style: const TextStyle(
+          style:  GoogleFonts.inter(
             color: Colors.white,
-            fontFamily: 'Inter',
+ 
           ),
         ),
       ],

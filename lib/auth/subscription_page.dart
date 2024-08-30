@@ -5,6 +5,7 @@ import 'package:flourish_web/log_printer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish_web/api/Stripe/product_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -149,30 +150,29 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   Widget _buildHeading() {
-    return const Column(
+    return Column(
       children: [
         Text(
           'Maximize Learning, minimize time',
-          style: TextStyle(
+          style: GoogleFonts.inter(
+            color: kFlourishBlackish,
             fontSize: 42,
             fontWeight: FontWeight.bold,
-            fontFamily: 'Inter',
           ),
         ),
-        SizedBox(height: 5.0),
+        const SizedBox(height: 5.0),
         Text.rich(
           TextSpan(
             text: 'Choose the best plan for you. ',
-            style: TextStyle(
+            style: GoogleFonts.inter(
                 fontSize: 18,
                 color: kFlourishBlackish), // Default style for all TextSpans.
             children: <TextSpan>[
               TextSpan(
                 text: 'Cancel anytime.',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.inter(
                   color: kFlourishBlackish,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -189,18 +189,16 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       child: CupertinoSlidingSegmentedControl<Interval>(
         backgroundColor: Colors.blueGrey.withOpacity(0.3),
 
-        children: const {
+        children: {
           Interval.monthly: Text(
             'Monthly',
-            style: TextStyle(
-              fontFamily: 'Inter',
+            style: GoogleFonts.inter(
               fontWeight: FontWeight.bold,
             ),
           ),
           Interval.yearly: Text(
             'Yearly',
-            style: TextStyle(
-              fontFamily: 'Inter',
+            style: GoogleFonts.inter(
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -330,8 +328,7 @@ class _ProductDetailsState extends State<ProductDetails> {
             children: [
               Text(
                 widget.product.product.name ?? 'Unnamed Product',
-                style: TextStyle(
-                  fontFamily: 'Inter',
+                style: GoogleFonts.inter(
                   fontSize: 35.0,
                   fontWeight: FontWeight.bold,
                   color: widget.product.product.color,
@@ -340,8 +337,7 @@ class _ProductDetailsState extends State<ProductDetails> {
               const SizedBox(height: 5.0),
               Text(
                 priceText,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
+                style: GoogleFonts.inter(
                   fontSize: 18.0,
                   fontWeight: FontWeight.bold,
                   color: Colors.blueGrey,
@@ -409,11 +405,10 @@ class _ProductDetailsState extends State<ProductDetails> {
               ),
               child: Text(
                 isFree ? 'Current Plan' : 'Get ${widget.product.product.name}',
-                style: const TextStyle(
-                  color: kFlourishBlackish,
+                style: GoogleFonts.inter(
                   fontSize: 16.0,
-                  fontFamily: 'Inter',
                   fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
             ),
@@ -427,15 +422,22 @@ class _ProductDetailsState extends State<ProductDetails> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        const Text('•  ',
-            style: TextStyle(
-                fontFamily: 'Inter', color: kFlourishBlackish, fontSize: 20)),
+        Text(
+          '•  ',
+          style: GoogleFonts.inter(
+            color: kFlourishBlackish,
+            fontSize: 20,
+          ),
+        ),
         Expanded(
-            child: Text(text,
-                style: const TextStyle(
-                    fontFamily: 'Inter',
-                    color: kFlourishBlackish,
-                    fontSize: 18.0))),
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              color: kFlourishBlackish,
+              fontSize: 18.0,
+            ),
+          ),
+        ),
       ],
     );
   }

@@ -2,20 +2,19 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'timer.dart';
 
 class TimerDialog extends StatefulWidget {
   const TimerDialog({
     required this.focusTimerDuration,
     required this.breakTimerDuration,
-    required this.fontFamily,
     required this.onExit,
     super.key,
   });
 
   final Duration focusTimerDuration;
   final Duration breakTimerDuration;
-  final String fontFamily;
   final ValueChanged<PomodoroDurations> onExit;
 
   @override
@@ -101,12 +100,12 @@ class _TimerDialogState extends State<TimerDialog> {
                         child: Center(
                           child: Text(
                             _isOnFocus ? 'Focus' : 'Break',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               fontSize: 30,
                               fontWeight: FontWeight.w900,
-                              fontFamily: widget.fontFamily,
-                              color: Colors.white,
+                              color: kFlourishAliceBlue,
                             ),
+                            
                           ),
                         ),
                       ),
@@ -117,10 +116,9 @@ class _TimerDialogState extends State<TimerDialog> {
                   ),
                   Text(
                     _formattedTime(_currentTime),
-                    style: const TextStyle(
+                    style:  GoogleFonts.inter(
                       fontSize: 60,
                       fontWeight: FontWeight.w900,
-                      fontFamily: 'Inter',
                       color: Colors.white,
                     ),
                   ),

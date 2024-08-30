@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ErrorMessage extends StatelessWidget {
   const ErrorMessage({required this.message, super.key});
@@ -23,10 +24,10 @@ class ErrorMessage extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 message,
-                style: const TextStyle(
+                style:  GoogleFonts.inter(
                   color: Colors.red,
                   fontSize: 12,
-                  fontFamily: 'Inter',
+
                 ),
               ),
             ],

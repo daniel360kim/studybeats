@@ -127,7 +127,7 @@ class _StudyRoomState extends State<StudyRoom> {
               ? TimerDialog(
                   focusTimerDuration: timerDurations.studyTime,
                   breakTimerDuration: timerDurations.breakTime,
-                  fontFamily: 'Inter',
+                  
                   onExit: (value) {
                     setState(() {
                       _showTimer = false;
