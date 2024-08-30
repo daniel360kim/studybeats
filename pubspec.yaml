@@ -66,19 +66,7 @@ dependency_overrides:
   fading_edge_scrollview: ^4.1.1
 
 flutter:
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter/Inter-Regular.ttf
-        - asset: assets/fonts/Inter/Inter-Bold.ttf
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/Roboto/Roboto-Regular.ttf
-        - asset: assets/fonts/Roboto/Roboto-Bold.ttf
-    - family: SegoeUI
-      fonts:
-        - asset: assets/fonts/SegoeUI/SegoeUI-Regular.ttf
-        - asset: assets/fonts/SegoeUI/SegoeUI-Bold.ttf
+
 
   uses-material-design: true
   assets:
