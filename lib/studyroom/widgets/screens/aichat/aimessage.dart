@@ -30,7 +30,7 @@ class AiMessage extends StatelessWidget {
       required this.profilePictureUrl,
       required this.onCopyIconPressed,
       required this.isLoadingResponse,
-      required this.imageFile,
+      required this.imageUrl,
       super.key});
 
   final bool isUser;
@@ -38,7 +38,7 @@ class AiMessage extends StatelessWidget {
   final String? profilePictureUrl;
   final ValueChanged<String> onCopyIconPressed;
   final bool isLoadingResponse;
-  final Uint8List? imageFile;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -100,16 +100,12 @@ class AiMessage extends StatelessWidget {
               )
             ],
           ),
-          if (isUser && imageFile != null)
+          if (isUser && imageUrl != null)
             Container(
               height: 140,
               width: 140,
               alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                  image: DecorationImage(
-                fit: BoxFit.cover,
-                image: MemoryImage(imageFile!),
-              )),
+              child: CachedNetworkImage(imageUrl: imageUrl!),
             ),
           Row(
             children: [
@@ -127,8 +123,8 @@ class AiMessage extends StatelessWidget {
                               fit: BoxFit.cover,
                               child: Lottie.asset(
                                 'assets/animations/loading_dots.json',
-                                height: 100,
-                                width: 200,
+                                height: 60,
+                                width: 100,
                                 fit: BoxFit.fill,
                               ),
                             ),
@@ -200,6 +196,8 @@ class AiParser extends StatelessWidget {
             ),
           ),
         );
+
+        scrollController.dispose();
       }
     }
 

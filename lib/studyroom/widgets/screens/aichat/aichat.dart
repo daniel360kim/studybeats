@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flourish_web/api/openai_service.dart';
+import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/secrets.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
@@ -11,11 +14,11 @@ import 'package:flutter/services.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:uuid/uuid.dart';
 
-class UserMessage {
+class ConversationMessage {
   final String message;
   final Uint8List? imageFile;
 
-  UserMessage(this.message, this.imageFile);
+  const ConversationMessage({required this.message, this.imageFile});
 }
 
 class AiChat extends StatefulWidget {
@@ -42,29 +45,50 @@ class _AiChatState extends State<AiChat> {
   bool _isPasting = false;
   bool _showScrollToBottomButton = false;
   bool _loadingResponse = false;
+  bool _loadingConversationHistory = true;
   bool _showError = false;
   String? _profilePictureUrl;
   Uint8List? _imageFile;
   String? _imageUrl;
   String _errorMessage = '';
 
-  final List<UserMessage> _userMessages = [];
-  final List<String> _aiMessages = [];
   final List<Map<String, dynamic>> _conversationHistory = [];
   int numCharacters = 0;
+
+  final _logger = getLogger('AiChat');
+
+  final OpenaiService _openaiService = OpenaiService();
+
+  late final String _uid;
 
   @override
   void initState() {
     super.initState();
-    _getProfileUrl();
     _scrollController.addListener(_scrollListener);
+    _init();
   }
 
-  Future<void> _getProfileUrl() async {
+  void _init() async {
+    await _openaiService.init();
     final url = await _authService.getProfilePictureUrl();
-    setState(() {
-      _profilePictureUrl = url;
-    });
+    _uid = await _authService.getCurrentUserUid();
+    // Get conversation history from Firestore
+    try {
+      final conversationHistory = await _openaiService.getConversationHistory();
+      setState(() {
+        _profilePictureUrl = url;
+        _conversationHistory.addAll(conversationHistory);
+        _loadingConversationHistory = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      _logger.e('Failed to get conversation history from Firestore: $e');
+      setState(() {
+        _showError = true;
+        _errorMessage = 'Failed to get conversation history from Firestore: $e';
+      });
+      return;
+    }
   }
 
   void _scrollListener() {
@@ -90,53 +114,118 @@ class _AiChatState extends State<AiChat> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.fastLinearToSlowEaseIn,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastLinearToSlowEaseIn,
+        );
+      }
+    });
   }
 
   Future<void> _sendMessage() async {
-    if (_imageFile == null) {
-      await _sendTextOnly();
-    } else {
-      await _sendImage();
+    if (_loadingResponse) return;
+    if ([_textEditingController.text, _imageFile, _imageUrl]
+        .every((element) => element == null)) {
+      _logger.w('No message to send');
+      return;
     }
-  }
-
-  Future<void> _sendTextOnly() async {
-    if (_textEditingController.text.isEmpty || _loadingResponse) return;
-    String uid = '';
     try {
-      uid = await _authService.getCurrentUserUid();
+      late final String? text;
+      if (_textEditingController.text.isNotEmpty) {
+        text = _textEditingController.text;
+      } else {
+        text = null;
+      }
+
+      _textEditingController.clear();
+      _scrollToBottom();
+
+      setState(() {
+        numCharacters = 0;
+        _loadingResponse = true;
+      });
+
+      if (_imageUrl != null) {
+        Map<String, dynamic> message = {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': text ?? ' '},
+            {
+              'type': 'image_url',
+              'image_url': {'url': _imageUrl}
+            }
+          ]
+        };
+
+        await _openaiService.addToConversationHistory(message);
+
+        setState(() {
+          _conversationHistory.add(message);
+          _imageFile = null;
+          _imageUrl = null;
+        });
+      } else {
+        Map<String, dynamic> message = {
+          'role': 'user',
+          'content': text,
+        };
+
+        await _openaiService.addToConversationHistory(message);
+
+        setState(() {
+          _conversationHistory.add(message);
+        });
+      }
     } catch (e) {
+      _logger.e('Failed to store message in Firestore: $e');
       setState(() {
         _loadingResponse = false;
         _showError = true;
-        _errorMessage = 'Cannot get response while logged out: $e';
+        _errorMessage = 'Failed to store message in Firestore: $e';
+        _conversationHistory.removeLast(); // Remove the placeholder message
       });
-      return;
     }
-    final userMessage = _textEditingController.text;
-
-    setState(() {
-      _loadingResponse = true;
-      _userMessages.add(UserMessage(userMessage, null));
-      _conversationHistory.add({'role': 'user', 'content': userMessage});
-      _textEditingController.clear();
-      numCharacters = 0;
-      FocusScope.of(context).requestFocus(_textInputFocusNode);
-      _scrollToBottom();
-      _aiMessages.add('');
-      _showError = false;
-    });
-
     try {
+      // Add a placeholder for the assistant's response, so the user can see that a response is incoming
+      setState(() {
+        _conversationHistory.add({
+          'role': 'assistant',
+          'content': '',
+        });
+      });
+      final response = await _sendToAPI();
+      Map<String, dynamic> message = {
+        'role': 'assistant',
+        'content': response,
+      };
+
+      await _openaiService.addToConversationHistory(message);
+      setState(() {
+        numCharacters = 0;
+        _conversationHistory.last = message;
+        _loadingResponse = false;
+      });
+
+      _scrollToBottom();
+    } catch (e) {
+      _logger.e('Failed to get response from API: $e');
+      setState(() {
+        _conversationHistory.removeLast(); // Remove the placeholder message
+        _loadingResponse = false;
+        _showError = true;
+        _errorMessage = 'Failed to get response from API: $e';
+      });
+    }
+  }
+
+  Future<String> _sendToAPI() async {
+    try {
+      _logger.i('Starting request to OpenAI API');
       final request = ChatCompleteText(
-        user: uid,
+        user: _uid,
         messages: _conversationHistory,
         maxToken: 1000,
         model: Gpt4OMiniChatModel(),
@@ -144,88 +233,19 @@ class _AiChatState extends State<AiChat> {
 
       final response = await openAi.onChatCompletion(request: request);
 
-      if (response!.choices.first.message!.content.isEmpty) {
-        setState(() {
-          _loadingResponse = false;
-          _showError = true;
-          _errorMessage = 'Failed to get response from API';
-        });
-        return;
+      _logger.i('Received response from OpenAI');
+
+      if (response == null ||
+          response.choices.first.message == null ||
+          response.choices.first.message!.content.isEmpty) {
+        _logger.e('Invalid response from OpenAI');
+        throw Exception('Invalid response from OpenAI');
       }
 
-      setState(() {
-        _loadingResponse = false;
-        _aiMessages.last = response.choices.first.message!.content;
-        _conversationHistory
-            .add({'role': 'assistant', 'content': _aiMessages.last});
-      });
+      return response.choices.first.message!.content;
     } catch (e) {
-      setState(() {
-        _loadingResponse = false;
-        _showError = true;
-        _errorMessage = 'Failed to get response from API: $e';
-      });
-    }
-  }
-
-  Future<void> _sendImage() async {
-    if (_loadingResponse || _imageUrl == null) return;
-    String uid = '';
-    try {
-      uid = await _authService.getCurrentUserUid();
-    } catch (e) {
-      setState(() {
-        _loadingResponse = false;
-        _showError = true;
-        _errorMessage = 'Must be signed in to use API: $e';
-      });
-    }
-    final userMessage = _textEditingController.text;
-
-    setState(() {
-      _loadingResponse = true;
-      _userMessages.add(UserMessage(userMessage, _imageFile));
-      _aiMessages.add('');
-      _imageFile = null;
-      _showError = false;
-      _textEditingController.clear();
-    });
-
-    try {
-      final request = ChatCompleteText(
-        user: uid,
-        messages: [
-          {
-            'role': 'user',
-            'content': [
-              {'type': 'text', 'text': userMessage},
-              {
-                'type': 'image_url',
-                'image_url': {'url': _imageUrl}
-              }
-            ]
-          }
-        ],
-        maxToken: 1000,
-        model: Gpt4OMiniChatModel(),
-      );
-
-      final response = await openAi.onChatCompletion(request: request);
-
-      setState(() {
-        _imageUrl = null;
-        _aiMessages.last = response!.choices.first.message!.content;
-        _conversationHistory
-            .add({'role': 'assistant', 'content': _aiMessages.last});
-        _loadingResponse = false;
-      });
-    } catch (e) {
-      setState(() {
-        _imageUrl = null;
-        _loadingResponse = false;
-        _showError = true;
-        _errorMessage = 'Failed to get response from API: $e';
-      });
+      _logger.e('Unexpected error sending message to API: $e');
+      throw Exception('Failed to send message to OpenAI API: $e');
     }
   }
 
@@ -256,32 +276,43 @@ class _AiChatState extends State<AiChat> {
                   Column(
                     children: [
                       buildTopBar(),
-                      Expanded(
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          itemCount: _userMessages.length + _aiMessages.length,
-                          itemBuilder: (context, index) {
-                            final isUser = index.isEven;
-                            final message = isUser
-                                ? _userMessages[index ~/ 2].message
-                                : _aiMessages[index ~/ 2];
-                            final imageFile = isUser
-                                ? _userMessages[index ~/ 2].imageFile
-                                : null;
+                      _loadingConversationHistory
+                          ? Shimmer.fromColors(
+                              baseColor: Colors.grey[300]!,
+                              highlightColor: Colors.grey[100]!,
+                              child: Container(
+                                height:
+                                    MediaQuery.of(context).size.height - 269,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Expanded(
+                              child: ListView.builder(
+                                cacheExtent: 100000,
+                                controller: _scrollController,
+                                itemCount: _conversationHistory.length,
+                                itemBuilder: (context, index) {
+                                  final message = OpenaiService()
+                                      .convertMessage(
+                                          _conversationHistory[index]);
+                                  final isUser = message.messageType ==
+                                          MessageType.userMessageTextOnly ||
+                                      message.messageType ==
+                                          MessageType.userMessageWithImage;
 
-                            return AiMessage(
-                              isUser: isUser,
-                              message: message,
-                              profilePictureUrl: _profilePictureUrl,
-                              imageFile: imageFile,
-                              onCopyIconPressed: _copyToClipboard,
-                              isLoadingResponse: _loadingResponse &&
-                                  index + 1 ==
-                                      _aiMessages.length + _userMessages.length,
-                            );
-                          },
-                        ),
-                      ),
+                                  return AiMessage(
+                                    isUser: isUser,
+                                    message: message.message,
+                                    profilePictureUrl: _profilePictureUrl,
+                                    imageUrl: message.imageUrl,
+                                    onCopyIconPressed: _copyToClipboard,
+                                    isLoadingResponse: _loadingResponse &&
+                                        index + 1 ==
+                                            _conversationHistory.length,
+                                  );
+                                },
+                              ),
+                            ),
                       if (_showError)
                         Padding(
                           padding: const EdgeInsets.all(8.0),
