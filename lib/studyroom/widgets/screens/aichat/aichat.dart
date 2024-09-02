@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/openai/exceptions.dart';
 import 'package:flourish_web/api/openai/openai_service.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';

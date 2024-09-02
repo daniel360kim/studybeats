@@ -111,7 +111,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
       case 1:
         if (!AuthService().isUserLoggedIn()) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushReplacement(noTransition(LoginPage()));
+            Navigator.of(context).pushReplacement(noTransition(const LoginPage()));
             /*
             showDialog(
               context: context,

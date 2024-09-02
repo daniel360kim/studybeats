@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flourish_web/api/Stripe/subscription_service.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/api/openai/exceptions.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/secrets.dart';
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
