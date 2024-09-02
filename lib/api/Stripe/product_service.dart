@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flourish_web/api/Stripe/stripe_service.dart';
 import 'package:flutter/material.dart';
@@ -28,9 +27,11 @@ StripeDatabaseProduct _$StripeProductFromJson(
     displayOrder: int.tryParse(json['metadata']['display_order'] ?? '0'),
     featureList: featureList,
     color: Color.fromARGB(255, color >> 16, color >> 8, color >> 0),
+    tokenLimit: int.tryParse(json['metadata']['token_limit'] ?? '0'),
   );
 }
 
+// The product class is used to store the product data and its prices that comes from the Stripe API
 @JsonSerializable()
 class StripeDatabaseProduct {
   final String? docId;
@@ -42,6 +43,7 @@ class StripeDatabaseProduct {
   final int? displayOrder;
   final List<String?>? featureList;
   final Color? color;
+  final int? tokenLimit;
 
   const StripeDatabaseProduct({
     this.docId,
@@ -53,6 +55,7 @@ class StripeDatabaseProduct {
     this.displayOrder,
     this.featureList,
     this.color,
+    this.tokenLimit,
   });
 
   factory StripeDatabaseProduct.fromJson(
@@ -183,6 +186,24 @@ class StripeProductService extends StripeService {
       return products;
     } catch (e) {
       // Logging handled by private methods
+      rethrow;
+    }
+  }
+
+  Future<StripeDatabaseProduct> getFreeProduct() async {
+    logger.i('Getting free product');
+    try {
+      // Go through each product and their prices, and find the product where the unit amount is 0 
+      final products = await getActiveProducts();
+      final product = products.firstWhere((product) {
+        return product.prices.any((price) => price.unitAmount == 0);
+      });
+
+      logger.i('Found free product: ${product.product.name}');
+
+      return product.product;
+    } catch (e) {
+      logger.e('Unexpected error while getting free product. $e');
       rethrow;
     }
   }

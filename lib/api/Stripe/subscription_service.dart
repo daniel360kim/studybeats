@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flourish_web/api/Stripe/product_service.dart';
 import 'package:flourish_web/api/Stripe/stripe_service.dart';
 
 class StripeSubscriptionService extends StripeService {
@@ -25,6 +26,53 @@ class StripeSubscriptionService extends StripeService {
       return false;
     } catch (e) {
       logger.e('Unexpected error while checking subscription status. $e');
+      rethrow;
+    }
+  }
+
+  // Gets the active product for the user, if there is not one, it gets the free product from the product directory
+  // If there are multiple active products, it will return the first one, and log an error
+  Future<StripeDatabaseProduct> getActiveProduct() async {
+    logger.i('Getting active product for used id: ${user!.uid}');
+    try {
+      final querySnapshot = await _document.collection('subscriptions').where('status', whereIn: ['trialing', 'active']).get();
+      if (querySnapshot.docs.isEmpty) {
+        logger.i('No active subscriptions found, getting free product');
+        return StripeProductService().getFreeProduct();
+      }
+
+
+      final DocumentReference<Map<String, dynamic>> productRef = querySnapshot.docs.first.get('product');
+
+      final productSnapshot = await productRef.get();
+      final product = StripeDatabaseProduct.fromJson(productSnapshot.data()!, productSnapshot.id);
+
+      logger.i('Found active product: ${product.name}');
+      return product;
+
+    } catch (e) {
+      logger.e('Unexpected error while getting active product. $e');
+      rethrow;
+    }
+  }
+
+  Future<DateTime> getSubscriptionEndDate() async {
+    logger.i('Getting subscription end date');
+    try {
+      final querySnapshot = await _document.collection('subscriptions').where('status', whereIn: ['trialing', 'active']).get();
+
+      if (querySnapshot.docs.isEmpty) {
+        logger.i('No active subscriptions found');
+        return DateTime.now();
+      }
+
+      final subscription = querySnapshot.docs.first;
+      final endDate = subscription.get('current_period_end') as Timestamp;
+
+      logger.i('Subscription end date: ${endDate.toDate()}');
+      return endDate.toDate();
+    } catch (e) {
+      logger.e('Unexpected error while getting subscription end date. $e');
       rethrow;
     }
   }

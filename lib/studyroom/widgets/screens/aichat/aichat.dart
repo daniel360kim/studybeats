@@ -4,6 +4,8 @@ import 'package:flourish_web/api/openai_service.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/secrets.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
+import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -35,11 +37,7 @@ class _AiChatState extends State<AiChat> {
   final FocusNode _textInputFocusNode = FocusNode();
   final TextEditingController _textEditingController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final OpenAI openAi = OpenAI.instance.build(
-    token: OPENAI_PROJECT_API_KEY,
-    baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
-    enableLog: true,
-  );
+
   final AuthService _authService = AuthService();
 
   bool _isPasting = false;
@@ -59,8 +57,6 @@ class _AiChatState extends State<AiChat> {
 
   final OpenaiService _openaiService = OpenaiService();
 
-  late final String _uid;
-
   @override
   void initState() {
     super.initState();
@@ -71,7 +67,6 @@ class _AiChatState extends State<AiChat> {
   void _init() async {
     await _openaiService.init();
     final url = await _authService.getProfilePictureUrl();
-    _uid = await _authService.getCurrentUserUid();
     // Get conversation history from Firestore
     try {
       final conversationHistory = await _openaiService.getConversationHistory();
@@ -196,7 +191,8 @@ class _AiChatState extends State<AiChat> {
           'content': '',
         });
       });
-      final response = await _sendToAPI();
+      final response =
+          await _openaiService.getAPIResponse(_conversationHistory);
       Map<String, dynamic> message = {
         'role': 'assistant',
         'content': response,
@@ -218,34 +214,6 @@ class _AiChatState extends State<AiChat> {
         _showError = true;
         _errorMessage = 'Failed to get response from API: $e';
       });
-    }
-  }
-
-  Future<String> _sendToAPI() async {
-    try {
-      _logger.i('Starting request to OpenAI API');
-      final request = ChatCompleteText(
-        user: _uid,
-        messages: _conversationHistory,
-        maxToken: 1000,
-        model: Gpt4OMiniChatModel(),
-      );
-
-      final response = await openAi.onChatCompletion(request: request);
-
-      _logger.i('Received response from OpenAI');
-
-      if (response == null ||
-          response.choices.first.message == null ||
-          response.choices.first.message!.content.isEmpty) {
-        _logger.e('Invalid response from OpenAI');
-        throw Exception('Invalid response from OpenAI');
-      }
-
-      return response.choices.first.message!.content;
-    } catch (e) {
-      _logger.e('Unexpected error sending message to API: $e');
-      throw Exception('Failed to send message to OpenAI API: $e');
     }
   }
 
@@ -372,6 +340,38 @@ class _AiChatState extends State<AiChat> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
+          Theme(
+            data: ThemeData(
+              popupMenuTheme: const PopupMenuThemeData(
+                  elevation: 5, color: Color.fromRGBO(57, 57, 57, 1)),
+            ),
+            child: PopupMenuButton(
+              itemBuilder: (context) {
+                return [
+                  PopupMenuItem(
+                    onTap: () async {
+                      await showInfoDialog();
+                    },
+                    child: const PopupMenuDetails(
+                      icon: Icons.info_outline,
+                      text: 'Info',
+                    ),
+                  ),
+                  PopupMenuItem(
+                    onTap: () async {
+                      await showClearChatDialog();
+                    },
+                    child: const PopupMenuDetails(
+                      icon: Icons.delete_outline_sharp,
+                      text: 'Clear',
+                    ),
+                  ),
+                ];
+              },
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.more_horiz),
+            ),
+          ),
           const Spacer(),
           IconButton(
             onPressed: widget.onClose,
@@ -446,7 +446,7 @@ class _AiChatState extends State<AiChat> {
                 const SizedBox(width: 15.0),
                 IconButton(
                   icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
+                  onPressed: _loadingResponse ? null : _sendMessage,
                 ),
               ],
             ),
@@ -456,7 +456,118 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
+  Future<void> showClearChatDialog() async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: kFlourishAliceBlue,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Delete chat?',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Divider(
+                color: Colors.grey,
+                thickness: 1,
+              ),
+            ],
+          ),
+          content: const Text('This will delete all messages in the chat.'),
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel',
+                  style: GoogleFonts.inter(
+                      color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _clearChat();
+              },
+              child: Text('Clear',
+                  style: GoogleFonts.inter(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showInfoDialog() async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: kFlourishAliceBlue,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Chat Details',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Divider(
+                color: Colors.grey,
+                thickness: 1,
+              ),
+            ],
+          ),
+          content: const Text('Chat details here'),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close',
+                  style: GoogleFonts.inter(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _clearChat() async {
+    try {
+      setState(() {
+        _conversationHistory.clear();
+      });
+      await _openaiService.clearConversationHistory();
+    } catch (e) {
+      _logger.e('Failed to clear chat: $e');
+      setState(() {
+        _showError = true;
+        _errorMessage = 'Failed to clear chat: $e';
+      });
+    }
+  }
+
   Future<void> _pickImage() async {
+    setState(() {
+      _imageFile = null;
+      _imageUrl = null;
+      _loadingResponse = true;
+    });
     final file = await ImagePickerWeb.getImageAsFile();
     if (file == null) return;
 
@@ -472,6 +583,10 @@ class _AiChatState extends State<AiChat> {
     final ref = FirebaseStorage.instance.ref().child('openai/$filename');
     await ref.putBlob(file);
     _imageUrl = await ref.getDownloadURL();
+
+    setState(() {
+      _loadingResponse = false;
+    });
   }
 
   Future<void> _disposeImage() async {
