@@ -9,6 +9,7 @@ import 'package:flourish_web/auth/profile_page.dart';
 import 'package:flourish_web/auth/signup/signup_page.dart';
 import 'package:flourish_web/auth/subscription_page.dart';
 import 'package:flourish_web/colors.dart';
+import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -51,11 +52,10 @@ class _CredentialBarState extends State<CredentialBar> {
             foregroundColor: kFlourishAliceBlue,
             minimumSize: const Size(120, 60),
           ),
-          child:  Text(
+          child: Text(
             'Sign up',
             style: GoogleFonts.inter(
               fontSize: 16,
-
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -70,11 +70,10 @@ class _CredentialBarState extends State<CredentialBar> {
             foregroundColor: kFlourishBlackish,
             minimumSize: const Size(120, 60),
           ),
-          child:  Text(
+          child: Text(
             'Log in',
             style: GoogleFonts.inter(
               fontSize: 16,
-
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -235,6 +234,10 @@ class _ProfilePictureState extends State<ProfilePicture>
                       value: 1,
                       onTap: () async {
                         await signOut();
+                        Navigator.push(
+                          context,
+                          noTransition(const StudyRoom()),
+                        );
                       },
                       child: const PopupMenuDetails(
                         icon: Icons.logout,
