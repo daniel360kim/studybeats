@@ -1,5 +1,9 @@
 import 'dart:ui';
+import 'package:flourish_web/animations.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
+import 'package:flourish_web/auth/login_dialog.dart';
+import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
 import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer.dart';
@@ -105,6 +109,33 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
           currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
         );
       case 1:
+        if (!AuthService().isUserLoggedIn()) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushReplacement(noTransition(LoginPage()));
+            /*
+            showDialog(
+              context: context,
+              builder: (context) => LoginDialog(
+                title: 'Alert Title',
+
+
+                onConfirm: () {
+                  // Handle confirmation action
+                  Navigator.of(context).pop();
+                },
+                isError: true, // Set to true if it's an error alert
+                isLoading:
+                    false, // Set to true if you want to show a loading indicator
+              ),
+            );
+            */
+            setState(() {
+              _selectedIndex = null;
+            });
+          });
+
+          return const SizedBox();
+        }
         return AiChat(onClose: () {
           setState(() {
             _selectedIndex = null;
