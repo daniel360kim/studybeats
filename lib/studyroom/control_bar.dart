@@ -1,7 +1,9 @@
 import 'dart:ui';
 
+import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
+import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/audio.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
@@ -236,7 +238,10 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
               onPause: _audio.pause,
               onNext: _nextSong,
               onFavorite: (value) {
-                _toggleFavorite(value);
+                _authService.isUserLoggedIn()
+                    ? _toggleFavorite(value)
+                    : Navigator.of(context)
+                        .pushReplacement(noTransition(const LoginPage()));
               },
               isPlaying: playing,
               isFavorite: _authService.isUserLoggedIn()
