@@ -1,13 +1,11 @@
-import 'dart:typed_data';
-
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flourish_web/api/Stripe/subscription_service.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
+import 'package:flourish_web/api/openai/exceptions.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/secrets.dart';
-import 'package:flutter/material.dart';
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
 
 enum MessageType {
@@ -46,6 +44,8 @@ class OpenaiService {
   late final DocumentReference _tokenLimitDoc;
 
   int _tokenLimit = 10000; //set to the minimum limit by default
+  bool _tokenLimitExceeded = false;
+  bool get tokenLimitExceeded => _tokenLimitExceeded;
 
   Future<void> init() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -65,6 +65,7 @@ class OpenaiService {
     _tokenLimitDoc = _openAiCollection.doc('initialConversation');
 
     await updateTokenLimit(); // Update token limit
+    await checkTokenUsage(); // Check token usage
 
     _uid = await _authService
         .getCurrentUserUid(); // TODO handle not being logged in exception
@@ -281,7 +282,7 @@ class OpenaiService {
         throw Exception('Usage data not found in response');
       }
 
-      await updateTokenLogs(usage);
+      await updateAndCheckTokenUsage(usage);
 
       return response.choices.first.message!.content;
     } catch (e) {
@@ -290,8 +291,7 @@ class OpenaiService {
     }
   }
 
-  //only logs, doesnt check for token limit
-  Future<void> updateTokenLogs(Usage tokenUsage) async {
+  Future<void> updateAndCheckTokenUsage(Usage tokenUsage) async {
     try {
       // Update token usage for the conversation all time
       Usage currentTokenUsage = Usage(0, 0, 0);
@@ -337,16 +337,53 @@ class OpenaiService {
             .set({
           'tokenUsage': updatedTodayTokenUsage.toJson(),
         });
+
+        if (updatedTodayTokenUsage.totalTokens! > _tokenLimit) {
+          _tokenLimitExceeded = true; // User has exceeded the token limit
+        } else {
+          _tokenLimitExceeded = false; // User has not exceeded the token limit
+        }
       } else {
+        // If there is no token usage data for the current day, create a new document
         await _tokenLimitDoc
             .collection('tokenLogs')
             .doc(today.toString().substring(0, 10))
             .set({
           'tokenUsage': tokenUsage.toJson(),
         });
+
+        _tokenLimitExceeded =
+            false; // User has not exceeded the token limit because there is no token usage data for the current day
       }
     } catch (e) {
       _logger.e('Failed to update token logs: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> checkTokenUsage() async {
+    try {
+      final today = DateTime.now();
+      final todayTokenUsage = await _tokenLimitDoc
+          .collection('tokenLogs')
+          .doc(today.toString().substring(0, 10))
+          .get();
+
+      if (todayTokenUsage.exists) {
+        final todayTokenData = todayTokenUsage.data() as Map<String, dynamic>;
+        final todayTokenUsageData =
+            Usage.fromJson(todayTokenData['tokenUsage']);
+
+        if (todayTokenUsageData.totalTokens! > _tokenLimit) {
+          _tokenLimitExceeded = true; // User has exceeded the token limit
+        } else {
+          _tokenLimitExceeded = false; // User has not exceeded the token limit
+        }
+      } else {
+        _tokenLimitExceeded = false; // User has not exceeded the token limit
+      }
+    } catch (e) {
+      _logger.e('Failed to check token usage: $e');
       rethrow;
     }
   }

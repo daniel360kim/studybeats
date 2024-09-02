@@ -1,14 +1,14 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/openai_service.dart';
+import 'package:flourish_web/api/openai/exceptions.dart';
+import 'package:flourish_web/api/openai/openai_service.dart';
 import 'package:flourish_web/log_printer.dart';
-import 'package:flourish_web/secrets.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:universal_html/html.dart' as html;
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +44,7 @@ class _AiChatState extends State<AiChat> {
   bool _showScrollToBottomButton = false;
   bool _loadingResponse = false;
   bool _loadingConversationHistory = true;
+  bool _loadingImage = false;
   bool _showError = false;
   String? _profilePictureUrl;
   Uint8List? _imageFile;
@@ -121,7 +122,13 @@ class _AiChatState extends State<AiChat> {
   }
 
   Future<void> _sendMessage() async {
-    if (_loadingResponse) return;
+    if (_loadingResponse || _loadingConversationHistory || _loadingImage) {
+      return;
+    }
+    if (_openaiService.tokenLimitExceeded) {
+      _showTokenLimitExceededAlert(context);
+      return;
+    }
     if ([_textEditingController.text, _imageFile, _imageUrl]
         .every((element) => element == null)) {
       _logger.w('No message to send');
@@ -446,7 +453,7 @@ class _AiChatState extends State<AiChat> {
                 const SizedBox(width: 15.0),
                 IconButton(
                   icon: const Icon(Icons.send),
-                  onPressed: _loadingResponse ? null : _sendMessage,
+                  onPressed: _loadingImage ? null : _sendMessage,
                 ),
               ],
             ),
@@ -547,6 +554,31 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
+  void _showTokenLimitExceededAlert(BuildContext context) {
+    final resetTime = DateTime.now().add(const Duration(days: 1)).toLocal();
+    final formattedTime = DateFormat('MMMM d, y').format(resetTime);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Token Limit Exceeded'),
+          content: Text(
+            'You have exceeded the token limit. The token limit resets on $formattedTime.', // TODO show option to upgrade to premium
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _clearChat() async {
     try {
       setState(() {
@@ -566,10 +598,15 @@ class _AiChatState extends State<AiChat> {
     setState(() {
       _imageFile = null;
       _imageUrl = null;
-      _loadingResponse = true;
+      _loadingImage = true;
     });
     final file = await ImagePickerWeb.getImageAsFile();
-    if (file == null) return;
+    if (file == null) {
+      setState(() {
+        _loadingImage = false;
+      });
+      return;
+    }
 
     final reader = html.FileReader();
     reader.onLoadEnd.listen((_) {
@@ -585,7 +622,7 @@ class _AiChatState extends State<AiChat> {
     _imageUrl = await ref.getDownloadURL();
 
     setState(() {
-      _loadingResponse = false;
+      _loadingImage = false;
     });
   }
 
