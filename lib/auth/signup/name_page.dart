@@ -1,14 +1,12 @@
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/auth/login_page.dart';
-import 'package:flourish_web/auth/signup/create_password.dart';
 import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/studyroom/study_page.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 class EnterNamePage extends StatefulWidget {
   const EnterNamePage(
@@ -68,12 +66,11 @@ class _EnterNamePageState extends State<EnterNamePage> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            child:  Text(
+                            child: Text(
                               'Sign Up',
                               style: GoogleFonts.inter(
                                 color: kFlourishBlackish,
                                 fontSize: 16,
-    
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -101,8 +98,9 @@ class _EnterNamePageState extends State<EnterNamePage> {
       children: [
         IconButton(
           onPressed: () {
-            Navigator.of(context).push(
-                noTransition(CreatePasswordPage(username: widget.username)));
+            context.goNamed(AppRoute.createPasswordPage.name, extra: {
+              'name': widget.username,
+            });
           },
           icon: const Icon(Icons.arrow_back_ios_rounded,
               color: kFlourishAliceBlue),
@@ -121,7 +119,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
           ),
         ),
         const SizedBox(height: 5),
-         Text(
+        Text(
           'Flourish',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
@@ -137,7 +135,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
   Widget buildTextFields() {
     return Column(
       children: [
-         Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Row(
             children: [
@@ -152,7 +150,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
             ],
           ),
         ),
-         Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Text(
             'This name will appear on your profile',
@@ -184,7 +182,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-         Text(
+        Text(
           'Already have an account?',
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
@@ -192,13 +190,11 @@ class _EnterNamePageState extends State<EnterNamePage> {
           ),
         ),
         TextButton(
-          onPressed: () {
-            Navigator.of(context).push(noTransition(const LoginPage()));
-          },
+          onPressed: () => context.goNamed(AppRoute.loginPage.name),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
-          child:  Text(
+          child: Text(
             'Log in',
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
@@ -237,7 +233,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
     setState(() {
       _loading = false;
     });
-    Navigator.of(context).push(noTransition(const StudyRoom()));
+    context.goNamed(AppRoute.studyRoom.name);
   }
 }
 

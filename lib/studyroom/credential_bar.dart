@@ -1,19 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/Stripe/subscription_service.dart';
 import 'package:flourish_web/api//auth/auth_service.dart';
 import 'package:flourish_web/api/auth/urls.dart';
-import 'package:flourish_web/auth/login_page.dart';
-import 'package:flourish_web/auth/profile_page.dart';
-import 'package:flourish_web/auth/signup/signup_page.dart';
-import 'package:flourish_web/auth/subscription_page.dart';
 import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/studyroom/study_page.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:go_router/go_router.dart';
 
 class CredentialBar extends StatefulWidget {
   const CredentialBar({required this.loggedIn, super.key});
@@ -44,9 +40,7 @@ class _CredentialBarState extends State<CredentialBar> {
     return Row(
       children: [
         ElevatedButton(
-          onPressed: () async {
-            Navigator.push(context, noTransition(const SignupPage()));
-          },
+          onPressed: () => context.goNamed(AppRoute.signUpPage.name),
           style: ElevatedButton.styleFrom(
             backgroundColor: kFlourishBlackish,
             foregroundColor: kFlourishAliceBlue,
@@ -62,9 +56,7 @@ class _CredentialBarState extends State<CredentialBar> {
         ),
         const SizedBox(width: 16),
         ElevatedButton(
-          onPressed: () {
-            Navigator.push(context, noTransition(const LoginPage()));
-          },
+          onPressed: () => context.goNamed(AppRoute.loginPage.name),
           style: ElevatedButton.styleFrom(
             backgroundColor: kFlourishAliceBlue,
             foregroundColor: kFlourishBlackish,
@@ -198,12 +190,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                     ),
                     PopupMenuItem<int>(
                       value: 1,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          noTransition(const ProfilePage()),
-                        );
-                      },
+                      onTap: () => context.goNamed(AppRoute.profilePage.name),
                       child: const PopupMenuDetails(
                         icon: Icons.person,
                         text: 'Profile',
@@ -212,10 +199,8 @@ class _ProfilePictureState extends State<ProfilePicture>
                     !_isPro
                         ? PopupMenuItem<int>(
                             value: 1,
-                            onTap: () {
-                              Navigator.of(context)
-                                  .push(noTransition(const SubscriptionPage()));
-                            },
+                            onTap: () =>
+                                context.goNamed(AppRoute.subscriptionPage.name),
                             child: const PopupMenuDetails(
                               icon: Icons.star,
                               text: 'Upgrade',
@@ -234,10 +219,11 @@ class _ProfilePictureState extends State<ProfilePicture>
                       value: 1,
                       onTap: () async {
                         await signOut();
-                        Navigator.push(
-                          context,
-                          noTransition(const StudyRoom()),
-                        );
+                      
+                        if (context.mounted) {
+                          context.pop();
+                          context.goNamed(AppRoute.studyRoom.name);
+                        }
                       },
                       child: const PopupMenuDetails(
                         icon: Icons.logout,

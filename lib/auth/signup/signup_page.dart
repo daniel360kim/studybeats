@@ -1,17 +1,15 @@
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/auth/login_page.dart';
-import 'package:flourish_web/auth/signup/create_password.dart';
 import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/auth/widgets/third_party_button.dart';
 import 'package:flourish_web/api/auth/validators.dart';
 import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/studyroom/study_page.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -76,7 +74,7 @@ class _SignupPageState extends State<SignupPage> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
-                              child:  Text(
+                              child: Text(
                                 'Next',
                                 style: GoogleFonts.inter(
                                   color: kFlourishBlackish,
@@ -101,8 +99,8 @@ class _SignupPageState extends State<SignupPage> {
                             setState(() {
                               _loading = false;
                             });
-                            Navigator.of(context)
-                                .push(noTransition(const StudyRoom()));
+                            if (context.mounted)
+                              context.goNamed(AppRoute.studyRoom.name);
                           }).catchError((e) {
                             setState(() {
                               _unknownError = true;
@@ -113,7 +111,6 @@ class _SignupPageState extends State<SignupPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/google.png',
                         text: 'Sign up with Google',
-                        
                       ),
                       const SizedBox(height: 10),
                       CredentialSigninButton(
@@ -125,8 +122,8 @@ class _SignupPageState extends State<SignupPage> {
                             setState(() {
                               _loading = false;
                             });
-                            Navigator.of(context)
-                                .push(noTransition(const StudyRoom()));
+                            if (context.mounted)
+                              context.goNamed(AppRoute.studyRoom.name);
                           }).catchError((error) {
                             setState(() {
                               _unknownError = true;
@@ -137,7 +134,6 @@ class _SignupPageState extends State<SignupPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/microsoft.png',
                         text: 'Sign up with Microsoft',
-                    
                       ),
                       const SizedBox(height: 40),
                       buildBackToLoginWidgets(),
@@ -167,7 +163,7 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ),
           const SizedBox(height: 5),
-           Text(
+          Text(
             'Sign up to start studying',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
@@ -184,7 +180,7 @@ class _SignupPageState extends State<SignupPage> {
   Widget buildTextFields() {
     return Column(
       children: [
-         Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Text(
             'Email address',
@@ -216,7 +212,7 @@ class _SignupPageState extends State<SignupPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-         Text(
+        Text(
           'Already have an account?',
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
@@ -224,13 +220,11 @@ class _SignupPageState extends State<SignupPage> {
           ),
         ),
         TextButton(
-          onPressed: () {
-            Navigator.of(context).push(noTransition(const LoginPage()));
-          },
+          onPressed: () => context.goNamed(AppRoute.loginPage.name),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
-          child:  Text(
+          child: Text(
             'Log in',
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
@@ -279,8 +273,11 @@ class _SignupPageState extends State<SignupPage> {
         _emailErrorMessage = '';
       });
 
-      Navigator.of(context).push(noTransition(
-          CreatePasswordPage(username: _emailTextController.text)));
+      if (mounted) {
+        context.goNamed(AppRoute.createPasswordPage.name, extra: {
+          'name': _emailTextController.text,
+        });
+      }
     }
   }
 }

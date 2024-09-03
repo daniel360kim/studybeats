@@ -1,17 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/auth/signup/signup_page.dart';
 import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/auth/widgets/third_party_button.dart';
 import 'package:flourish_web/api/auth/validators.dart';
 import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/studyroom/study_page.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -74,8 +73,7 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _loading = false;
                             });
-                            Navigator.of(context).pushReplacement(
-                                noTransition(const StudyRoom()));
+                            if (context.mounted) context.goNamed(AppRoute.studyRoom.name);
                           }).catchError((error) {
                             setState(() {
                               error = true;
@@ -86,7 +84,6 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/google.png',
                         text: 'Sign in with Google',
-                
                       ),
                       const SizedBox(height: 10),
                       CredentialSigninButton(
@@ -98,8 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _loading = false;
                             });
-                            Navigator.of(context).pushReplacement(
-                                noTransition(const StudyRoom()));
+                            if (context.mounted) context.goNamed(AppRoute.studyRoom.name);
                           }).catchError((error) {
                             setState(() {
                               error = true;
@@ -110,7 +106,6 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.transparent,
                         logoPath: 'assets/brand/microsoft.png',
                         text: 'Sign in with Microsoft',
-           
                       ),
                       const SizedBox(height: 40),
                       Container(
@@ -145,7 +140,6 @@ class _LoginPageState extends State<LoginPage> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
-                                
                               ),
                             ),
                       const SizedBox(height: 20),
@@ -182,7 +176,6 @@ class _LoginPageState extends State<LoginPage> {
             fontSize: 36,
             fontWeight: FontWeight.bold,
           ),
-        
         )
       ],
     );
@@ -200,7 +193,6 @@ class _LoginPageState extends State<LoginPage> {
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
-            
           ),
         ),
         const SizedBox(height: 13),
@@ -271,7 +263,6 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: TextDecoration.underline,
                 decorationColor: kFlourishAliceBlue,
               ),
-              
             ),
           ),
         ),
@@ -283,7 +274,7 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-         Text(
+        Text(
           'Don\'t have an account? ',
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
@@ -296,13 +287,11 @@ class _LoginPageState extends State<LoginPage> {
             padding: WidgetStateProperty.all(const EdgeInsets.all(0)),
           ),
           onPressed: () {
-            Navigator.of(context).push(noTransition(const SignupPage()));
+            context.goNamed(AppRoute.signUpPage.name);
           },
-          child:  Text(
+          child: Text(
             'Sign up',
             style: GoogleFonts.inter(
-              
-    
               color: kFlourishAliceBlue,
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -371,7 +360,7 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _loading = false;
       });
-      Navigator.of(context).pushReplacement(noTransition(const StudyRoom()));
+      if (mounted) context.goNamed(AppRoute.studyRoom.name);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         setState(() {

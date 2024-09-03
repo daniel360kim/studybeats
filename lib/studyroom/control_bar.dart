@@ -1,9 +1,8 @@
 import 'dart:ui';
 
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/audio/objects.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/auth/login_page.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flourish_web/studyroom/audio/objects.dart';
 import 'package:flourish_web/studyroom/audio/audio.dart';
 import 'package:flourish_web/studyroom/audio/seekbar.dart';
@@ -16,6 +15,7 @@ import 'package:flourish_web/studyroom/widgets/screens/songcredits.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:go_router/go_router.dart';
 import 'widgets/controls/music_controls.dart';
 
 class Player extends StatefulWidget {
@@ -240,8 +240,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
               onFavorite: (value) {
                 _authService.isUserLoggedIn()
                     ? _toggleFavorite(value)
-                    : Navigator.of(context)
-                        .pushReplacement(noTransition(const LoginPage()));
+                    : context.goNamed(AppRoute.loginPage.name); 
               },
               isPlaying: playing,
               isFavorite: _authService.isUserLoggedIn()

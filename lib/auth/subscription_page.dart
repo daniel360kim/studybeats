@@ -2,12 +2,14 @@ import 'package:flourish_web/api/Stripe/subscription_service.dart';
 import 'package:flourish_web/auth/unknown_error.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/log_printer.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish_web/api/Stripe/product_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:go_router/go_router.dart';
 
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
@@ -83,9 +85,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             iconSize: 20,
             color: kFlourishBlackish,
             icon: const Icon(Icons.arrow_back_outlined),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: () => context.goNamed(AppRoute.studyRoom.name),
           ),
           const SizedBox(width: 5),
           const Text(

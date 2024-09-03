@@ -1,8 +1,6 @@
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth/validators.dart';
-import 'package:flourish_web/auth/login_page.dart';
-import 'package:flourish_web/auth/signup/name_page.dart';
-import 'package:flourish_web/auth/signup/signup_page.dart';
+import 'package:flourish_web/router.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
@@ -100,7 +98,7 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
       children: [
         IconButton(
           onPressed: () {
-            Navigator.of(context).push(noTransition(const SignupPage()));
+            context.goNamed(AppRoute.signUpPage.name);
           },
           icon: const Icon(Icons.arrow_back_ios_rounded,
               color: kFlourishAliceBlue),
@@ -197,9 +195,8 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
          
         ),
         TextButton(
-          onPressed: () {
-            Navigator.of(context).push(noTransition(const LoginPage()));
-          },
+          onPressed: () => context.goNamed(AppRoute.loginPage.name),
+          
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
@@ -255,10 +252,11 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
   }
 
   void next() async {
-    Navigator.of(context).push(noTransition(EnterNamePage(
-      username: widget.username,
-      password: _passwordController.text,
-    )));
+    // TODO migrate to secure storage
+    context.goNamed(AppRoute.enterNamePage.name, extra: {
+      'name': widget.username,
+      'password': _passwordController.text,
+    });
   }
 }
 

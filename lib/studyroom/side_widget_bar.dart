@@ -1,13 +1,12 @@
 import 'dart:ui';
-import 'package:flourish_web/animations.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
-import 'package:flourish_web/auth/login_dialog.dart';
-import 'package:flourish_web/auth/login_page.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
 import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class SideWidgetBar extends StatefulWidget {
   const SideWidgetBar(
@@ -111,8 +110,8 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
       case 1:
         if (!AuthService().isUserLoggedIn()) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushReplacement(noTransition(const LoginPage()));
-            /*
+            context.goNamed(AppRoute.loginPage.name);
+            /* // TODO add login dialog instead of page
             showDialog(
               context: context,
               builder: (context) => LoginDialog(
