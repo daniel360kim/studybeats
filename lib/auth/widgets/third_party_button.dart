@@ -1,4 +1,3 @@
-
 import 'package:flourish_web/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -71,8 +70,7 @@ class _CredentialSigninButtonState extends State<CredentialSigninButton> {
                   style: GoogleFonts.inter(
                     color: kFlourishAliceBlue,
                     fontSize: 16,
-    
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -83,4 +81,3 @@ class _CredentialSigninButtonState extends State<CredentialSigninButton> {
     );
   }
 }
-

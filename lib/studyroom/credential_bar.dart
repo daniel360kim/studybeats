@@ -50,7 +50,7 @@ class _CredentialBarState extends State<CredentialBar> {
             'Sign up',
             style: GoogleFonts.inter(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -66,7 +66,7 @@ class _CredentialBarState extends State<CredentialBar> {
             'Log in',
             style: GoogleFonts.inter(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

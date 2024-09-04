@@ -35,7 +35,6 @@ class LoginDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      
       backgroundColor: kFlourishBlackish,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -51,7 +50,7 @@ class LoginDialog extends StatelessWidget {
                 style: GoogleFonts.inter(
                   color: kFlourishAliceBlue,
                   fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 20),
@@ -70,7 +69,7 @@ class LoginDialog extends StatelessWidget {
                   style: GoogleFonts.inter(
                     color: Colors.redAccent,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -93,7 +92,7 @@ class LoginDialog extends StatelessWidget {
                         style: GoogleFonts.inter(
                           color: kFlourishBlackish,
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -114,7 +113,7 @@ class LoginDialog extends StatelessWidget {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -134,7 +133,7 @@ class LoginDialog extends StatelessWidget {
               style: GoogleFonts.inter(
                 color: kFlourishAliceBlue,
                 fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const Spacer(),

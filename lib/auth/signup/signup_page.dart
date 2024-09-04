@@ -79,7 +79,7 @@ class _SignupPageState extends State<SignupPage> {
                                 style: GoogleFonts.inter(
                                   color: kFlourishBlackish,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -169,7 +169,7 @@ class _SignupPageState extends State<SignupPage> {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 36,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -187,7 +187,7 @@ class _SignupPageState extends State<SignupPage> {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -229,7 +229,7 @@ class _SignupPageState extends State<SignupPage> {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,
             ),

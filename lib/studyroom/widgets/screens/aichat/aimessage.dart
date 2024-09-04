@@ -1,4 +1,3 @@
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/auth/urls.dart';
 import 'package:flourish_web/colors.dart';
@@ -14,11 +13,11 @@ final kStyleSheet = MarkdownStyleSheet(
   ),
   h1: GoogleFonts.inter(
     fontSize: 18,
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.w600,
   ),
   h2: GoogleFonts.inter(
     fontSize: 22,
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.w600,
   ),
 );
 
@@ -94,7 +93,7 @@ class AiMessage extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   color: kFlourishBlackish,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               )
             ],

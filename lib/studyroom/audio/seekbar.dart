@@ -186,9 +186,8 @@ void showSliderDialog({
           child: Column(
             children: [
               Text('${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
-                  style:  GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24.0)),
+                  style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600, fontSize: 24.0)),
               Slider(
                 divisions: divisions,
                 min: min,

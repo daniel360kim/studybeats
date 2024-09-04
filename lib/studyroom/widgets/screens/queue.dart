@@ -87,7 +87,7 @@ class _SongQueueState extends State<SongQueue> {
         'Queue',
         style: GoogleFonts.inter(
           fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
       ),
@@ -105,7 +105,7 @@ class _SongQueueState extends State<SongQueue> {
             'Playing Now',
             style: GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
@@ -135,7 +135,7 @@ class _SongQueueState extends State<SongQueue> {
           'Up Next',
           style: GoogleFonts.inter(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),

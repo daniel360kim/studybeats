@@ -73,7 +73,8 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _loading = false;
                             });
-                            if (context.mounted) context.goNamed(AppRoute.studyRoom.name);
+                            if (context.mounted)
+                              context.goNamed(AppRoute.studyRoom.name);
                           }).catchError((error) {
                             setState(() {
                               error = true;
@@ -95,7 +96,8 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _loading = false;
                             });
-                            if (context.mounted) context.goNamed(AppRoute.studyRoom.name);
+                            if (context.mounted)
+                              context.goNamed(AppRoute.studyRoom.name);
                           }).catchError((error) {
                             setState(() {
                               error = true;
@@ -138,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                                 style: GoogleFonts.inter(
                                   color: kFlourishBlackish,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -174,7 +176,7 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 36,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         )
       ],
@@ -191,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -215,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
               style: GoogleFonts.inter(
                 color: kFlourishAliceBlue,
                 fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const Spacer(),
@@ -259,7 +261,7 @@ class _LoginPageState extends State<LoginPage> {
               style: GoogleFonts.inter(
                 color: kFlourishAliceBlue,
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 decoration: TextDecoration.underline,
                 decorationColor: kFlourishAliceBlue,
               ),
@@ -279,7 +281,7 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 15,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
         TextButton(
@@ -294,7 +296,7 @@ class _LoginPageState extends State<LoginPage> {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,
             ),

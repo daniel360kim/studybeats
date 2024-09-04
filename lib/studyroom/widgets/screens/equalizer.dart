@@ -113,7 +113,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                       widget.song!.trackName,
                       style: const TextStyle(
                         fontSize: 25,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 5),

@@ -298,7 +298,7 @@ class _AiChatState extends State<AiChat> {
                             _errorMessage,
                             style: const TextStyle(
                               color: Colors.red,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -478,7 +478,7 @@ class _AiChatState extends State<AiChat> {
               Text(
                 'Delete chat?',
                 style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 20,
                 ),
               ),
@@ -497,7 +497,7 @@ class _AiChatState extends State<AiChat> {
               },
               child: Text('Cancel',
                   style: GoogleFonts.inter(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
+                      color: Colors.black, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -510,7 +510,7 @@ class _AiChatState extends State<AiChat> {
                 'Clear',
                 style: GoogleFonts.inter(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -589,7 +589,7 @@ class _AiChatState extends State<AiChat> {
                   'Get more tokens',
                   style: GoogleFonts.inter(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

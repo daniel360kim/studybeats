@@ -98,7 +98,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                           'Current Scene',
                           style: GoogleFonts.inter(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(
@@ -116,7 +116,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                           'Select Scene',
                           style: GoogleFonts.inter(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(

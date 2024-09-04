@@ -71,7 +71,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
                               style: GoogleFonts.inter(
                                 color: kFlourishBlackish,
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -125,7 +125,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 24,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -144,7 +144,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
                 style: GoogleFonts.inter(
                   color: kFlourishAliceBlue,
                   fontSize: 17,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -199,7 +199,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,
             ),

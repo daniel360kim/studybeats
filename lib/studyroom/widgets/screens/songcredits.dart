@@ -132,7 +132,7 @@ class _SongCreditsState extends State<SongCredits> {
               child: widget.song == null
                   ? _buildShimmerTextPlaceholder()
                   : _buildMarqueeText(widget.song!.trackName,
-                      fontSize: 20, fontWeight: FontWeight.bold),
+                      fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             Theme(
@@ -210,19 +210,17 @@ class _SongCreditsState extends State<SongCredits> {
         children: [
           TextSpan(
             text: '$heading: ',
-            style:  GoogleFonts.inter(
+            style: GoogleFonts.inter(
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Colors.black,
-  
             ),
           ),
           TextSpan(
             text: text,
-            style:  GoogleFonts.inter(
+            style: GoogleFonts.inter(
               fontSize: 15,
               color: Colors.black,
-    
             ),
           ),
         ],
@@ -239,7 +237,6 @@ class _SongCreditsState extends State<SongCredits> {
           style: GoogleFonts.inter(
             fontSize: fontSize,
             fontWeight: fontWeight,
-
             color: Colors.black,
           ),
         );
@@ -252,11 +249,13 @@ class _SongCreditsState extends State<SongCredits> {
         if (textPainter.didExceedMaxLines) {
           return Text(
             text,
-            style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
+            style:
+                GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
           );
         } else {
           return Text(text,
-              style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight));
+              style: GoogleFonts.inter(
+                  fontSize: fontSize, fontWeight: fontWeight));
         }
       },
     );
@@ -277,14 +276,13 @@ class _SongCreditsState extends State<SongCredits> {
   }
 
   Widget buildAlbum() {
-    return  Column(
+    return Column(
       children: [
         Text(
           'Album:',
           style: GoogleFonts.inter(
             fontSize: 16,
             color: Colors.black,
-
           ),
         ),
       ],

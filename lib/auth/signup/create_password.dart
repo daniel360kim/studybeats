@@ -65,14 +65,12 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: Text(
-                          'Next',
-                          style: GoogleFonts.inter(
-                            color: kFlourishBlackish,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          )
-                        ),
+                        child: Text('Next',
+                            style: GoogleFonts.inter(
+                              color: kFlourishBlackish,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            )),
                       ),
                       const SizedBox(height: 40),
                       Container(
@@ -117,16 +115,14 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
           ),
         ),
         const SizedBox(height: 5),
-       Text(
+        Text(
           'Flourish',
-
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 24,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
-         
         ),
       ],
     );
@@ -139,12 +135,12 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
           alignment: Alignment.centerLeft,
           child: Row(
             children: [
-             Text(
+              Text(
                 'Create a password',
                 style: GoogleFonts.inter(
                   color: kFlourishAliceBlue,
                   fontSize: 17,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),
@@ -185,27 +181,24 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-         Text(
+        Text(
           'Already have an account?',
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
             fontSize: 15,
-
           ),
-         
         ),
         TextButton(
           onPressed: () => context.goNamed(AppRoute.loginPage.name),
-          
           style: TextButton.styleFrom(
             padding: const EdgeInsets.all(0),
           ),
-          child:  Text(
+          child: Text(
             'Log In',
             style: GoogleFonts.inter(
               color: kFlourishAliceBlue,
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
               decorationColor: kFlourishAliceBlue,
             ),
@@ -219,12 +212,12 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-         Text(
+        Text(
           'Password must contain:',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: kFlourishAliceBlue,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 10),

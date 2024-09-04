@@ -92,7 +92,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             'Flourish',
             style: TextStyle(
                 fontSize: 30,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: kFlourishAdobe),
           ),
         ],
@@ -157,7 +157,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           style: GoogleFonts.inter(
             color: kFlourishBlackish,
             fontSize: 42,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 5.0),
@@ -172,7 +172,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 text: 'Cancel anytime.',
                 style: GoogleFonts.inter(
                   color: kFlourishBlackish,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -193,13 +193,13 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           Interval.monthly: Text(
             'Monthly',
             style: GoogleFonts.inter(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           Interval.yearly: Text(
             'Yearly',
             style: GoogleFonts.inter(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         },
@@ -330,7 +330,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                 widget.product.product.name ?? 'Unnamed Product',
                 style: GoogleFonts.inter(
                   fontSize: 35.0,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: widget.product.product.color,
                 ),
               ),
@@ -339,7 +339,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                 priceText,
                 style: GoogleFonts.inter(
                   fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: Colors.blueGrey,
                 ),
               ),
@@ -407,7 +407,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                 isFree ? 'Current Plan' : 'Get ${widget.product.product.name}',
                 style: GoogleFonts.inter(
                   fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: Colors.black,
                 ),
               ),
