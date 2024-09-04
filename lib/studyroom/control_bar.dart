@@ -72,7 +72,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    print('app state changed to $state');
     if (state == AppLifecycleState.resumed) {
       _audio.audioPlayer.play();
     } else {

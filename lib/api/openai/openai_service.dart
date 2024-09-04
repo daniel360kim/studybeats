@@ -386,4 +386,31 @@ class OpenaiService {
       rethrow;
     }
   }
+
+  Future<int> getTokensUsedToday() async {
+    try {
+      final today = DateTime.now();
+      final todayTokenUsage = await _tokenLimitDoc
+          .collection('tokenLogs')
+          .doc(today.toString().substring(0, 10))
+          .get();
+
+      if (todayTokenUsage.exists) {
+        final todayTokenData = todayTokenUsage.data() as Map<String, dynamic>;
+        final todayTokenUsageData =
+            Usage.fromJson(todayTokenData['tokenUsage']);
+
+        return todayTokenUsageData.totalTokens!;
+      } else {
+        return 0;
+      }
+    } catch (e) {
+      _logger.e('Failed to get tokens used today: $e');
+      rethrow;
+    }
+  }
+
+  int getTokenLimit() {
+    return _tokenLimit;
+  }
 }

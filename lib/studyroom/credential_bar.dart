@@ -219,7 +219,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                       value: 1,
                       onTap: () async {
                         await signOut();
-                      
+
                         if (context.mounted) {
                           context.pop();
                           context.goNamed(AppRoute.studyRoom.name);
@@ -236,46 +236,50 @@ class _ProfilePictureState extends State<ProfilePicture>
                   animation: _scaleAnimation,
                   builder: (context, child) {
                     return Transform.scale(
-                      scale: _isPressed ? 0.95 : _scaleAnimation.value,
-                      child: _loadingProfilePicture
-                          ? Shimmer.fromColors(
-                              baseColor: Colors.grey[300]!,
-                              highlightColor: Colors.grey[100]!,
-                              child: Container(
-                                height: _iconSize,
-                                width: _iconSize,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(30),
+                        scale: _isPressed ? 0.95 : _scaleAnimation.value,
+                        child: _loadingProfilePicture
+                            ? Shimmer.fromColors(
+                                baseColor: Colors.grey[300]!,
+                                highlightColor: Colors.grey[100]!,
+                                child: Container(
+                                  height: _iconSize,
+                                  width: _iconSize,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
                                 ),
-                              ),
-                            )
-                          : Container(
-                              height: _iconSize,
-                              width: _iconSize,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: CachedNetworkImage(
+                              )
+                            : Container(
                                 height: _iconSize,
                                 width: _iconSize,
-                                imageUrl: pfpUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) =>
-                                    Shimmer.fromColors(
-                                  baseColor: Colors.grey[300]!,
-                                  highlightColor: Colors.grey[100]!,
-                                  child: Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape
+                                      .circle, // Set the shape to circle
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: CachedNetworkImage(
                                     height: _iconSize,
                                     width: _iconSize,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(30),
+                                    imageUrl: pfpUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        Shimmer.fromColors(
+                                      baseColor: Colors.grey[300]!,
+                                      highlightColor: Colors.grey[100]!,
+                                      child: Container(
+                                        height: _iconSize,
+                                        width: _iconSize,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape
+                                              .circle, // Set the shape to circle
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                    );
+                              ));
                   },
                 ),
               ),

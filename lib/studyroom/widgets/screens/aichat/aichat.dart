@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/api/openai/openai_service.dart';
 import 'package:flourish_web/log_printer.dart';
+import 'package:flourish_web/router.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:uuid/uuid.dart';
+import 'package:go_router/go_router.dart';
 
 class ConversationMessage {
   final String message;
@@ -168,6 +170,7 @@ class _AiChatState extends State<AiChat> {
           _imageFile = null;
           _imageUrl = null;
         });
+        _scrollToBottom();
       } else {
         Map<String, dynamic> message = {
           'role': 'user',
@@ -179,6 +182,7 @@ class _AiChatState extends State<AiChat> {
         setState(() {
           _conversationHistory.add(message);
         });
+        _scrollToBottom();
       }
     } catch (e) {
       _logger.e('Failed to store message in Firestore: $e');
@@ -502,9 +506,13 @@ class _AiChatState extends State<AiChat> {
                 Navigator.of(context).pop();
                 _clearChat();
               },
-              child: Text('Clear',
-                  style: GoogleFonts.inter(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Clear',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -513,44 +521,98 @@ class _AiChatState extends State<AiChat> {
   }
 
   Future<void> showInfoDialog() async {
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: kFlourishAliceBlue,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Chat Details',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+    int tokensUsedToday = await _openaiService.getTokensUsedToday();
+    final int tokenLimit = _openaiService.getTokenLimit();
+
+    if (tokensUsedToday > tokenLimit) {
+      tokensUsedToday = tokenLimit;
+    }
+
+    String tokensUsedTodayStr =
+        NumberFormat.decimalPattern().format(tokensUsedToday);
+    String tokenLimitStr = NumberFormat.decimalPattern().format(tokenLimit);
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: kFlourishAliceBlue,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const Text('Token Details'),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                ),
+              ],
+            ),
+            content: SizedBox(
+              height: 50,
+              child: tokenLimit == 0
+                  ? Text(
+                      'Tokens used today: $tokensUsedTodayStr / ∞',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.normal,
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tokens used today: $tokensUsedTodayStr / $tokenLimitStr',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        LinearProgressIndicator(
+                          value: tokensUsedToday / tokenLimit,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: const AlwaysStoppedAnimation(Colors.blue),
+                        ),
+                      ],
+                    ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () =>
+                    context.goNamed(AppRoute.subscriptionPage.name),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: kFlourishAdobe,
+                    foregroundColor: Colors.white),
+                child: Text(
+                  'Get more tokens',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
-              const Divider(
-                color: Colors.grey,
-                thickness: 1,
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.black),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'Close',
+                  style: GoogleFonts.inter(
+                    color: Colors.black,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
               ),
             ],
-          ),
-          content: const Text('Chat details here'),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue, foregroundColor: Colors.white),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Close',
-                  style: GoogleFonts.inter(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
+          );
+        },
+      );
+    }
   }
 
   void _showTokenLimitExceededAlert(BuildContext context) {

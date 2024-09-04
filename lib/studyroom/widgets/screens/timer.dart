@@ -111,12 +111,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                     ),
                   ),
                   onPressed: () => _swiperController.next(),
-                  child:  Text(
+                  child: Text(
                     'Next',
                     style: GoogleFonts.inter(
                       color: kFlourishBlackish,
                       fontSize: 15,
-          
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -140,7 +139,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                   children: [
                     IconButton(
                       padding: EdgeInsets.zero,
-                      color: kFlourishAliceBlue,
+                      color: kFlourishBlackish,
                       icon: const Icon(Icons.arrow_back_ios),
                       onPressed: () => _swiperController.previous(),
                     ),
@@ -159,12 +158,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                             PomodoroDurations(studyTime, breakTime);
                         widget.onStartPressed(durations);
                       },
-                      child:  Text(
+                      child: Text(
                         'Start',
                         style: GoogleFonts.inter(
                           color: kFlourishBlackish,
                           fontSize: 15,
-  
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -223,9 +221,8 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
         children: [
           const SizedBox(height: 30),
           Text(widget.title,
-              style:  GoogleFonts.inter(
+              style: GoogleFonts.inter(
                 fontSize: 30,
-
                 color: kFlourishBlackish,
                 fontWeight: FontWeight.w600,
               )),
@@ -263,7 +260,7 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
                   children: [
                     SizedBox(
                         height: 200,
-                        width: 50,
+                        width: 60,
                         child: TimeSlider(
                           lowerValue: widget.hourLowerValue,
                           upperValue: widget.hourUpperValue,
@@ -281,7 +278,7 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
                     const SizedBox(width: 20),
                     SizedBox(
                         height: 200,
-                        width: 50,
+                        width: 60,
                         child: TimeSlider(
                           lowerValue: widget.minuteLowerValue,
                           upperValue: widget.minuteUpperValue,
@@ -356,7 +353,7 @@ class _TimeSliderState extends State<TimeSlider> {
       child: ListWheelScrollView(
         controller: controller,
         physics: const FixedExtentScrollPhysics(),
-        itemExtent: 50,
+        itemExtent: 60,
         onSelectedItemChanged: (int index) {
           setState(() {
             _selectedHourIndex = index;
