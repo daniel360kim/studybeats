@@ -19,6 +19,7 @@ class SceneData {
   final int playlistId;
   final String scenePath;
   final String fontTheme;
+  
 
   SceneData({
     required this.id,

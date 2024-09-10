@@ -40,10 +40,43 @@ class AuthService {
         'uid': FirebaseAuth.instance.currentUser!.uid,
         'profilePicture': imageURL,
         'name': name,
+        'selectedSceneId': 0,
       });
     } catch (e) {
       _logger.e(e);
       rethrow;
+    }
+  }
+
+  Future<int> getSelectedSceneIndex() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final dataSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .get();
+
+      if (!dataSnapshot.exists) {
+        return 1;
+      }
+
+      if (dataSnapshot.data()!.containsKey('selectedSceneId')) {
+        return dataSnapshot.get('selectedSceneId');
+      } else {
+        return 1;
+      }
+    } else {
+      return 1;
+    }
+  }
+
+  Future changeSelectedSceneIndex(int index) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .update({'selectedSceneIndex': index});
     }
   }
 

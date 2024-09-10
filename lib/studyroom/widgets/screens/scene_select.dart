@@ -106,8 +106,11 @@ class _SceneSelectorState extends State<SceneSelector> {
                         ),
                         SizedBox(
                           width: 400,
-                          child: buildContainer(widget.currentScene,
-                              widget.currentSceneBackgroundUrl),
+                          child: SceneSelection(
+                              widget: widget,
+                              scene: widget.currentScene,
+                              backgroundImageUrl:
+                                  widget.currentSceneBackgroundUrl),
                         ),
                         const SizedBox(
                           height: 20,
@@ -136,8 +139,10 @@ class _SceneSelectorState extends State<SceneSelector> {
                               } else {
                                 return GestureDetector(
                                   onTap: () {},
-                                  child:
-                                      buildContainer(scene, backgroundImageUrl),
+                                  child: SceneSelection(
+                                      widget: widget,
+                                      scene: scene,
+                                      backgroundImageUrl: backgroundImageUrl),
                                 );
                               }
                             },
@@ -168,9 +173,38 @@ class _SceneSelectorState extends State<SceneSelector> {
       ),
     );
   }
+}
 
-  Widget buildContainer(SceneData scene, String backgroundImageUrl) {
-    int titleCharCount = scene.name.length;
+class SceneSelection extends StatefulWidget {
+  const SceneSelection({
+    super.key,
+    required this.widget,
+    required this.scene,
+    required this.backgroundImageUrl,
+  });
+
+  final SceneSelector widget;
+  final SceneData scene;
+  final String backgroundImageUrl;
+
+  @override
+  State<SceneSelection> createState() => _SceneSelectionState();
+}
+
+class _SceneSelectionState extends State<SceneSelection> {
+  late Future pendingFonts;
+
+  @override
+  void initState() {
+    pendingFonts = GoogleFonts.pendingFonts([
+      GoogleFonts.getFont(widget.scene.fontTheme),
+    ]);
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int titleCharCount = widget.scene.name.length;
     return Container(
       width: 200,
       height: 200,
@@ -197,7 +231,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                     color: Colors.white,
                   ),
                 ),
-                imageUrl: backgroundImageUrl,
+                imageUrl: widget.backgroundImageUrl,
                 fit: BoxFit.fill,
                 width: 400,
               ),
@@ -206,7 +240,7 @@ class _SceneSelectorState extends State<SceneSelector> {
           Center(
             child: GestureDetector(
               onTap: () {
-                widget.onSceneSelected(scene.id);
+                widget.widget.onSceneSelected(widget.scene.id);
               },
               child: Stack(
                 children: [
@@ -214,6 +248,8 @@ class _SceneSelectorState extends State<SceneSelector> {
                     child: Container(
                       height: 50,
                       width: titleCharCount * 15.0,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 5.0),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(30),
                         color: Colors.black.withOpacity(0.6),
@@ -225,15 +261,27 @@ class _SceneSelectorState extends State<SceneSelector> {
                       ),
                     ),
                   ),
-                  Center(
-                    child: Text(
-                      scene.name,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  FutureBuilder(
+                      future: pendingFonts,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState !=
+                            ConnectionState.done) {
+                          return const Center(
+                            child: SizedBox(),
+                          );
+                        }
+                        return Center(
+                          child: Text(
+                            widget.scene.name,
+                            style: GoogleFonts.getFont(
+                              widget.scene.fontTheme,
+                              fontSize: 20,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }),
                 ],
               ),
             ),

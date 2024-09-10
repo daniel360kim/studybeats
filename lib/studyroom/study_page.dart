@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
 import 'package:flourish_web/api/scenes/scene_service.dart';
 import 'package:flourish_web/app_state.dart';
@@ -55,12 +56,15 @@ class _StudyRoomState extends State<StudyRoom> {
           });
           return;
         }
-        final backgroundUrl =
-            await _sceneService.getBackgroundImageUrl(value[2]);
+        final initialSceneIndex = await AuthService().getSelectedSceneIndex();
+        final backgroundUrl = await _sceneService.getBackgroundImageUrl(
+            value.where((element) => element.id == initialSceneIndex).first);
 
         setState(() {
           _sceneList = value;
-          _currentScene = _sceneList[2];
+          _currentScene = _sceneList.firstWhere(
+              (scene) => scene.id == initialSceneIndex,
+              orElse: () => _sceneList.first);
 
           if (_currentScene == null) {
             _logger.e('No scenes found');
@@ -127,7 +131,6 @@ class _StudyRoomState extends State<StudyRoom> {
               ? TimerDialog(
                   focusTimerDuration: timerDurations.studyTime,
                   breakTimerDuration: timerDurations.breakTime,
-                  
                   onExit: (value) {
                     setState(() {
                       _showTimer = false;

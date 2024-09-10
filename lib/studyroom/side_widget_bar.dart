@@ -96,8 +96,10 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
     switch (_selectedIndex) {
       case 0:
         return SceneSelector(
-          onSceneSelected: ((id) {
+          onSceneSelected: ((id) async {
             widget.onSceneChanged(id);
+            await AuthService().changeSelectedSceneIndex(
+                id); // handles being logged out as well, no need to check
           }),
           onClose: () {
             setState(() {
