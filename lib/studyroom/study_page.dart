@@ -56,7 +56,7 @@ class _StudyRoomState extends State<StudyRoom> {
           });
           return;
         }
-        final initialSceneIndex = await AuthService().getSelectedSceneIndex();
+        final initialSceneIndex = await AuthService().getselectedSceneId();
         final backgroundUrl = await _sceneService.getBackgroundImageUrl(
             value.where((element) => element.id == initialSceneIndex).first);
 

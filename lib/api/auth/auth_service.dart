@@ -48,7 +48,7 @@ class AuthService {
     }
   }
 
-  Future<int> getSelectedSceneIndex() async {
+  Future<int> getselectedSceneId() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final dataSnapshot = await FirebaseFirestore.instance
@@ -70,13 +70,13 @@ class AuthService {
     }
   }
 
-  Future changeSelectedSceneIndex(int index) async {
+  Future changeselectedSceneId(int index) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.email)
-          .update({'selectedSceneIndex': index});
+          .update({'selectedSceneId': index});
     }
   }
 
