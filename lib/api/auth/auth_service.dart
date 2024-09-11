@@ -40,7 +40,7 @@ class AuthService {
         'uid': FirebaseAuth.instance.currentUser!.uid,
         'profilePicture': imageURL,
         'name': name,
-        'selectedSceneId': 0,
+        'selectedSceneId': 1,
       });
     } catch (e) {
       _logger.e(e);

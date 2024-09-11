@@ -5,15 +5,12 @@ import 'package:flourish_web/auth/widgets/textfield.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
 class EnterNamePage extends StatefulWidget {
-  const EnterNamePage(
-      {required this.username, required this.password, super.key});
-
-  final String username;
-  final String password;
+  const EnterNamePage({super.key});
 
   @override
   State<EnterNamePage> createState() => _EnterNamePageState();
@@ -30,6 +27,11 @@ class _EnterNamePageState extends State<EnterNamePage> {
   bool _loading = false;
 
   final _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +100,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
       children: [
         IconButton(
           onPressed: () {
-            context.goNamed(AppRoute.createPasswordPage.name, extra: {
-              'name': widget.username,
-            });
+            context.goNamed(AppRoute.createPasswordPage.name, extra: {});
           },
           icon: const Icon(Icons.arrow_back_ios_rounded,
               color: kFlourishAliceBlue),
@@ -222,8 +222,16 @@ class _EnterNamePageState extends State<EnterNamePage> {
     });
 
     try {
-      _authService.signUp(
-          widget.username, widget.password, _textController.text);
+      const storage = FlutterSecureStorage();
+
+      final username = await storage.read(key: 'username');
+      final password = await storage.read(key: 'password');
+
+      await _authService.signUp(username!, password!, _textController.text);
+
+      if (mounted) {
+        context.goNamed(AppRoute.studyRoom.name);
+      }
     } catch (e) {
       setState(() {
         _unknownError = true;
@@ -233,7 +241,6 @@ class _EnterNamePageState extends State<EnterNamePage> {
     setState(() {
       _loading = false;
     });
-    context.goNamed(AppRoute.studyRoom.name);
   }
 }
 

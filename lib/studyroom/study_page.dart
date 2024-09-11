@@ -46,6 +46,7 @@ class _StudyRoomState extends State<StudyRoom> {
   void initScenes() {
     try {
       _sceneService.getSceneData().then((value) async {
+        _logger.i('Scenes initialized');
         if (value.isEmpty) {
           _logger.e('No scenes found');
           setState(() {
@@ -57,6 +58,7 @@ class _StudyRoomState extends State<StudyRoom> {
           return;
         }
         final initialSceneIndex = await AuthService().getselectedSceneId();
+        _logger.i('Initial scene index $initialSceneIndex');
         final backgroundUrl = await _sceneService.getBackgroundImageUrl(
             value.where((element) => element.id == initialSceneIndex).first);
 
@@ -81,6 +83,7 @@ class _StudyRoomState extends State<StudyRoom> {
         });
       });
     } catch (e) {
+      _logger.e('Error while initializing scenes $e');
       setState(() {
         _currentScene = null;
         _backgroundImageUrl = null;

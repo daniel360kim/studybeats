@@ -74,12 +74,9 @@ GoRouter createRouter(BuildContext context) {
         path: '/enter-name',
         name: AppRoute.enterNamePage.name,
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, String>?;
-          final name = extra?['name'];
-          final password = extra?['password'];
           return CustomTransitionPage(
             key: state.pageKey,
-            child: EnterNamePage(username: name!, password: password!),
+            child: const EnterNamePage(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
@@ -124,11 +121,9 @@ GoRouter createRouter(BuildContext context) {
         path: '/create-password',
         name: AppRoute.createPasswordPage.name,
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, String>?;
-          final name = extra?['name'];
           return CustomTransitionPage(
             key: state.pageKey,
-            child: CreatePasswordPage(username: name!),
+            child: const CreatePasswordPage(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);

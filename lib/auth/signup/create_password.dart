@@ -1,5 +1,6 @@
 import 'package:flourish_web/api/auth/validators.dart';
 import 'package:flourish_web/router.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flourish_web/auth/widgets/error_message.dart';
 import 'package:flourish_web/auth/widgets/textfield.dart';
@@ -9,9 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CreatePasswordPage extends StatefulWidget {
-  const CreatePasswordPage({required this.username, super.key});
-
-  final String username;
+  const CreatePasswordPage({super.key});
 
   @override
   State<CreatePasswordPage> createState() => _CreatePasswordPageState();
@@ -245,11 +244,12 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
   }
 
   void next() async {
-    // TODO migrate to secure storage
-    context.goNamed(AppRoute.enterNamePage.name, extra: {
-      'name': widget.username,
-      'password': _passwordController.text,
-    });
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'password', value: _passwordController.text);
+
+    if (mounted) {
+      context.goNamed(AppRoute.enterNamePage.name);
+    }
   }
 }
 

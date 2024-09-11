@@ -8,6 +8,7 @@ import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
@@ -273,10 +274,12 @@ class _SignupPageState extends State<SignupPage> {
         _emailErrorMessage = '';
       });
 
+      const storage = FlutterSecureStorage();
+
+      await storage.write(key: 'username', value: _emailTextController.text);
+
       if (mounted) {
-        context.goNamed(AppRoute.createPasswordPage.name, extra: {
-          'name': _emailTextController.text,
-        });
+        context.goNamed(AppRoute.createPasswordPage.name);
       }
     }
   }
