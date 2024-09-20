@@ -1,8 +1,8 @@
 <!-- Project Logo -->
 <div align="center">
 
-<a href="https://github.com/daniel360kim/flourish-web">
-    <img src="web/favicon.png alt="Logo" width="200" height="200">
+<a href="https://github.com/daniel360kim/flourish-web/blob/main/web/logo.jpg">
+    <img src="web/logo.jpg alt="Logo" width="200" height="200">
 </a>
   <h1 align="center">Flouria.co</h1>
    <p align="center">
