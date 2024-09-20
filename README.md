@@ -22,7 +22,7 @@
 Download or clone this repo by using the link below:
 
 ```
-https://github.com/daniel360kim/flourish-web.git
+https://github.com/daniel360kim/flouria.git
 ```
 
 **Step 2:**
