@@ -100,8 +100,9 @@ class _SignupPageState extends State<SignupPage> {
                             setState(() {
                               _loading = false;
                             });
-                            if (context.mounted)
+                            if (context.mounted) {
                               context.goNamed(AppRoute.studyRoom.name);
+                            }
                           }).catchError((e) {
                             setState(() {
                               _unknownError = true;
@@ -123,8 +124,9 @@ class _SignupPageState extends State<SignupPage> {
                             setState(() {
                               _loading = false;
                             });
-                            if (context.mounted)
+                            if (context.mounted) {
                               context.goNamed(AppRoute.studyRoom.name);
+                            }
                           }).catchError((error) {
                             setState(() {
                               _unknownError = true;

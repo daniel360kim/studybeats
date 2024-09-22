@@ -27,7 +27,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   final _player = AudioPlayer();
   CountdownTimer? _timer;
   final double _volume = 0.5;
-  double _volumeBeforeFade = 0.5;
 
   final _sfxService = SfxService();
 
@@ -71,16 +70,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
     _player.dispose();
     _timer?.cancel();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _volumeBeforeFade = _player.volume;
-      fadeOutAndStop(startVolume: _volumeBeforeFade);
-    } else if (state == AppLifecycleState.resumed) {
-      setVolume(_volumeBeforeFade);
-    }
   }
 
   @override

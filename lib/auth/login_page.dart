@@ -73,8 +73,9 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _loading = false;
                             });
-                            if (context.mounted)
+                            if (context.mounted) {
                               context.goNamed(AppRoute.studyRoom.name);
+                            }
                           }).catchError((error) {
                             setState(() {
                               error = true;
@@ -96,8 +97,9 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _loading = false;
                             });
-                            if (context.mounted)
+                            if (context.mounted) {
                               context.goNamed(AppRoute.studyRoom.name);
+                            }
                           }).catchError((error) {
                             setState(() {
                               error = true;

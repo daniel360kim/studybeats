@@ -71,15 +71,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _audio.audioPlayer.play();
-    } else {
-      _audio.audioPlayer.pause();
-    }
-  }
-
-  @override
   void dispose() {
     _audio.dispose();
     super.dispose();
@@ -89,8 +80,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     setState(() {
       currentSongInfo = _audio.getCurrentSongInfo();
       songQueue = _audio.getSongOrder();
-      songOrder =
-          _audio.getSongOrder(); // Assuming this method returns song order
+      songOrder = _audio.getSongOrder();
     });
 
     if (_authService.isUserLoggedIn()) {
@@ -239,7 +229,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
               onFavorite: (value) {
                 _authService.isUserLoggedIn()
                     ? _toggleFavorite(value)
-                    : context.goNamed(AppRoute.loginPage.name); 
+                    : context.goNamed(AppRoute.loginPage.name);
               },
               isPlaying: playing,
               isFavorite: _authService.isUserLoggedIn()

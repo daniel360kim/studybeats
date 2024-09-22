@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flourish_web/api/timer_fx/objects.dart';
 import 'package:flourish_web/colors.dart';
+import 'package:flourish_web/studyroom/widgets/screens/timer/timer_player.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'timer.dart';
@@ -10,12 +12,16 @@ class TimerDialog extends StatefulWidget {
     required this.focusTimerDuration,
     required this.breakTimerDuration,
     required this.onExit,
+    required this.timerSoundEnabled,
+    required this.timerFxData,
     super.key,
   });
 
   final Duration focusTimerDuration;
   final Duration breakTimerDuration;
   final ValueChanged<PomodoroDurations> onExit;
+  final bool timerSoundEnabled;
+  final TimerFxData timerFxData;
 
   @override
   State<TimerDialog> createState() => _TimerDialogState();
@@ -27,11 +33,21 @@ class _TimerDialogState extends State<TimerDialog> {
 
   bool _isOnFocus = true;
 
+  final _soundPlayer = TimerPlayer();
+
   @override
   void initState() {
     super.initState();
+    _soundPlayer.init();
     _currentTime = widget.focusTimerDuration;
     _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel(); // Dispose the timer to prevent memory leaks
+    _soundPlayer.dispose();
+    super.dispose();
   }
 
   void _updateTimer(Timer timer) {
@@ -42,14 +58,11 @@ class _TimerDialogState extends State<TimerDialog> {
         _isOnFocus = !_isOnFocus;
         _currentTime =
             _isOnFocus ? widget.focusTimerDuration : widget.breakTimerDuration;
+        if (widget.timerSoundEnabled) {
+          _soundPlayer.playTimerSound(widget.timerFxData);
+        }
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel(); // Dispose the timer to prevent memory leaks
-    super.dispose();
   }
 
   String _formattedTime(Duration duration) {
@@ -105,7 +118,6 @@ class _TimerDialogState extends State<TimerDialog> {
                               fontWeight: FontWeight.w900,
                               color: kFlourishAliceBlue,
                             ),
-                            
                           ),
                         ),
                       ),
@@ -116,12 +128,15 @@ class _TimerDialogState extends State<TimerDialog> {
                   ),
                   Text(
                     _formattedTime(_currentTime),
-                    style:  GoogleFonts.inter(
+                    style: GoogleFonts.inter(
                       fontSize: 60,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                     ),
                   ),
+                  
+                      
+                
                 ],
               ),
             ),

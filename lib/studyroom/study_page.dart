@@ -2,14 +2,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
 import 'package:flourish_web/api/scenes/scene_service.dart';
+import 'package:flourish_web/api/timer_fx/objects.dart';
 import 'package:flourish_web/app_state.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/studyroom/audio/background_sound.dart';
 import 'package:flourish_web/studyroom/control_bar.dart';
 import 'package:flourish_web/studyroom/credential_bar.dart';
 import 'package:flourish_web/studyroom/side_widget_bar.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer_dialog.dart';
+import 'package:flourish_web/studyroom/widgets/screens/timer/timer.dart';
+import 'package:flourish_web/studyroom/widgets/screens/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart'; // Add the shimmer package
@@ -26,6 +27,9 @@ class _StudyRoomState extends State<StudyRoom> {
   bool _loadingScene = true;
   PomodoroDurations timerDurations =
       PomodoroDurations(Duration.zero, Duration.zero);
+  TimerFxData? _timerFxData;
+  bool _timerSoundEnabled = false;
+
   SceneData? _currentScene;
   List<SceneData> _sceneList = [];
 
@@ -134,6 +138,8 @@ class _StudyRoomState extends State<StudyRoom> {
               ? TimerDialog(
                   focusTimerDuration: timerDurations.studyTime,
                   breakTimerDuration: timerDurations.breakTime,
+                  timerSoundEnabled: _timerSoundEnabled,
+                  timerFxData: _timerFxData!,
                   onExit: (value) {
                     setState(() {
                       _showTimer = false;
@@ -176,6 +182,12 @@ class _StudyRoomState extends State<StudyRoom> {
                 top: 0,
                 left: 0,
                 child: SideWidgetBar(
+                  onTimerSoundEnabled: (value) => setState(() {
+                    _timerSoundEnabled = value;
+                  }),
+                  timerFxData: (value) => setState(() {
+                    _timerFxData = value;
+                  }),
                   onShowTimer: (value) {
                     setState(() {
                       timerDurations = value;

@@ -1,5 +1,8 @@
 import 'package:card_swiper/card_swiper.dart';
+import 'package:flourish_web/api/timer_fx/objects.dart';
+import 'package:flourish_web/api/timer_fx/timer_fx_service.dart';
 import 'package:flourish_web/colors.dart';
+import 'package:flourish_web/studyroom/widgets/screens/timer/timer_player.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,14 +13,19 @@ class PomodoroDurations {
   PomodoroDurations(this.studyTime, this.breakTime);
 }
 
+
 class PomodoroTimer extends StatefulWidget {
   const PomodoroTimer({
     required this.onClose,
     required this.onStartPressed,
+    required this.onTimerSoundEnabled,
+    required this.onTimerSoundSelected,
     super.key,
   });
 
   final ValueChanged<PomodoroDurations> onStartPressed;
+  final ValueChanged<bool> onTimerSoundEnabled;
+  final ValueChanged<TimerFxData> onTimerSoundSelected;
   final VoidCallback onClose;
 
   @override
@@ -29,9 +37,51 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
 
   Duration studyTime = const Duration(minutes: 25);
   Duration breakTime = const Duration(minutes: 5);
+
+  List<TimerFxData> _timerFxList = [];
+  TimerFxData? _selectedTimerFx;
+
+  final TimerPlayer _timerPlayer = TimerPlayer();
+
+  final TimerFxService _timerFxService = TimerFxService();
+
+  bool _error = false; // TODO handle error
+  bool _enableTimerSound = true;
+
+  @override
+  void initState() {
+    super.initState();
+    getTimerSoundFx();
+    _timerPlayer.init();
+  }
+
+  void getTimerSoundFx() async {
+    try {
+      final timerFxList = await _timerFxService.getTimerFxData();
+      if (timerFxList.isNotEmpty) {
+        setState(() {
+          _timerFxList = timerFxList;
+          _selectedTimerFx = timerFxList.first;
+
+          widget.onTimerSoundEnabled(_enableTimerSound);
+          widget.onTimerSoundSelected(_selectedTimerFx!);
+        });
+      } else {
+        setState(() {
+          _error = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = true;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _swiperController.dispose();
+    _timerPlayer.dispose();
     super.dispose();
   }
 
@@ -41,6 +91,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       width: 300,
       height: MediaQuery.of(context).size.height - 80,
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: const BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
@@ -53,6 +104,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
           children: [
             buildTopBar(),
             buildTimerSwiper(),
+            buildSoundFxSelector(),
           ],
         ),
       ),
@@ -77,8 +129,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   }
 
   Widget buildTimerSwiper() {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height - 80 - 40,
+    return Container(
+      height: 390,
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Swiper(
         itemCount: 2,
         loop: false,
@@ -175,6 +228,88 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
           }
         },
       ),
+    );
+  }
+
+  Widget buildSoundFxSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _enableTimerSound = !_enableTimerSound;
+              
+            });
+            widget.onTimerSoundEnabled(_enableTimerSound);
+          },
+          icon: Icon(
+            _enableTimerSound
+                ? Icons.notifications_active
+                : Icons.notifications_off,
+            color: kFlourishBlackish,
+          ),
+        ),
+        const SizedBox(width: 10),
+        if (_enableTimerSound)
+          Container(
+            height: 30,
+            width: 170,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: kFlourishLightBlackish,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: kFlourishBlackish.withOpacity(0.1),
+                  spreadRadius: 5,
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+              border: Border.all(
+                color: kFlourishBlackish.withOpacity(0.1),
+              ),
+            ),
+            child: DropdownButton<TimerFxData>(
+                value: _selectedTimerFx,
+                isExpanded: true,
+                icon: const Icon(Icons.arrow_drop_down),
+                iconSize: 24,
+                elevation: 16,
+                underline: Container(
+                  height: 0,
+                  color: Colors.transparent,
+                ),
+                items: _timerFxList
+                    .map((TimerFxData timerFxData) =>
+                        DropdownMenuItem<TimerFxData>(
+                          value: timerFxData,
+                          child: Row(
+                            children: [
+                              Text(
+                                timerFxData.name,
+                                style: GoogleFonts.inter(
+                                  color: kFlourishBlackish,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (TimerFxData? timerFxData) {
+                  if (timerFxData == null) return;
+                  setState(() {
+                    _selectedTimerFx = timerFxData;
+                  });
+
+                  _timerPlayer.playTimerSound(timerFxData);
+                  widget.onTimerSoundSelected(timerFxData);
+                }),
+          ),
+      ],
     );
   }
 }

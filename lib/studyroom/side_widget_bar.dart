@@ -1,10 +1,11 @@
 import 'dart:ui';
 import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
+import 'package:flourish_web/api/timer_fx/objects.dart';
 import 'package:flourish_web/router.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
 import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer.dart';
+import 'package:flourish_web/studyroom/widgets/screens/timer/timer.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,11 +13,15 @@ class SideWidgetBar extends StatefulWidget {
   const SideWidgetBar(
       {required this.onShowTimer,
       required this.onSceneChanged,
+      required this.timerFxData,
+      required this.onTimerSoundEnabled,
       super.key,
       required this.currentScene,
       required this.currentSceneBackgroundUrl});
 
   final ValueChanged<PomodoroDurations> onShowTimer;
+  final ValueChanged<TimerFxData> timerFxData;
+  final ValueChanged<bool> onTimerSoundEnabled;
   final ValueChanged<int> onSceneChanged;
   final SceneData currentScene;
   final String currentSceneBackgroundUrl;
@@ -144,8 +149,12 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
         });
       case 2:
         return PomodoroTimer(
+          onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
+          onTimerSoundSelected: (value) => widget.timerFxData(value),
+
           onStartPressed: (value) {
             widget.onShowTimer(value);
+
             setState(() {
               _selectedIndex = null;
             });
