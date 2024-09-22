@@ -12,9 +12,10 @@ import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 
 class CredentialBar extends StatefulWidget {
-  const CredentialBar({required this.loggedIn, super.key});
+  const CredentialBar({required this.loggedIn, required this.onLogout, super.key});
 
   final bool loggedIn;
+  final VoidCallback onLogout;
 
   @override
   State<CredentialBar> createState() => _CredentialBarState();
@@ -30,7 +31,9 @@ class _CredentialBarState extends State<CredentialBar> {
         children: [
           if (!widget.loggedIn) notLoggedIn(),
           const SizedBox(width: 16),
-          if (widget.loggedIn) const ProfilePicture()
+          if (widget.loggedIn) ProfilePicture(
+            onLogout: widget.onLogout,
+          )
         ],
       ),
     );
@@ -77,9 +80,12 @@ class _CredentialBarState extends State<CredentialBar> {
 
 class ProfilePicture extends StatefulWidget {
   const ProfilePicture({
+    required this.onLogout,
     super.key,
+
   });
 
+  final VoidCallback onLogout;
   @override
   State<ProfilePicture> createState() => _ProfilePictureState();
 }
@@ -292,6 +298,7 @@ class _ProfilePictureState extends State<ProfilePicture>
   }
 
   Future signOut() async {
+    widget.onLogout();
     await FirebaseAuth.instance.signOut();
   }
 }

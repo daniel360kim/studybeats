@@ -226,6 +226,9 @@ class _StudyRoomState extends State<StudyRoom> {
             builder: (context, appState, child) {
               return CredentialBar(
                 loggedIn: appState.loggedIn,
+                onLogout: () {
+                  setState(() {});
+                },
               );
             },
           ),
