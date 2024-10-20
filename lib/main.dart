@@ -2,21 +2,30 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flourish_web/app.dart';
 import 'package:flourish_web/app_state.dart';
 import 'package:flourish_web/firebase_options.dart';
+import 'package:flourish_web/secrets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:url_strategy/url_strategy.dart';
 
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
   setPathUrlStrategy();
-
-  runApp(ChangeNotifierProvider(
-    create: (context) => ApplicationState(),
-    builder: ((context, child) => const Flourish()),
-  ));
+  await SentryFlutter.init((options) {
+    options.dsn = SENTRY_DSN;
+    // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+    // We recommend adjusting this value in production.
+    options.tracesSampleRate = 1.0;
+    // The sampling rate for profiling is relative to tracesSampleRate
+    // Setting to 1.0 will profile 100% of sampled transactions:
+    options.profilesSampleRate = 1.0;
+  },
+      appRunner: () => runApp(ChangeNotifierProvider(
+            create: (context) => ApplicationState(),
+            builder: ((context, child) => const Flourish()),
+          )));
 }

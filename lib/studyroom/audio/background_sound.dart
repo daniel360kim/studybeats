@@ -43,14 +43,24 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
 
     backgroundSound = await _sfxService.getBackgroundSoundInfo(widget.id);
     final audioUrl = await _sfxService.getBackgroundSoundUrl(backgroundSound!);
-    await _player.setAudioSource(AudioSource.uri(Uri.parse(audioUrl)));
 
-    // Make the audio player repeat the song when it ends
-    _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) {
-        _player.seek(Duration.zero);
-      }
-    });
+    // Define two overlapping audio sources
+    final firstSource = ClippingAudioSource(
+        child: AudioSource.uri(Uri.parse(audioUrl)),
+        // Optionally adjust the start and end times if necessary
+        start: const Duration(seconds: 2),
+        end: Duration(seconds: backgroundSound!.durationMs ~/ 1000 - 2));
+
+    // Use a concatenating audio source to play both sources with seamless overlay
+    await _player.setAudioSource(
+      ConcatenatingAudioSource(
+        children: [
+          firstSource,
+        ],
+      ),
+    );
+
+    _player.setLoopMode(LoopMode.all); // Repeat the combined sources seamlessly
 
     // Mark loading as complete
     setState(() {

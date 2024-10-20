@@ -75,6 +75,7 @@ BackgroundSound _$SoundFxFromJson(Map<String, dynamic> json) {
     soundPath: json['soundfxPath'] as String,
     iconId: json['iconId'] as int,
     fontFamily: json['fontFamily'] as String,
+    durationMs: (json['duration'] as int),
   );
 }
 
@@ -85,6 +86,7 @@ class BackgroundSound {
   final String soundPath;
   final int iconId;
   final String fontFamily;
+  final int durationMs;
 
   const BackgroundSound({
     required this.id,
@@ -92,6 +94,7 @@ class BackgroundSound {
     required this.soundPath,
     required this.iconId,
     required this.fontFamily,
+    required this.durationMs,
   });
 
   factory BackgroundSound.fromJson(Map<String, dynamic> json) =>

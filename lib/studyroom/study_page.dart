@@ -167,7 +167,14 @@ class _StudyRoomState extends State<StudyRoom> {
                   color: Colors.white,
                 ),
               )
-            : CachedNetworkImage(imageUrl: _backgroundImageUrl!),
+            : ClipRRect(
+                child: CachedNetworkImage(
+                  imageUrl: _backgroundImageUrl!,
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  fit: BoxFit.cover,
+                ),
+              ),
         _loadingScene || _currentScene == null || _backgroundImageUrl == null
             ? Shimmer.fromColors(
                 baseColor: Colors.grey[300]!,

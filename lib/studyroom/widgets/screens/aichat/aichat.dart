@@ -7,6 +7,7 @@ import 'package:flourish_web/studyroom/widgets/screens/aichat/aimessage.dart';
 import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:flourish_web/api/auth/auth_service.dart';

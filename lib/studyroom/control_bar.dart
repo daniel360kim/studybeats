@@ -196,18 +196,59 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   Widget buildControls() {
     return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth > 1000) {
+      if (constraints.maxWidth > 1050) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: buildControlWidgets(),
         );
-      } else {
-        return Column(
+      } else if (constraints.maxWidth < 1050 && constraints.maxWidth > 850) {
+        return Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: buildControlWidgets(),
+          children: buildControlWidgets().sublist(0, 3),
         );
+      } else if (constraints.maxWidth < 850 && constraints.maxWidth > 700) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: buildControlWidgets().sublist(0, 2),
+        );
+      } else {
+        return buildMiniControlWidgets();
       }
     });
+  }
+
+  Widget buildMiniControlWidgets() {
+    return Center(
+      child: StreamBuilder<PlayerState>(
+        stream: _audio.audioPlayer.playerStateStream,
+        builder: (context, snapshot) {
+          final playerState = snapshot.data;
+          final playing = playerState?.playing;
+          if (playing != null) {
+            return Controls(
+              onShuffle: () {
+                _audio.shuffle();
+              },
+              onPrevious: _previousSong,
+              onPlay: _audio.play,
+              onPause: _audio.pause,
+              onNext: _nextSong,
+              onFavorite: (value) {
+                _authService.isUserLoggedIn()
+                    ? _toggleFavorite(value)
+                    : context.goNamed(AppRoute.loginPage.name);
+              },
+              isPlaying: playing,
+              isFavorite: _authService.isUserLoggedIn()
+                  ? currentCloudSongInfo.isFavorite
+                  : false,
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        },
+      ),
+    );
   }
 
   List<Widget> buildControlWidgets() {

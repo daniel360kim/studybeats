@@ -13,7 +13,6 @@ class PomodoroDurations {
   PomodoroDurations(this.studyTime, this.breakTime);
 }
 
-
 class PomodoroTimer extends StatefulWidget {
   const PomodoroTimer({
     required this.onClose,
@@ -46,6 +45,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   final TimerFxService _timerFxService = TimerFxService();
 
   bool _error = false; // TODO handle error
+  String? _errorMessage;
   bool _enableTimerSound = true;
 
   @override
@@ -69,11 +69,13 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       } else {
         setState(() {
           _error = true;
+          _errorMessage = 'No timer sound effects found';
         });
       }
     } catch (e) {
       setState(() {
         _error = true;
+        _errorMessage = 'Error loading timer sound effects';
       });
     }
   }
@@ -87,28 +89,57 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 300,
-      height: MediaQuery.of(context).size.height - 80,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-              Color(0xFFE0E7FF),
-              Color(0xFFF7F8FC),
-            ])),
-        child: Column(
-          children: [
-            buildTopBar(),
-            buildTimerSwiper(),
-            buildSoundFxSelector(),
-          ],
-        ),
-      ),
-    );
+    return _error
+        ? SizedBox(
+            width: 300,
+            height: MediaQuery.of(context).size.height - 80,
+            child: Container(
+              decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                    Color(0xFFE0E7FF),
+                    Color(0xFFF7F8FC),
+                  ])),
+              child: Column(
+                children: [
+                  buildTopBar(),
+                  const SizedBox(height: 20),
+                  Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: Colors.red,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : SizedBox(
+            width: 300,
+            height: MediaQuery.of(context).size.height - 80,
+            child: Container(
+              decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                    Color(0xFFE0E7FF),
+                    Color(0xFFF7F8FC),
+                  ])),
+              child: Column(
+                children: [
+                  buildTopBar(),
+                  buildTimerSwiper(),
+                  buildSoundFxSelector(),
+                ],
+              ),
+            ),
+          );
   }
 
   Widget buildTopBar() {
@@ -239,7 +270,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
           onPressed: () {
             setState(() {
               _enableTimerSound = !_enableTimerSound;
-              
             });
             widget.onTimerSoundEnabled(_enableTimerSound);
           },
