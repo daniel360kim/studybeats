@@ -19,10 +19,12 @@ jobs:
       - name: Disable web caching
         run: bash ./build-web.sh
       
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
       - name: Decode base64 secrets
-        run: echo $SECRETS_FILE_CONTENTS | base64 -d > lib/secrets.dart
-        env:
-          SECRETS_FILE_CONTENTS: ${{ secrets.SECRETS_FILE_CONTENT }}
+        run: |
+          echo "${{ secrets.SECRETS_FILE_CONTENT }}" | base64 -d > lib/secrets.dart
       
       - id: 'auth'
         uses: google-github-actions/auth@v2
