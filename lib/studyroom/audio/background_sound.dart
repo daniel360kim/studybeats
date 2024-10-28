@@ -25,8 +25,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   bool _loading = true;
 
   final _player = AudioPlayer();
-  CountdownTimer? _timer;
-  final double _volume = 0.5;
 
   final _sfxService = SfxService();
 
@@ -78,7 +76,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   @override
   void dispose() {
     _player.dispose();
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -125,9 +122,7 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
                             color: Colors.white,
                           ),
                           onPressed: () {
-                            _selected
-                                ? fadeOutAndStop(startVolume: _volume)
-                                : play();
+                            _selected ? _player.pause() : play();
                             setState(() {
                               _selected = !_selected;
                             });
@@ -167,21 +162,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   Future<void> play() async {
     await _player.setVolume(0.5);
     await _player.play();
-  }
-
-  Future<void> fadeOutAndStop({required double startVolume}) async {
-    /// Will fade out over 3 seconds
-    Duration duration = const Duration(milliseconds: 300);
-
-    /// Using a [CountdownTimer] to decrement the volume every 50 milliseconds, then stop [AudioPlayer] when done.
-    _timer = CountdownTimer(duration, const Duration(milliseconds: 5))
-      ..listen((event) {
-        final percent =
-            event.remaining.inMilliseconds / duration.inMilliseconds;
-        setVolume(percent * startVolume);
-      }).onDone(() async {
-        await _player.pause();
-      });
   }
 
   Future<void> setVolume(double volume) async {

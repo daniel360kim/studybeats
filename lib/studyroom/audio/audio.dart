@@ -23,7 +23,7 @@ class Audio {
   final audioPlayer = AudioPlayer();
   final ValueNotifier<bool> isLoaded = ValueNotifier<bool>(false);
 
-  late final SongCloudInfoHandler _cloudInfoHandler;
+  SongCloudInfoHandler _cloudInfoHandler = SongCloudInfoHandler(playlistId: 0);
 
   TimerService songDurationTimer = TimerService();
 
@@ -260,7 +260,10 @@ class Audio {
   // Gets the current state of the player
   Stream<PlayerState> get playerStateStream => audioPlayer.playerStateStream;
 
-  SongMetadata getCurrentSongInfo() {
+  SongMetadata? getCurrentSongInfo() {
+    if (audioPlayer.sequence == null || audioPlayer.sequence!.isEmpty) {
+      return null;
+    }
     return audioPlayer.sequence![currentSongIndex].tag;
   }
 
