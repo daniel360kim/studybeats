@@ -4,43 +4,6 @@
     "project_id": "flourish-web-fa343",
     "storage_bucket": "flourish-web-fa343.appspot.com"
   },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:704503689517:android:0d8c03d23aaf6b6713e3a4",
-        "android_client_info": {
-          "package_name": "com.flourish.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "704503689517-c0m7n04r96g17pthaogqrvo5i5v008ll.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAdoqQttmVEYzlof2VedwJfzQYhWiRtltw"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "704503689517-c0m7n04r96g17pthaogqrvo5i5v008ll.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "704503689517-4v8ji1rord8pcsvb96n022te11lo384n.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.flourishWeb"
-              }
-            }
-          ]
-        }
-      }
-    }
-  ],
+  "client": [],
   "configuration_version": "1"
 }
