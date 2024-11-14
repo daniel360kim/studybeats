@@ -9,6 +9,8 @@ class Flourish extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Flouria',
+      
+
       routerConfig: createRouter(context), // Use the router configuration
     );
   }

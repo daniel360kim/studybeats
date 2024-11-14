@@ -5,7 +5,6 @@ import 'package:flourish_web/app.dart';
 import 'package:flourish_web/app_state.dart';
 import 'package:flourish_web/firebase_options.dart';
 import 'package:flourish_web/secrets.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/api/Graph/graph_api.dart';
@@ -83,15 +84,28 @@ class AuthService {
   Future _login(String email, String password) async {
     try {
       _logger.i('Attempting to log user: $email');
+
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      await _logLoginAnalytics();
     } on FirebaseAuthException catch (e) {
       _logger.w('FIREBASE EXCEPTION: Login with email/password failed. $e');
       rethrow;
     } catch (e) {
       _logger.e('Log in user with email/password failed: $e');
+      rethrow;
+    }
+  }
+
+  // logs a login event to analytics
+  Future<void> _logLoginAnalytics() async {
+    FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+    try {
+      await analytics.logLogin();
+    } catch (e) {
+      _logger.e('Failed to log login event to analytics: $e');
       rethrow;
     }
   }
@@ -132,6 +146,7 @@ class AuthService {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
+      await _logLoginAnalytics();
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -194,6 +209,8 @@ class AuthService {
 
           _registerWithFirestore(displayName, await ref.getDownloadURL());
         }
+
+        await _logLoginAnalytics();
       } else {
         _logger.e('User is null after attempted Microsoft Sign In');
         throw Exception();
