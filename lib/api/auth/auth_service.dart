@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flourish_web/api/Graph/graph_api.dart';
+import 'package:flourish_web/api/analytics/analytics_service.dart';
+import 'package:flourish_web/api/auth/signup_method.dart';
 import 'package:flourish_web/app_state.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flutter/material.dart';
@@ -14,10 +15,12 @@ import 'urls.dart';
 
 class AuthService {
   final Logger _logger = getLogger('AuthService');
+  final AnalyticsService _analyticsService = AnalyticsService();
 
   Future _createUserEmailPassword(String email, String password) async {
     try {
       _logger.i('Requesting account creation with email and password');
+      _analyticsService.logSignUp(SignupMethod.email);
       return await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
     } on FirebaseAuthException catch (e) {
@@ -89,23 +92,12 @@ class AuthService {
         email: email,
         password: password,
       );
-      await _logLoginAnalytics();
+      await _analyticsService.logLogin();
     } on FirebaseAuthException catch (e) {
       _logger.w('FIREBASE EXCEPTION: Login with email/password failed. $e');
       rethrow;
     } catch (e) {
       _logger.e('Log in user with email/password failed: $e');
-      rethrow;
-    }
-  }
-
-  // logs a login event to analytics
-  Future<void> _logLoginAnalytics() async {
-    FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-    try {
-      await analytics.logLogin();
-    } catch (e) {
-      _logger.e('Failed to log login event to analytics: $e');
       rethrow;
     }
   }
@@ -146,7 +138,6 @@ class AuthService {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
-      await _logLoginAnalytics();
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -155,12 +146,14 @@ class AuthService {
             .doc(user.email)
             .get();
         if (!doc.exists) {
+          await _analyticsService.logSignUp(SignupMethod.google);
           await _registerWithFirestore(user.displayName!, user.photoURL!);
         }
       } else {
         _logger.e('User is null after attempted Google Sign In');
         throw Exception();
       }
+      await _analyticsService.logLogin();
       _logger.i('User signed in with Google');
     } catch (e) {
       _logger.e('Google sign in failed. $e');
@@ -207,10 +200,11 @@ class AuthService {
           await ref.putData(
               image.bytes, SettableMetadata(contentType: 'image/jpeg'));
 
+          await _analyticsService.logSignUp(SignupMethod.microsoft);
           _registerWithFirestore(displayName, await ref.getDownloadURL());
         }
 
-        await _logLoginAnalytics();
+        await _analyticsService.logLogin();
       } else {
         _logger.e('User is null after attempted Microsoft Sign In');
         throw Exception();
@@ -220,6 +214,7 @@ class AuthService {
       if (e is GraphAPIException) {
         _logger.w(
             'Profile photo request failed. Setting profile photo as default picture');
+        await _analyticsService.logSignUp(SignupMethod.microsoft);
         _registerWithFirestore(displayName, kDefaultProfilePicture);
         return;
       }

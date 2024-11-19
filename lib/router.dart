@@ -1,4 +1,5 @@
 // router.dart
+import 'package:flourish_web/api/analytics/analytics_service.dart';
 import 'package:flourish_web/auth/login_page.dart';
 import 'package:flourish_web/auth/profile_page.dart';
 import 'package:flourish_web/auth/signup/create_password.dart';
@@ -10,6 +11,34 @@ import 'package:flourish_web/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/utils.dart';
 import 'package:go_router/go_router.dart';
+
+class ScreenViewObserver extends NavigatorObserver {
+  final AnalyticsService analyticsService;
+
+  ScreenViewObserver({required this.analyticsService});
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _logScreenView(route);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute != null) {
+      _logScreenView(previousRoute);
+    }
+  }
+
+  void _logScreenView(Route<dynamic> route) {
+    final name = route.settings.name ?? 'Unknown';
+    analyticsService.logScreenView(
+      screenName: name,
+      screenClass: name,
+    );
+  }
+}
 
 enum AppRoute {
   home,
@@ -35,10 +64,16 @@ GoRouter createRouter(BuildContext context) {
   }
 
   return GoRouter(
+    observers: [
+      ScreenViewObserver(
+        analyticsService: AnalyticsService(),
+      ),
+    ],
     routes: [
       GoRoute(
         path: '/',
         pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.home.name,
           key: state.pageKey,
           child: initialPage,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -50,6 +85,7 @@ GoRouter createRouter(BuildContext context) {
         path: '/study-room',
         name: AppRoute.studyRoom.name,
         pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.studyRoom.name,
           key: state.pageKey,
           child: const StudyRoom(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -61,6 +97,7 @@ GoRouter createRouter(BuildContext context) {
         path: '/sign-up',
         name: AppRoute.signUpPage.name,
         pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.signUpPage.name,
           key: state.pageKey,
           child: const SignupPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -73,6 +110,7 @@ GoRouter createRouter(BuildContext context) {
         name: AppRoute.enterNamePage.name,
         pageBuilder: (context, state) {
           return CustomTransitionPage(
+            name: AppRoute.enterNamePage.name,
             key: state.pageKey,
             child: const EnterNamePage(),
             transitionsBuilder:
@@ -86,6 +124,7 @@ GoRouter createRouter(BuildContext context) {
         path: '/profile',
         name: AppRoute.profilePage.name,
         pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.profilePage.name,
           key: state.pageKey,
           child: const ProfilePage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -97,6 +136,7 @@ GoRouter createRouter(BuildContext context) {
         path: '/login',
         name: AppRoute.loginPage.name,
         pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.loginPage.name,
           key: state.pageKey,
           child: const LoginPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -108,6 +148,7 @@ GoRouter createRouter(BuildContext context) {
         path: '/subscribe',
         name: AppRoute.subscriptionPage.name,
         pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.subscriptionPage.name,
           key: state.pageKey,
           child: const SubscriptionPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -120,6 +161,7 @@ GoRouter createRouter(BuildContext context) {
         name: AppRoute.createPasswordPage.name,
         pageBuilder: (context, state) {
           return CustomTransitionPage(
+            name: AppRoute.createPasswordPage.name,
             key: state.pageKey,
             child: const CreatePasswordPage(),
             transitionsBuilder:
