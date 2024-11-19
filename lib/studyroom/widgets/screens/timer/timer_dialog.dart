@@ -30,25 +30,42 @@ class TimerDialog extends StatefulWidget {
 
 class _TimerDialogState extends State<TimerDialog> {
   late Timer _timer;
-  late Duration _currentTime;
+  late DateTime _startTime;
+  late Duration _initialTime;
 
+  Duration _currentTime = Duration.zero;
   bool _isOnFocus = true;
 
   final _soundPlayer = TimerPlayer();
-
   final _analyticsService = AnalyticsService();
 
   @override
   void initState() {
     super.initState();
-     _sendAnalytics();
+    _sendAnalytics();
     _soundPlayer.init();
-    _currentTime = widget.focusTimerDuration;
-    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+    _startFocusTimer();
   }
 
   void _sendAnalytics() async {
-    await _analyticsService.logOpenFeature(ContentType.studyTimer, 'Study Timer');
+    await _analyticsService.logOpenFeature(
+        ContentType.studyTimer, 'Study Timer');
+  }
+
+  void _startFocusTimer() {
+    _currentTime = widget.focusTimerDuration;
+    _startTimer();
+  }
+
+  void _startBreakTimer() {
+    _currentTime = widget.breakTimerDuration;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _initialTime = _currentTime;
+    _startTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
   }
 
   @override
@@ -59,18 +76,26 @@ class _TimerDialogState extends State<TimerDialog> {
   }
 
   void _updateTimer(Timer timer) {
-    setState(() {
-      if (_currentTime.inSeconds > 0) {
-        _currentTime = _currentTime - const Duration(seconds: 1);
-      } else {
+    final elapsed = DateTime.now().difference(_startTime);
+    final remainingTime = _initialTime - elapsed;
+
+    if (remainingTime.inSeconds <= 0) {
+      setState(() {
         _isOnFocus = !_isOnFocus;
-        _currentTime =
-            _isOnFocus ? widget.focusTimerDuration : widget.breakTimerDuration;
+        if (_isOnFocus) {
+          _startFocusTimer();
+        } else {
+          _startBreakTimer();
+        }
         if (widget.timerSoundEnabled) {
           _soundPlayer.playTimerSound(widget.timerFxData);
         }
-      }
-    });
+      });
+    } else {
+      setState(() {
+        _currentTime = remainingTime;
+      });
+    }
   }
 
   String _formattedTime(Duration duration) {
@@ -142,9 +167,6 @@ class _TimerDialogState extends State<TimerDialog> {
                       color: Colors.white,
                     ),
                   ),
-                  
-                      
-                
                 ],
               ),
             ),
