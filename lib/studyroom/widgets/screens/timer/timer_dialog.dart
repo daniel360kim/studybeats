@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flourish_web/api/analytics/analytics_service.dart';
 import 'package:flourish_web/api/timer_fx/objects.dart';
 import 'package:flourish_web/colors.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer/timer_player.dart';
@@ -35,12 +36,19 @@ class _TimerDialogState extends State<TimerDialog> {
 
   final _soundPlayer = TimerPlayer();
 
+  final _analyticsService = AnalyticsService();
+
   @override
   void initState() {
     super.initState();
+     _sendAnalytics();
     _soundPlayer.init();
     _currentTime = widget.focusTimerDuration;
     _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+  }
+
+  void _sendAnalytics() async {
+    await _analyticsService.logOpenFeature(ContentType.studyTimer, 'Study Timer');
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flourish_web/api/analytics/analytics_service.dart';
 import 'package:flourish_web/api/openai/openai_service.dart';
 import 'package:flourish_web/log_printer.dart';
 import 'package:flourish_web/router.dart';
@@ -56,6 +57,7 @@ class _AiChatState extends State<AiChat> {
   int numCharacters = 0;
 
   final _logger = getLogger('AiChat');
+  final _analyticsService = AnalyticsService();
 
   final OpenaiService _openaiService = OpenaiService();
 
@@ -68,6 +70,7 @@ class _AiChatState extends State<AiChat> {
 
   void _init() async {
     await _openaiService.init();
+    await _analyticsService.logOpenFeature(ContentType.aiChat, 'AiChat');
     final url = await _authService.getProfilePictureUrl();
     // Get conversation history from Firestore
     try {

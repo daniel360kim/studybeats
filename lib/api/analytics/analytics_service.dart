@@ -2,6 +2,12 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flourish_web/api/auth/signup_method.dart';
 import 'package:flourish_web/log_printer.dart';
 
+enum ContentType {
+  aiChat,
+  sceneSelect,
+  studyTimer,
+}
+
 class AnalyticsService {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
   final _logger = getLogger('AnalyticsService');
@@ -24,21 +30,25 @@ class AnalyticsService {
     }
   }
 
-  Future<void> logOpenFeature(String featureName) async {
+  Future<void> logOpenFeature(ContentType contentType, String itemId) async {
     try {
-      await _analytics.logEvent(name: 'open_feature', parameters: {'feature_name': featureName});
-      _logger.i('Feature "$featureName" opened');
+      await _analytics.logSelectContent(
+          contentType: contentType.name, itemId: itemId);
+      _logger.i('Feature "${contentType.name}" opened');
     } catch (e, s) {
-      _logger.e('Failed to log open feature event for "$featureName": $e $s');
+      _logger.e('Failed to log open feature event for "${contentType.name}": $e $s');
     }
   }
 
-  Future<void> logScreenView({required String screenName, required String screenClass}) async {
+  Future<void> logScreenView(
+      {required String screenName, required String screenClass}) async {
     try {
-      await _analytics.logScreenView(screenName: screenName, screenClass: screenClass);
+      await _analytics.logScreenView(
+          screenName: screenName, screenClass: screenClass);
       _logger.i('Screen view logged for "$screenName" in class "$screenClass"');
     } catch (e, s) {
-      _logger.e('Failed to log screen view for "$screenName" in class "$screenClass": $e $s');
+      _logger.e(
+          'Failed to log screen view for "$screenName" in class "$screenClass": $e $s');
     }
   }
 }
