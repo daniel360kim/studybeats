@@ -15,6 +15,7 @@ class TimerDialog extends StatefulWidget {
     required this.onExit,
     required this.timerSoundEnabled,
     required this.timerFxData,
+    required this.onTimerDurationChanged,
     super.key,
   });
 
@@ -22,6 +23,7 @@ class TimerDialog extends StatefulWidget {
   final Duration breakTimerDuration;
   final ValueChanged<PomodoroDurations> onExit;
   final bool timerSoundEnabled;
+  final ValueChanged<PomodoroDurations> onTimerDurationChanged;
   final TimerFxData timerFxData;
 
   @override
@@ -76,6 +78,10 @@ class _TimerDialogState extends State<TimerDialog> {
   }
 
   void _updateTimer(Timer timer) {
+    widget.onTimerDurationChanged(PomodoroDurations(
+      _currentTime,
+      _isOnFocus ? widget.breakTimerDuration : widget.focusTimerDuration,
+    ));
     final elapsed = DateTime.now().difference(_startTime);
     final remainingTime = _initialTime - elapsed;
 
@@ -137,6 +143,8 @@ class _TimerDialogState extends State<TimerDialog> {
                           PomodoroDurations resettedDurations =
                               PomodoroDurations(Duration.zero, Duration.zero);
                           widget.onExit(resettedDurations);
+
+                          _timer.cancel();
                         },
                         padding: EdgeInsets.zero,
                         color: kFlourishLightBlackish,

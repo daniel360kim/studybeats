@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
 import 'package:flourish_web/api/scenes/objects.dart';
@@ -12,6 +14,7 @@ import 'package:flourish_web/studyroom/side_widget_bar.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer/timer.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart'; // Add the shimmer package
 
@@ -28,6 +31,7 @@ class _StudyRoomState extends State<StudyRoom> {
   PomodoroDurations timerDurations =
       PomodoroDurations(Duration.zero, Duration.zero);
   TimerFxData? _timerFxData;
+
   bool _timerSoundEnabled = false;
 
   SceneData? _currentScene;
@@ -40,6 +44,14 @@ class _StudyRoomState extends State<StudyRoom> {
   int? _playlistId;
 
   final _logger = getLogger('StudyRoom Page Widget');
+
+  String formatDuration(Duration duration) {
+    // Account for the
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
 
   @override
   void initState() {
@@ -130,6 +142,14 @@ class _StudyRoomState extends State<StudyRoom> {
 
   @override
   Widget build(BuildContext context) {
+    final timerDuration = timerDurations.studyTime;
+
+    SystemChrome.setApplicationSwitcherDescription(
+      ApplicationSwitcherDescription(
+        label: _showTimer ? timerDuration.toString() : 'Study Room',
+        primaryColor: Theme.of(context).primaryColor.value,
+      ),
+    );
     return Scaffold(
       body: Stack(
         children: [
@@ -140,11 +160,39 @@ class _StudyRoomState extends State<StudyRoom> {
                   breakTimerDuration: timerDurations.breakTime,
                   timerSoundEnabled: _timerSoundEnabled,
                   timerFxData: _timerFxData!,
+                  onTimerDurationChanged: (value) {
+                    // Look at the durations and determine if the timer is on focus or break
+                    late final String timeDescription;
+                    if (value.studyTime.inSeconds <= 0) {
+                      // If the focus time is zero, then the timer is on break
+                      timeDescription =
+                          '${formatDuration(value.breakTime)}';
+                    } else {
+                      // Otherwise, the timer is on focus
+                      timeDescription =
+                          '${formatDuration(value.studyTime)}';
+                    }
+
+                    // Update the application switcher description
+                    SystemChrome.setApplicationSwitcherDescription(
+                      ApplicationSwitcherDescription(
+                        label: timeDescription,
+                        primaryColor: Theme.of(context).primaryColor.value,
+                      ),
+                    );
+                  },
                   onExit: (value) {
                     setState(() {
                       _showTimer = false;
                       timerDurations = value;
                     });
+
+                    SystemChrome.setApplicationSwitcherDescription(
+                      ApplicationSwitcherDescription(
+                        label: 'Study Room',
+                        primaryColor: Theme.of(context).primaryColor.value,
+                      ),
+                    );
                   },
                 )
               : const SizedBox.shrink(),
