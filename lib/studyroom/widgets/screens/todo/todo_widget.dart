@@ -110,12 +110,23 @@ class _TodoState extends State<Todo> {
                                   _creatingNewTask = false;
                                 }
                               });
+                              try {
                               final listId =
                                   await _todoService.getDefaultTodoListId();
                               await _todoService.addTodoItem(
                                 listId: listId,
                                 todoItem: newTask,
                               );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Failed to create task'),
+                                  ),
+                                );
+                                setState(() {
+                                  _creatingNewTask = false;
+                                });
+                              }
                             },
                             onClose: () => setState(() {
                               _creatingNewTask = false;

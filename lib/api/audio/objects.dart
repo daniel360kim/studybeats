@@ -45,6 +45,7 @@ class SongMetadata {
       _$SongMetadataFromJson(json);
 }
 
+
 WaveformMetadata _$WaveformMetadataFromJson(Map<String, dynamic> json) {
   return WaveformMetadata(
     sampleRate: json['sample_rate'] as int,
