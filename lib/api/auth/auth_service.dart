@@ -52,6 +52,15 @@ class AuthService {
     }
   }
 
+  Future getCurrentUserEmail() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return user.email;
+    } else {
+      return null;
+    }
+  }
+
   Future<int> getselectedSceneId() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {

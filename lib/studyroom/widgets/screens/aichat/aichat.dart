@@ -179,12 +179,11 @@ class _AiChatState extends State<AiChat> {
           'role': 'user',
           'content': text,
         };
-
-        await _openaiService.addToConversationHistory(message);
-
         setState(() {
           _conversationHistory.add(message);
         });
+        await _openaiService.addToConversationHistory(message);
+
         _scrollToBottom();
       }
     } catch (e) {

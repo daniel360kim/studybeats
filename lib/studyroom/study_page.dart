@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flourish_web/api/auth/auth_service.dart';
@@ -166,11 +165,11 @@ class _StudyRoomState extends State<StudyRoom> {
                     if (value.studyTime.inSeconds <= 0) {
                       // If the focus time is zero, then the timer is on break
                       timeDescription =
-                          '${formatDuration(value.breakTime)}';
+                          formatDuration(value.breakTime);
                     } else {
                       // Otherwise, the timer is on focus
                       timeDescription =
-                          '${formatDuration(value.studyTime)}';
+                          formatDuration(value.studyTime);
                     }
 
                     // Update the application switcher description

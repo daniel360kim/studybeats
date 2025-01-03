@@ -6,6 +6,7 @@ import 'package:flourish_web/router.dart';
 import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
 import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
 import 'package:flourish_web/studyroom/widgets/screens/timer/timer.dart';
+import 'package:flourish_web/studyroom/widgets/screens/todo/todo_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -91,6 +92,14 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                     _onItemTapped(value);
                   },
                 ),
+                NavigationItem(
+                  selectedIndex: _selectedIndex,
+                  index: 3,
+                  imagePath: 'assets/icons/todo.png',
+                  onItemTapped: (value) {
+                    _onItemTapped(value);
+                  },
+                ),
               ],
             )),
       ),
@@ -151,7 +160,6 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
         return PomodoroTimer(
           onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
           onTimerSoundSelected: (value) => widget.timerFxData(value),
-
           onStartPressed: (value) {
             widget.onShowTimer(value);
 
@@ -165,6 +173,39 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
             });
           },
         );
+      case 3:
+        if (!AuthService().isUserLoggedIn()) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.goNamed(AppRoute.loginPage.name);
+            /* // TODO add login dialog instead of page
+            showDialog(
+              context: context,
+              builder: (context) => LoginDialog(
+                title: 'Alert Title',
+
+
+                onConfirm: () {
+                  // Handle confirmation action
+                  Navigator.of(context).pop();
+                },
+                isError: true, // Set to true if it's an error alert
+                isLoading:
+                    false, // Set to true if you want to show a loading indicator
+              ),
+            );
+            */
+            setState(() {
+              _selectedIndex = null;
+            });
+          });
+
+          return const SizedBox();
+        }
+        return Todo(onClose: () {
+          setState(() {
+            _selectedIndex = null;
+          });
+        });
       default:
         return const Placeholder();
     }
