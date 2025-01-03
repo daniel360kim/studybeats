@@ -3,7 +3,8 @@
     "origin": [
       
       "https://flourish-web-fa343.firebaseapp.com",
-      "https://flouria.co"
+      "https://studybeats.co",
+      "https://app.studybeats.co"
     ],
     "method": ["GET"],
     "maxAgeSeconds": 3600

@@ -1,7 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flourish_web/api/auth/signup_method.dart';
-import 'package:flourish_web/log_printer.dart';
-import 'package:flourish_web/router.dart';
+import 'package:studybeats/api/auth/signup_method.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/router.dart';
 
 /// Content type of the event that was logged
 /// Signifies the event type that the user has selected

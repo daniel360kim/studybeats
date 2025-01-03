@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/api/firebase_storage_refs.dart';
-import 'package:flourish_web/log_printer.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
+import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/api/firebase_storage_refs.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/studyroom/audio/objects.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 
@@ -116,7 +116,8 @@ class AudioService {
       if (response.statusCode == 200) {
         return response.body;
       } else {
-        _logger.e('HTTP request failed with status code: ${response.statusCode}');
+        _logger
+            .e('HTTP request failed with status code: ${response.statusCode}');
         throw Exception('Failed to fetch JSON data.');
       }
     } catch (e) {
@@ -125,7 +126,7 @@ class AudioService {
     }
   }
 
-  /// Retrieves waveform data for the specified [waveformPath]. 
+  /// Retrieves waveform data for the specified [waveformPath].
   /// Input:
   /// - [waveformPath] a string representing the relative path within the server
   /// this can be found in the path in [SongMetdata]

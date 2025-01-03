@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flourish_web/api/Stripe/stripe_service.dart';
+import 'package:studybeats/api/Stripe/stripe_service.dart';
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -193,7 +193,7 @@ class StripeProductService extends StripeService {
   Future<StripeDatabaseProduct> getFreeProduct() async {
     logger.i('Getting free product');
     try {
-      // Go through each product and their prices, and find the product where the unit amount is 0 
+      // Go through each product and their prices, and find the product where the unit amount is 0
       final products = await getActiveProducts();
       final product = products.firstWhere((product) {
         return product.prices.any((price) => price.unitAmount == 0);

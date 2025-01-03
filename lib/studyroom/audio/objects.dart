@@ -2,9 +2,8 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:json_annotation/json_annotation.dart';
-
 
 Playlist _$PlaylistFromJson(Map<String, dynamic> json) {
   return Playlist(

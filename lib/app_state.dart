@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart'
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
-import 'package:flourish_web/secrets.dart';
+import 'package:studybeats/secrets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -15,13 +15,13 @@ const List<String> scopes = [
 ];
 
 GoogleSignIn googleSignIn = GoogleSignIn(
-  clientId: '400502053062-c2rpvv7lsi64l22pa5tm9i8u5gmmgeo2.apps.googleusercontent.com',
+  clientId:
+      '400502053062-c2rpvv7lsi64l22pa5tm9i8u5gmmgeo2.apps.googleusercontent.com',
   scopes: scopes,
 );
 
 class ApplicationState extends ChangeNotifier {
   ApplicationState() {
-    
     init();
   }
 
@@ -35,8 +35,8 @@ class ApplicationState extends ChangeNotifier {
     FirebaseUIAuth.configureProviders([
       EmailAuthProvider(),
       GoogleProvider(
-          clientId:
-              GOOGLE_SIGNIN_CLIENT_ID,),
+        clientId: GOOGLE_SIGNIN_CLIENT_ID,
+      ),
     ]);
 
     FirebaseAuth.instance.userChanges().listen((user) {

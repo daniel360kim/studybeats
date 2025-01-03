@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/api/firebase_storage_refs.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/api/firebase_storage_refs.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:http/http.dart' as http;
 
 /// A service class for managing background sound effects (SFX).
 ///
-/// This class handles interactions with Firebase Cloud Storage to fetch 
+/// This class handles interactions with Firebase Cloud Storage to fetch
 /// metadata and URLs for sound effects used in the application.
 class SfxService {
   final _logger = getLogger('Sfx Service');
@@ -19,7 +19,7 @@ class SfxService {
   /// Fetches metadata for a specific background sound by its ID.
   ///
   /// This method retrieves the list of available background sounds from
-  /// Firebase Cloud Storage, parses the metadata, and returns the sound 
+  /// Firebase Cloud Storage, parses the metadata, and returns the sound
   /// effect that matches the given [id].
   ///
   /// [id] - The unique identifier of the background sound to fetch.
@@ -79,7 +79,7 @@ class SfxService {
 
   /// Internal method to fetch JSON data from a given URL.
   ///
-  /// This method sends an HTTP GET request to the specified URL and returns 
+  /// This method sends an HTTP GET request to the specified URL and returns
   /// the response body as a [String] if the request is successful.
   ///
   /// [url] - The URL to fetch the JSON data from.
@@ -97,7 +97,8 @@ class SfxService {
       if (response.statusCode == 200) {
         return response.body;
       } else {
-        _logger.e('HTTP request failed with status code: ${response.statusCode}');
+        _logger
+            .e('HTTP request failed with status code: ${response.statusCode}');
         throw Exception('Failed to fetch JSON data.');
       }
     } catch (e) {

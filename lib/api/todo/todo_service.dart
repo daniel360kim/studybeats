@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/api/todo/todo_item.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/api/todo/todo_item.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:flutter/material.dart';
 
 class TodoService {
@@ -151,7 +151,8 @@ class TodoService {
     }
   }
 
-  Future<void> updateIncompleteTodoItem({required String listId, required TodoItem updatedItem}) async {
+  Future<void> updateIncompleteTodoItem(
+      {required String listId, required TodoItem updatedItem}) async {
     try {
       _logger.i('Updating todo item');
 

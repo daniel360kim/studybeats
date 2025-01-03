@@ -1,4 +1,4 @@
-import 'package:flourish_web/colors.dart';
+import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -39,7 +39,7 @@ class MobileLandingPage extends StatelessWidget {
               const SizedBox(height: 50),
               const Center(
                 child: Text(
-                  'Try Flouria on your computer at',
+                  'Try Studybeats on your computer at',
                   style: TextStyle(
                     color: kFlourishAliceBlue,
                     fontSize: 24,
@@ -67,8 +67,8 @@ class MobileLandingPage extends StatelessWidget {
                 ),
                 onPressed: () {
                   Share.share(
-                    'Check out Flouria at https://flouria.co',
-                    subject: 'Flouria - The Ultimate Web Experience',
+                    'Check out Studybeats at https://app.studybeats.co',
+                    subject: 'Studybeats - The Ultimate Web Experience',
                   );
                 },
                 icon: const Icon(Icons.share),

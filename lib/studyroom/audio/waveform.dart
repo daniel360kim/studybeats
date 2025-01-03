@@ -1,4 +1,4 @@
-import 'package:flourish_web/api/audio/audio_service.dart';
+import 'package:studybeats/api/audio/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';

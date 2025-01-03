@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flourish_web/api/todo/todo_item.dart';
-import 'package:flourish_web/api/todo/todo_service.dart';
+import 'package:studybeats/api/todo/todo_item.dart';
+import 'package:studybeats/api/todo/todo_service.dart';
 
-import 'package:flourish_web/studyroom/widgets/screens/todo/todo_inputs.dart';
-import 'package:flourish_web/studyroom/widgets/screens/todo/todo_list.dart';
+import 'package:studybeats/studyroom/widgets/screens/todo/todo_inputs.dart';
+import 'package:studybeats/studyroom/widgets/screens/todo/todo_list.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -111,12 +111,12 @@ class _TodoState extends State<Todo> {
                                 }
                               });
                               try {
-                              final listId =
-                                  await _todoService.getDefaultTodoListId();
-                              await _todoService.addTodoItem(
-                                listId: listId,
-                                todoItem: newTask,
-                              );
+                                final listId =
+                                    await _todoService.getDefaultTodoListId();
+                                await _todoService.addTodoItem(
+                                  listId: listId,
+                                  todoItem: newTask,
+                                );
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(

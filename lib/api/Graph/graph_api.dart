@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
-import 'package:flourish_web/api/Graph/user_model.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/Graph/user_model.dart';
+import 'package:studybeats/log_printer.dart';
 
 class GraphAPIException implements Exception {
   final String message;
@@ -26,7 +26,7 @@ class GraphAPIService {
 
   Future<Uint8List> fetchProfilePhoto() async {
     _logger.i('Fetching profile photo');
-    
+
     try {
       final response = await _dio.get(
         'https://graph.microsoft.com/v1.0/me/photos/648x648/\$value',
@@ -55,7 +55,7 @@ class GraphAPIService {
     }
   }
 
-    Future<GraphUser> fetchUserInfo() async {
+  Future<GraphUser> fetchUserInfo() async {
     try {
       final response = await _dio.get(
         'https://graph.microsoft.com/v1.0/me/',

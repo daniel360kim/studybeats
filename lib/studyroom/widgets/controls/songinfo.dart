@@ -1,5 +1,5 @@
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/studyroom/audio/seekbar.dart';
+import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -82,10 +82,9 @@ class _SongInfoState extends State<SongInfo> {
                                   alignment: Alignment.centerRight,
                                   child: Text(
                                     _formatDuration(remaining),
-                                    style:  GoogleFonts.inter(
+                                    style: GoogleFonts.inter(
                                       color: Colors.black,
                                       fontSize: 8.0,
-                                
                                     ),
                                   ),
                                 )
@@ -119,7 +118,6 @@ class _SongInfoState extends State<SongInfo> {
           style: GoogleFonts.inter(
             fontSize: fontSize,
             fontWeight: fontWeight,
-        
             color: Colors.black,
           ),
         );
@@ -132,12 +130,14 @@ class _SongInfoState extends State<SongInfo> {
         if (textPainter.didExceedMaxLines) {
           return Marquee(
             text: text,
-            style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
+            style:
+                GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
             velocity: 50.0,
           );
         } else {
           return Text(text,
-              style: GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight));
+              style: GoogleFonts.inter(
+                  fontSize: fontSize, fontWeight: fontWeight));
         }
       },
     );

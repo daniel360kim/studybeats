@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';

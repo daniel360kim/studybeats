@@ -1,18 +1,19 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flourish_web/api/Stripe/subscription_service.dart';
-import 'package:flourish_web/api//auth/auth_service.dart';
-import 'package:flourish_web/api/auth/urls.dart';
-import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/router.dart';
-import 'package:flourish_web/studyroom/widgets/screens/queue.dart';
+import 'package:studybeats/api/Stripe/subscription_service.dart';
+import 'package:studybeats/api//auth/auth_service.dart';
+import 'package:studybeats/api/auth/urls.dart';
+import 'package:studybeats/colors.dart';
+import 'package:studybeats/router.dart';
+import 'package:studybeats/studyroom/widgets/screens/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 
 class CredentialBar extends StatefulWidget {
-  const CredentialBar({required this.loggedIn, required this.onLogout, super.key});
+  const CredentialBar(
+      {required this.loggedIn, required this.onLogout, super.key});
 
   final bool loggedIn;
   final VoidCallback onLogout;
@@ -31,9 +32,10 @@ class _CredentialBarState extends State<CredentialBar> {
         children: [
           if (!widget.loggedIn) notLoggedIn(),
           const SizedBox(width: 16),
-          if (widget.loggedIn) ProfilePicture(
-            onLogout: widget.onLogout,
-          )
+          if (widget.loggedIn)
+            ProfilePicture(
+              onLogout: widget.onLogout,
+            )
         ],
       ),
     );
@@ -82,7 +84,6 @@ class ProfilePicture extends StatefulWidget {
   const ProfilePicture({
     required this.onLogout,
     super.key,
-
   });
 
   final VoidCallback onLogout;

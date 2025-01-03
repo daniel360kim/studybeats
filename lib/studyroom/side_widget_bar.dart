@@ -1,12 +1,12 @@
 import 'dart:ui';
-import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/api/scenes/objects.dart';
-import 'package:flourish_web/api/timer_fx/objects.dart';
-import 'package:flourish_web/router.dart';
-import 'package:flourish_web/studyroom/widgets/screens/aichat/aichat.dart';
-import 'package:flourish_web/studyroom/widgets/screens/scene_select.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer/timer.dart';
-import 'package:flourish_web/studyroom/widgets/screens/todo/todo_widget.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/api/scenes/objects.dart';
+import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/router.dart';
+import 'package:studybeats/studyroom/widgets/screens/aichat/aichat.dart';
+import 'package:studybeats/studyroom/widgets/screens/scene_select.dart';
+import 'package:studybeats/studyroom/widgets/screens/timer/timer.dart';
+import 'package:studybeats/studyroom/widgets/screens/todo/todo_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

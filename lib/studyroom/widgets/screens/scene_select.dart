@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/api/analytics/analytics_service.dart';
-import 'package:flourish_web/api/scenes/objects.dart';
-import 'package:flourish_web/api/scenes/scene_service.dart';
+import 'package:studybeats/api/analytics/analytics_service.dart';
+import 'package:studybeats/api/scenes/objects.dart';
+import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';

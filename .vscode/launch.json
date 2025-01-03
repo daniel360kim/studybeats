@@ -6,7 +6,7 @@
     "configurations": [
 
         {
-            "name": "flourish_web",
+            "name": "studybeats",
             "request": "launch",
             "type": "dart",
             "args": [
@@ -18,13 +18,13 @@
             ]
         },
         {
-            "name": "flourish_web (profile mode)",
+            "name": "studybeats (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "flourish_web (release mode)",
+            "name": "studybeats (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

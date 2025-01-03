@@ -1,10 +1,10 @@
-import 'package:flourish_web/api/Stripe/subscription_service.dart';
+import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:universal_html/html.dart' as html;
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/api/auth/auth_service.dart';
+import 'package:studybeats/colors.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:intl/intl.dart';
@@ -174,7 +174,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _pickImage() async {
     setState(() => _loadingImagePicker = true);
     final file = await ImagePickerWeb.getImageAsFile();
-    // load the file for optimistic UI updates 
+    // load the file for optimistic UI updates
     // TODO set loading to false when image picker cancel
     final reader = html.FileReader();
     reader.onLoadEnd.listen((event) {

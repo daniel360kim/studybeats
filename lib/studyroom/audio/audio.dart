@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:audio_session/audio_session.dart';
-import 'package:flourish_web/api/audio/audio_service.dart';
-import 'package:flourish_web/api/audio/objects.dart';
-import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/log_printer.dart';
-import 'package:flourish_web/studyroom/audio/objects.dart';
-import 'package:flourish_web/studyroom/audio/seekbar.dart';
+import 'package:studybeats/api/audio/audio_service.dart';
+import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/studyroom/audio/objects.dart';
+import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';

@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/firebase_storage_refs.dart';
-import 'package:flourish_web/api/timer_fx/objects.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/firebase_storage_refs.dart';
+import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 

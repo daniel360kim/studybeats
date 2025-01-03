@@ -1,5 +1,5 @@
-import 'package:flourish_web/api/todo/todo_item.dart';
-import 'package:flourish_web/studyroom/widgets/screens/todo/item_tile.dart';
+import 'package:studybeats/api/todo/todo_item.dart';
+import 'package:studybeats/studyroom/widgets/screens/todo/item_tile.dart';
 import 'package:flutter/material.dart';
 
 enum SortBy { dueDate, createdAt }

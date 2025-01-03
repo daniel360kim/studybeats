@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flourish_web/api/analytics/analytics_service.dart';
-import 'package:flourish_web/api/timer_fx/objects.dart';
-import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer/timer_player.dart';
+import 'package:studybeats/api/analytics/analytics_service.dart';
+import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/colors.dart';
+import 'package:studybeats/studyroom/widgets/screens/timer/timer_player.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'timer.dart';

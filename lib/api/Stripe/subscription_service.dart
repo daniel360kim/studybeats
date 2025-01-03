@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flourish_web/api/Stripe/product_service.dart';
-import 'package:flourish_web/api/Stripe/stripe_service.dart';
+import 'package:studybeats/api/Stripe/product_service.dart';
+import 'package:studybeats/api/Stripe/stripe_service.dart';
 
 class StripeSubscriptionService extends StripeService {
   late final DocumentReference<Map<String, dynamic>> _document;
@@ -35,21 +35,23 @@ class StripeSubscriptionService extends StripeService {
   Future<StripeDatabaseProduct> getActiveProduct() async {
     logger.i('Getting active product for used id: ${user!.uid}');
     try {
-      final querySnapshot = await _document.collection('subscriptions').where('status', whereIn: ['trialing', 'active']).get();
+      final querySnapshot = await _document
+          .collection('subscriptions')
+          .where('status', whereIn: ['trialing', 'active']).get();
       if (querySnapshot.docs.isEmpty) {
         logger.i('No active subscriptions found, getting free product');
         return StripeProductService().getFreeProduct();
       }
 
-
-      final DocumentReference<Map<String, dynamic>> productRef = querySnapshot.docs.first.get('product');
+      final DocumentReference<Map<String, dynamic>> productRef =
+          querySnapshot.docs.first.get('product');
 
       final productSnapshot = await productRef.get();
-      final product = StripeDatabaseProduct.fromJson(productSnapshot.data()!, productSnapshot.id);
+      final product = StripeDatabaseProduct.fromJson(
+          productSnapshot.data()!, productSnapshot.id);
 
       logger.i('Found active product: ${product.name}');
       return product;
-
     } catch (e) {
       logger.e('Unexpected error while getting active product. $e');
       rethrow;
@@ -59,7 +61,9 @@ class StripeSubscriptionService extends StripeService {
   Future<DateTime> getSubscriptionEndDate() async {
     logger.i('Getting subscription end date');
     try {
-      final querySnapshot = await _document.collection('subscriptions').where('status', whereIn: ['trialing', 'active']).get();
+      final querySnapshot = await _document
+          .collection('subscriptions')
+          .where('status', whereIn: ['trialing', 'active']).get();
 
       if (querySnapshot.docs.isEmpty) {
         logger.i('No active subscriptions found');

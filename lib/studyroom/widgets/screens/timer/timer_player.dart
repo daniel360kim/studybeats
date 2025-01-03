@@ -1,7 +1,7 @@
 import 'package:audio_session/audio_session.dart';
-import 'package:flourish_web/api/timer_fx/objects.dart';
-import 'package:flourish_web/api/timer_fx/timer_fx_service.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/api/timer_fx/timer_fx_service.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:just_audio/just_audio.dart';
 
 class TimerPlayer {
@@ -18,14 +18,13 @@ class TimerPlayer {
     _player.playbackEventStream.listen((event) {},
         onError: (Object e, StackTrace stackTrace) {
       _logger.e('A stream error occurred: $e');
-        });
-    
+    });
+
     _player.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) {
         _player.seek(Duration.zero);
       }
     });
-
   }
 
   void dispose() {
@@ -41,5 +40,4 @@ class TimerPlayer {
       _logger.e('Unexpected error while playing timer sound. $e');
     }
   }
-
 }

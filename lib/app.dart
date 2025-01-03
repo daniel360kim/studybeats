@@ -1,5 +1,5 @@
 // flourish.dart
-import 'package:flourish_web/router.dart'; // Import the router configuration
+import 'package:studybeats/router.dart'; // Import the router configuration
 import 'package:flutter/material.dart';
 
 class Flourish extends StatelessWidget {
@@ -8,7 +8,7 @@ class Flourish extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Flouria',
+      title: 'Study Beats',
       routerConfig: createRouter(context),
     );
   }

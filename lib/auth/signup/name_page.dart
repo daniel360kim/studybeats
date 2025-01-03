@@ -1,9 +1,9 @@
-import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/auth/unknown_error.dart';
-import 'package:flourish_web/auth/widgets/error_message.dart';
-import 'package:flourish_web/auth/widgets/textfield.dart';
-import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/router.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/auth/unknown_error.dart';
+import 'package:studybeats/auth/widgets/error_message.dart';
+import 'package:studybeats/auth/widgets/textfield.dart';
+import 'package:studybeats/colors.dart';
+import 'package:studybeats/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';

@@ -1,11 +1,11 @@
-import 'package:flourish_web/api/Stripe/subscription_service.dart';
-import 'package:flourish_web/auth/unknown_error.dart';
-import 'package:flourish_web/colors.dart';
-import 'package:flourish_web/log_printer.dart';
-import 'package:flourish_web/router.dart';
+import 'package:studybeats/api/Stripe/subscription_service.dart';
+import 'package:studybeats/auth/unknown_error.dart';
+import 'package:studybeats/colors.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/router.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flourish_web/api/Stripe/product_service.dart';
+import 'package:studybeats/api/Stripe/product_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher_string.dart';

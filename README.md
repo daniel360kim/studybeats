@@ -4,7 +4,7 @@
 <a href="https://github.com/daniel360kim/flourish-web">
     <img src="web/logo.jpg" alt="Logo" width="200" height="200">
 </a>
-  <h1 align="center">Flouria.co</h1>
+  <h1 align="center">studybeats.co</h1>
    <p align="center">
     An interactive web-based productivity suite with real-time interactive study tools.
     <br />

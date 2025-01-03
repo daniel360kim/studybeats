@@ -1,17 +1,16 @@
-
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flourish_web/api/auth/auth_service.dart';
-import 'package:flourish_web/api/scenes/objects.dart';
-import 'package:flourish_web/api/scenes/scene_service.dart';
-import 'package:flourish_web/api/timer_fx/objects.dart';
-import 'package:flourish_web/app_state.dart';
-import 'package:flourish_web/log_printer.dart';
-import 'package:flourish_web/studyroom/audio/background_sound.dart';
-import 'package:flourish_web/studyroom/control_bar.dart';
-import 'package:flourish_web/studyroom/credential_bar.dart';
-import 'package:flourish_web/studyroom/side_widget_bar.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer/timer.dart';
-import 'package:flourish_web/studyroom/widgets/screens/timer/timer_dialog.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/api/scenes/objects.dart';
+import 'package:studybeats/api/scenes/scene_service.dart';
+import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/app_state.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/studyroom/audio/background_sound.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/studyroom/credential_bar.dart';
+import 'package:studybeats/studyroom/side_widget_bar.dart';
+import 'package:studybeats/studyroom/widgets/screens/timer/timer.dart';
+import 'package:studybeats/studyroom/widgets/screens/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -164,12 +163,10 @@ class _StudyRoomState extends State<StudyRoom> {
                     late final String timeDescription;
                     if (value.studyTime.inSeconds <= 0) {
                       // If the focus time is zero, then the timer is on break
-                      timeDescription =
-                          formatDuration(value.breakTime);
+                      timeDescription = formatDuration(value.breakTime);
                     } else {
                       // Otherwise, the timer is on focus
-                      timeDescription =
-                          formatDuration(value.studyTime);
+                      timeDescription = formatDuration(value.studyTime);
                     }
 
                     // Update the application switcher description

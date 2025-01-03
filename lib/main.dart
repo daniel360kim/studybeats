@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flourish_web/app.dart';
-import 'package:flourish_web/app_state.dart';
-import 'package:flourish_web/firebase_options.dart';
-import 'package:flourish_web/secrets.dart';
+import 'package:studybeats/app.dart';
+import 'package:studybeats/app_state.dart';
+import 'package:studybeats/firebase_options.dart';
+import 'package:studybeats/secrets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';

@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/scenes/objects.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/scenes/objects.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:http/http.dart' as http;
 
 class SceneService {

@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flourish_web/api/Graph/graph_api.dart';
-import 'package:flourish_web/api/analytics/analytics_service.dart';
-import 'package:flourish_web/api/auth/signup_method.dart';
-import 'package:flourish_web/app_state.dart';
-import 'package:flourish_web/log_printer.dart';
+import 'package:studybeats/api/Graph/graph_api.dart';
+import 'package:studybeats/api/analytics/analytics_service.dart';
+import 'package:studybeats/api/auth/signup_method.dart';
+import 'package:studybeats/app_state.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logger/logger.dart';
