@@ -34,16 +34,21 @@
       }
     }
   },
-  "emulators": { "singleProjectMode": true },
+  "emulators": {
+    "singleProjectMode": true
+  },
   "hosting": {
-    "headers": [
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
       {
         "source": "**",
-        "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+        "destination": "/index.html"
       }
-    ],
-    "public": "build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "frameworksBackend": { "region": "us-west1" }
+    ]
   }
 }
