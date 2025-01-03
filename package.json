@@ -1,7 +1,7 @@
 {
-  "name": "flourish_web",
+  "name": "studybeats",
   "version": "1.0.0",
-  "description": "Flourish Website",
+  "description": "Productivity Website",
   "main": "index.js",
   "directories": {
     "lib": "lib"
