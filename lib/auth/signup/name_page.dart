@@ -120,7 +120,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
         ),
         const SizedBox(height: 5),
         Text(
-          'Flourish',
+          'Studybeats',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,

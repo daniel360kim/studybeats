@@ -89,7 +89,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           ),
           const SizedBox(width: 5),
           const Text(
-            'Flourish',
+            'Studybeats',
             style: TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.w600,

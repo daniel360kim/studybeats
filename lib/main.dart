@@ -29,7 +29,7 @@ Future<void> main() async {
     });
     runApp(ChangeNotifierProvider(
       create: (context) => ApplicationState(),
-      builder: ((context, child) => const Flourish()),
+      builder: ((context, child) => const Studybeats()),
     ));
   }, (Object exception, StackTrace stackTrace) async {
     await Sentry.captureException(exception, stackTrace: stackTrace);

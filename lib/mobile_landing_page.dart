@@ -48,7 +48,7 @@ class MobileLandingPage extends StatelessWidget {
               ),
               Center(
                 child: Text(
-                  'flouria.co',
+                  'app.studybeats.co',
                   style: TextStyle(
                     color: Colors.blue[200]!,
                     fontSize: 24,

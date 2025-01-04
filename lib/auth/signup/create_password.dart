@@ -115,7 +115,7 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
         ),
         const SizedBox(height: 5),
         Text(
-          'Flourish',
+          'Studybeats',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             color: kFlourishAliceBlue,
