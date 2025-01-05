@@ -53,8 +53,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
       final source = ClippingAudioSource(
         child: AudioSource.uri(Uri.parse(audioUrl)),
         // Optionally adjust the start and end times if necessary
-        start: const Duration(seconds: 2),
-        end: Duration(seconds: widget.backgroundSound.durationMs ~/ 1000 - 2),
       );
 
       await _player

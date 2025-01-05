@@ -43,19 +43,22 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void updateProfilePictureUrl() {
     _authService.getProfilePictureUrl().then((url) {
-      setState(() {
-        _profileImageUrl = url;
-      });
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = url;
+        });
+      }
     });
   }
 
   void getMembershipStatus() async {
     final membershipStatus =
         await StripeSubscriptionService().hasProMembership();
-
-    setState(() {
-      isProMember = membershipStatus;
-    });
+    if (mounted) {
+      setState(() {
+        isProMember = membershipStatus;
+      });
+    }
   }
 
   @override

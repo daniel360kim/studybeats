@@ -47,7 +47,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
   void _getProducts() async {
     final products = await _stripeProductService.getActiveProducts();
-
+  
     setState(() {
       for (final product in products) {
         for (final price in product.prices) {
@@ -69,9 +69,11 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
   void _getSubscriptionStatus() async {
     bool status = await _stripeSubscriptionService.hasProMembership();
-    setState(() {
-      _isPro = status;
-    });
+    if (mounted) {
+      setState(() {
+        _isPro = status;
+      });
+    }
   }
 
   AppBar _buildAppBar() {

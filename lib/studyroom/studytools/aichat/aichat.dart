@@ -75,18 +75,23 @@ class _AiChatState extends State<AiChat> {
     // Get conversation history from Firestore
     try {
       final conversationHistory = await _openaiService.getConversationHistory();
-      setState(() {
-        _profilePictureUrl = url;
-        _conversationHistory.addAll(conversationHistory);
-        _loadingConversationHistory = false;
-      });
+      if (mounted) {
+        setState(() {
+          _profilePictureUrl = url;
+          _conversationHistory.addAll(conversationHistory);
+          _loadingConversationHistory = false;
+        });
+      }
       _scrollToBottom();
     } catch (e) {
       _logger.e('Failed to get conversation history from Firestore: $e');
-      setState(() {
-        _showError = true;
-        _errorMessage = 'Failed to get conversation history from Firestore: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _showError = true;
+          _errorMessage =
+              'Failed to get conversation history from Firestore: $e';
+        });
+      }
       return;
     }
   }
