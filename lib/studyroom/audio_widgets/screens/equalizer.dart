@@ -44,7 +44,6 @@ class _EqualizerControlsState extends State<EqualizerControls> {
 
     return SizedBox(
       width: 500,
-      height: MediaQuery.of(context).size.height - 80 * 5,
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(

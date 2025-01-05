@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:studybeats/api/audio/audio_service.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/widgets/screens/queue.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';

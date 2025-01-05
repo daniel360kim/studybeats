@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
@@ -5,12 +7,11 @@ import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:studybeats/api/timer_fx/objects.dart';
 import 'package:studybeats/app_state.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/audio/background_sound.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
-import 'package:studybeats/studyroom/widgets/screens/timer/timer.dart';
-import 'package:studybeats/studyroom/widgets/screens/timer/timer_dialog.dart';
+import 'package:studybeats/studyroom/studytools/timer/timer.dart';
+import 'package:studybeats/studyroom/studytools/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -252,7 +253,6 @@ class _StudyRoomState extends State<StudyRoom> {
                   currentSceneBackgroundUrl: _backgroundImageUrl!,
                 ),
               ),
-        buildBackgroundNoiseControls(),
         _loadingScene || _currentScene == null || _playlistId == null
             ? Align(
                 alignment: Alignment.bottomCenter,
@@ -283,25 +283,6 @@ class _StudyRoomState extends State<StudyRoom> {
               );
             },
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildBackgroundNoiseControls() {
-    return const Stack(
-      children: [
-        BackgroundSoundControl(
-          id: 1,
-          initialPosition: Offset(1000.0, 500.0),
-        ),
-        BackgroundSoundControl(
-          id: 2,
-          initialPosition: Offset(1200.0, 300.0),
-        ),
-        BackgroundSoundControl(
-          id: 3,
-          initialPosition: Offset(1000.0, 700.0),
         ),
       ],
     );

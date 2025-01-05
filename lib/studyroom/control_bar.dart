@@ -6,17 +6,18 @@ import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/audio/objects.dart';
 import 'package:studybeats/studyroom/audio/audio.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
-import 'package:studybeats/studyroom/widgets/controls/playlist_controls.dart';
-import 'package:studybeats/studyroom/widgets/controls/songinfo.dart';
-import 'package:studybeats/studyroom/widgets/controls/volume.dart';
-import 'package:studybeats/studyroom/widgets/screens/equalizer.dart';
-import 'package:studybeats/studyroom/widgets/screens/queue.dart';
-import 'package:studybeats/studyroom/widgets/screens/songcredits.dart';
+import 'package:studybeats/studyroom/audio_widgets/controls/playlist_controls.dart';
+import 'package:studybeats/studyroom/audio_widgets/controls/songinfo.dart';
+import 'package:studybeats/studyroom/audio_widgets/controls/volume.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/background_sounds.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/equalizer.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/songcredits.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
-import 'widgets/controls/music_controls.dart';
+import 'audio_widgets/controls/music_controls.dart';
 
 class Player extends StatefulWidget {
   const Player({
@@ -48,6 +49,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   bool _showQueue = false;
   bool _showSongInfo = false;
   bool _showEqualizer = false;
+  bool _showBackgroundSound = false;
 
   final _authService = AuthService();
 
@@ -115,7 +117,11 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              if (_showQueue || _showSongInfo || _showEqualizer) const Spacer(),
+              if (_showQueue ||
+                  _showSongInfo ||
+                  _showEqualizer ||
+                  _showBackgroundSound)
+                const Spacer(),
               _showQueue
                   ? Align(
                       alignment: Alignment.bottomRight,
@@ -165,6 +171,15 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                           }),
                     )
                   : const SizedBox.shrink(),
+              Visibility(
+                visible: _showBackgroundSound,
+                maintainState: true,
+                child: StreamBuilder<PositionData>(
+                    stream: _audio.positionDataStream,
+                    builder: (context, snapshot) {
+                      return BackgroundSfxControls();
+                    }),
+              )
             ]),
         Align(
           alignment: Alignment.bottomCenter,
@@ -304,6 +319,11 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         onEqualizerPressed: (enabled) {
           setState(() {
             _showEqualizer = enabled;
+          });
+        },
+        onBackgroundSoundPressed: (enabled) {
+          setState(() {
+            _showBackgroundSound = enabled;
           });
         },
       ),

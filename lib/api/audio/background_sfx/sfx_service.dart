@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/api/audio/background_sfx/objects.dart';
 import 'package:studybeats/api/firebase_storage_refs.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:http/http.dart' as http;
@@ -16,37 +16,49 @@ class SfxService {
   // Reference to the SFX directory in Firebase Cloud Storage.
   final _storageRef = FirebaseStorage.instance.ref(kSfxDirectoryName);
 
-  /// Fetches metadata for a specific background sound by its ID.
+  /// Fetches a list of all available background sound effects.
   ///
-  /// This method retrieves the list of available background sounds from
-  /// Firebase Cloud Storage, parses the metadata, and returns the sound
-  /// effect that matches the given [id].
-  ///
-  /// [id] - The unique identifier of the background sound to fetch.
+  /// This method retrieves the JSON index file from the SFX directory and
+  /// parses it to create a list of [BackgroundSound] objects.
   ///
   /// Returns:
-  /// - A [BackgroundSound] object containing metadata for the sound.
+  /// - A [List] of [BackgroundSound] objects representing all available SFX.
   ///
-  /// Throws:
-  /// - Exception if the ID is invalid or an error occurs during processing.
-  Future<BackgroundSound> getBackgroundSoundInfo(int id) async {
+  Future<List<BackgroundSfxPlaylistInfo>> getPlaylists() async {
     try {
       // Retrieve the JSON index file from the SFX directory.
-      final jsonRef = _storageRef.child(kSfxIndexPath);
+      final jsonRef = _storageRef.child(kSfxplaylistDirectoryName);
+      final url = await jsonRef.getDownloadURL();
+
+      // Fetch and parse the JSON data.
+      final response = await _fetchJsonData(url);
+      List<dynamic> playlists = jsonDecode(response);
+
+      _logger.i('Found ${playlists.length} playlists in reference');
+
+      // Convert the parsed JSON into a list of BackgroundSfxPlaylistInfo objects.
+      return playlists
+          .map((playlist) => BackgroundSfxPlaylistInfo.fromJson(playlist))
+          .toList();
+    } catch (e) {
+      _logger.e('Unexpected error while getting playlists: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<BackgroundSound>> getBackgroundSfx(
+      BackgroundSfxPlaylistInfo playlist) async {
+    try {
+      final jsonRef = _storageRef.child(playlist.indexPath);
       final url = await jsonRef.getDownloadURL();
 
       // Fetch and parse the JSON data.
       final response = await _fetchJsonData(url);
       List<dynamic> list = jsonDecode(response);
 
-      _logger.i('Found ${list.length} sound effects.');
-
-      // Convert the parsed JSON into a list of BackgroundSound objects.
-      List<BackgroundSound> soundFxList =
-          list.map((soundFx) => BackgroundSound.fromJson(soundFx)).toList();
-
-      // Find the sound effect matching the provided ID.
-      return soundFxList.firstWhere((soundfx) => soundfx.id == id);
+      _logger
+          .i('Found ${list.length} sound effects in playlist ${playlist.name}');
+      return list.map((soundFx) => BackgroundSound.fromJson(soundFx)).toList();
     } catch (e) {
       _logger.e('Unexpected error while getting sound effect info. $e');
       rethrow;
@@ -72,7 +84,8 @@ class SfxService {
       final jsonRef = _storageRef.child(backgroundSoundInfo.soundPath);
       return await jsonRef.getDownloadURL();
     } catch (e) {
-      _logger.e('Unexpected error while getting background sound URL. $e');
+      _logger.e(
+          'Unexpected error while getting background sound URL for ${backgroundSoundInfo.name}. $e');
       rethrow;
     }
   }

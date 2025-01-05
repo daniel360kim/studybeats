@@ -5,7 +5,7 @@ import 'package:studybeats/api//auth/auth_service.dart';
 import 'package:studybeats/api/auth/urls.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/studyroom/widgets/screens/queue.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
