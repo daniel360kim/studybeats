@@ -75,7 +75,7 @@ class _IconSliderState extends State<IconSlider> {
         value: widget.value,
         onChanged: widget.onChanged,
         min: 0,
-        max: 200,
+        max: 100,
         label: '${widget.value.round()}',
       ),
     );

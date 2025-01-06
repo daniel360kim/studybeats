@@ -6,7 +6,7 @@ import 'package:studybeats/api/audio/audio_service.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/audio/objects.dart';
+import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
@@ -22,8 +22,6 @@ class Audio {
   final int playlistId;
   final audioPlayer = AudioPlayer();
   final ValueNotifier<bool> isLoaded = ValueNotifier<bool>(false);
-
-  SongCloudInfoHandler _cloudInfoHandler = SongCloudInfoHandler(playlistId: 0);
 
   TimerService songDurationTimer = TimerService();
 
@@ -47,11 +45,6 @@ class Audio {
       await _playlist.addAll(audioSources);
 
       await audioPlayer.setAudioSource(_playlist);
-
-      // Get info about the audioPlayer.sequence! from the cloud database based on the playlistId
-      _cloudInfoHandler = SongCloudInfoHandler(playlistId: playlistId);
-
-      if (_authService.isUserLoggedIn()) await _cloudInfoHandler.init();
 
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.speech());
@@ -90,11 +83,6 @@ class Audio {
   void dispose() {
     audioPlayer.pause();
     audioPlayer.dispose();
-
-    // Log the song end in the cloud database
-    if (_authService.isUserLoggedIn()) {
-      _cloudInfoHandler.onSongEnd(currentSongIndex, getSongPlayedDuration());
-    }
   }
 
   void play() async {
@@ -113,17 +101,6 @@ class Audio {
       await audioPlayer.pause();
     } catch (e) {
       _logger.e('Audio pause failed. $e');
-      rethrow;
-    }
-  }
-
-  Future setFavorite(bool isFavorite) async {
-    if (!_authService.isUserLoggedIn()) {
-      return;
-    }
-    try {
-      await _cloudInfoHandler.setFavorite(currentSongIndex, isFavorite);
-    } catch (e) {
       rethrow;
     }
   }
@@ -151,10 +128,7 @@ class Audio {
   }
 
   Future seekToIndex(int index) async {
-    if (_authService.isUserLoggedIn()) {
-      await _cloudInfoHandler.onSongEnd(
-          currentSongIndex, getSongPlayedDuration());
-    }
+    if (_authService.isUserLoggedIn()) {}
 
     isLoaded.value = false;
     try {
@@ -283,9 +257,7 @@ class Audio {
   }
 
   // Caller should check if the user is logged in before calling this function
-  Future getCurrentSongCloudInfo() async {
-    return await _cloudInfoHandler.getSongCloudInfo(currentSongIndex);
-  }
+  Future getCurrentSongCloudInfo() async {}
 
   List<SongMetadata> getSongOrder() {
     // Get the current sequence of audio sources

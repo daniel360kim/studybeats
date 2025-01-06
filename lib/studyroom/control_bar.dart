@@ -1,9 +1,11 @@
 import 'dart:ui';
 
+import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
+import 'package:studybeats/api/audio/cloud_info/objects.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/studyroom/audio/objects.dart';
+import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/studyroom/audio/audio.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/playlist_controls.dart';
@@ -37,18 +39,15 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   SongMetadata? currentSongInfo;
   List<SongMetadata> songQueue = [];
   List<SongMetadata> songOrder = [];
-
-  SongCloudInfo currentCloudSongInfo = const SongCloudInfo(
-    isFavorite: false,
-    timesPlayed: 0,
-    totalPlaytime: Duration.zero,
-    averagePlaytime: Duration.zero,
-  );
+  final SongCloudInfoService _songCloudInfoService =
+      SongCloudInfoService(); // if song is favorite
 
   bool verticalLayout = false;
   bool _showQueue = false;
   bool _showEqualizer = false;
   bool _showBackgroundSound = false;
+
+  bool _isCurrentSongFavorite = false;
 
   final _authService = AuthService();
 
@@ -68,6 +67,11 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   void initAudio() async {
     _audio.initPlayer();
+    try {
+      _songCloudInfoService.init();
+    } catch (e) {
+      // TODO implement proper error handling
+    }
     updateSong();
   }
 
@@ -78,19 +82,15 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   void updateSong() async {
+    final songInfo = _audio.getCurrentSongInfo();
+    final isCurrentSongFavorite = await _songCloudInfoService.isSongFavorite(
+        widget.playlistId, songInfo!);
     setState(() {
-      currentSongInfo = _audio.getCurrentSongInfo();
+      currentSongInfo = songInfo;
+      _isCurrentSongFavorite = isCurrentSongFavorite;
       songQueue = _audio.getSongOrder();
       songOrder = _audio.getSongOrder();
     });
-
-    if (_authService.isUserLoggedIn()) {
-      _audio.getCurrentSongCloudInfo().then((value) {
-        setState(() {
-          currentCloudSongInfo = value;
-        });
-      });
-    }
   }
 
   @override
@@ -242,9 +242,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                     : context.goNamed(AppRoute.loginPage.name);
               },
               isPlaying: playing,
-              isFavorite: _authService.isUserLoggedIn()
-                  ? currentCloudSongInfo.isFavorite
-                  : false,
+              isFavorite: _isCurrentSongFavorite,
             );
           } else {
             return const SizedBox.shrink();
@@ -276,9 +274,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                     : context.goNamed(AppRoute.loginPage.name);
               },
               isPlaying: playing,
-              isFavorite: _authService.isUserLoggedIn()
-                  ? currentCloudSongInfo.isFavorite
-                  : false,
+              isFavorite: _isCurrentSongFavorite,
             );
           } else {
             return const SizedBox.shrink();
@@ -317,20 +313,16 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     if (!_authService.isUserLoggedIn()) {
       return;
     }
-    setState(() {
-      currentCloudSongInfo =
-          currentCloudSongInfo.copyWith(isFavorite: isFavorite);
-    });
+
+    setState(() => _isCurrentSongFavorite = isFavorite);
 
     try {
-      await _audio.setFavorite(isFavorite);
+      await _songCloudInfoService.markSongFavorite(
+          widget.playlistId, currentSongInfo!, isFavorite);
     } catch (e) {
       // TODO implement proper ui error handling
       // Revert the optimistic update if the backend operation fails
-      setState(() {
-        currentCloudSongInfo =
-            currentCloudSongInfo.copyWith(isFavorite: !isFavorite);
-      });
+      setState(() => _isCurrentSongFavorite = !isFavorite);
     }
   }
 
@@ -344,9 +336,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
       if (_authService.isUserLoggedIn()) {
         final songCloudInfo = await _audio.getCurrentSongCloudInfo();
-        setState(() {
-          currentCloudSongInfo = songCloudInfo;
-        });
       }
     } catch (e) {
       // TODO implement proper error handling within the ui
@@ -367,9 +356,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     try {
       await _audio.previousSong();
       final songCloudInfo = await _audio.getCurrentSongCloudInfo();
-      setState(() {
-        currentCloudSongInfo = songCloudInfo;
-      });
     } catch (e) {
       // TODO implement proper error handling within the ui
       // TODO detect if the exception was caused by the songcloudinfo API call

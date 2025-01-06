@@ -4,7 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/firebase_storage_refs.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/audio/objects.dart';
+import 'package:studybeats/api/audio/objects.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 

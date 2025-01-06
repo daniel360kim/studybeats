@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:json_annotation/json_annotation.dart';
 
 SongMetadata _$SongMetadataFromJson(Map<String, dynamic> json) {
@@ -14,6 +16,20 @@ SongMetadata _$SongMetadataFromJson(Map<String, dynamic> json) {
     songPath: json['songPath'] as String,
   );
 }
+
+Map<String, dynamic> _$SongMetadataToJson(SongMetadata instance) =>
+    <String, dynamic>{
+      'artistName': instance.artistName,
+      'collectionName': instance.collectionName,
+      'trackName': instance.trackName,
+      'artworkUrl100': instance.artworkUrl100,
+      'trackTime': instance.trackTime,
+      'id': instance.id,
+      'link': instance.youtubeLink,
+      'appleMusicLink': instance.appleLink,
+      'waveformPath': instance.waveformPath,
+      'songPath': instance.songPath,
+    };
 
 @JsonSerializable()
 class SongMetadata {
@@ -43,6 +59,8 @@ class SongMetadata {
 
   factory SongMetadata.fromJson(Map<String, dynamic> json) =>
       _$SongMetadataFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SongMetadataToJson(this);
 }
 
 
@@ -67,4 +85,43 @@ class WaveformMetadata {
 
   factory WaveformMetadata.fromJson(Map<String, dynamic> json) =>
       _$WaveformMetadataFromJson(json);
+}
+
+
+Playlist _$PlaylistFromJson(Map<String, dynamic> json) {
+  return Playlist(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    playlistPath: json['playlistPath'] as String,
+    numSongs: json['numSongs'] as int,
+  );
+}
+
+Map<String, dynamic> _$PlaylistToJson(Playlist instance) => <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'playlistPath': instance.playlistPath,
+      'numSongs': instance.numSongs,
+    };
+
+@JsonSerializable()
+class Playlist {
+  final int id;
+  final String name;
+  final String playlistPath;
+  final int numSongs;
+
+  const Playlist({
+    required this.id,
+    required this.name,
+    required this.playlistPath,
+    required this.numSongs,
+  });
+
+  factory Playlist.fromJson(Map<String, dynamic> json) =>
+      _$PlaylistFromJson(json);
+  Map<String, dynamic> toJson() => _$PlaylistToJson(this);
+
+  @override
+  String toString() => jsonEncode(toJson());
 }
