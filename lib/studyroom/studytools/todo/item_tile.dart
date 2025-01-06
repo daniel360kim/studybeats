@@ -365,12 +365,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
   }
 
   String _getDeadlineDescription() {
-    if (_selectedDate == null) {
-      return 'No due date';
-    }
-
     final now = DateTime.now();
-    final dueDate = _selectedDate!;
+    final dueDate = _isEditing ? _selectedDate! : widget.item.dueDate!;
     final difference = dueDate.difference(now);
     String day;
     if (difference.inDays < 0) {
