@@ -68,7 +68,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   void initAudio() async {
     _audio.initPlayer();
     try {
-      _songCloudInfoService.init();
+      await _songCloudInfoService.init();
     } catch (e) {
       // TODO implement proper error handling
     }
@@ -333,10 +333,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
     try {
       await _audio.nextSong();
-
-      if (_authService.isUserLoggedIn()) {
-        final songCloudInfo = await _audio.getCurrentSongCloudInfo();
-      }
     } catch (e) {
       // TODO implement proper error handling within the ui
       // TODO detect if the exception was caused by the songcloudinfo API call
@@ -355,7 +351,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
     try {
       await _audio.previousSong();
-      final songCloudInfo = await _audio.getCurrentSongCloudInfo();
     } catch (e) {
       // TODO implement proper error handling within the ui
       // TODO detect if the exception was caused by the songcloudinfo API call

@@ -3,10 +3,10 @@ import 'dart:math';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:studybeats/api/audio/audio_service.dart';
+import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
@@ -18,6 +18,7 @@ class Audio {
   });
 
   final _logger = getLogger('AudioController');
+  final _cloudInfoService = SongCloudInfoService();
 
   final int playlistId;
   final audioPlayer = AudioPlayer();
@@ -33,60 +34,100 @@ class Audio {
 
   final _playlist =
       ConcatenatingAudioSource(children: [], useLazyPreparation: false);
-
-  final _authService = AuthService();
-
   void initPlayer() async {
     try {
+      // Initialize the audio service to fetch playlist information
       final service = AudioService();
+      await _cloudInfoService.init();
 
+      // Retrieve the playlist metadata using the provided playlist ID
       final playlist = await service.getPlaylistInfo(playlistId);
+
+      // Fetch audio sources associated with the playlist
       final audioSources = await service.getAudioSources(playlist);
+
+      // Add the fetched audio sources to the concatenating audio source
       await _playlist.addAll(audioSources);
 
+      // Set the concatenating audio source as the source for the audio player
       await audioPlayer.setAudioSource(_playlist);
 
+      // Configure the audio session for speech settings, ensuring proper audio playback
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.speech());
 
-      // Listen to errors durin playback
+      // Set up a listener for playback events to log errors and handle them appropriately
       audioPlayer.playbackEventStream.listen(
-        (event) {},
+        (event) {
+          // Handle playback events if necessary (e.g., logging, UI updates)
+        },
         onError: (Object e, StackTrace stackTrace) {
           _logger.e('$e', stackTrace: stackTrace);
         },
       );
 
+      // Listen for position discontinuities, such as song transitions or skips
       audioPlayer.positionDiscontinuityStream.listen((discontinuity) {
+        // Handle position discontinuity caused by auto-advancing to the next song
         if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance) {
+          updateAndResetDurationLog();
           if (isAdvance) {
-            isAdvance = false;
+            isAdvance = false; // Prevent unnecessary updates when shuffling
             return;
           }
+
+          // Update the loaded state to false while transitioning between songs
           isLoaded.value = false;
+
+          // Update the current song index or loop back to the start if at the end of the playlist
           if (currentSongIndex + 1 < audioPlayer.sequence!.length) {
             currentSongIndex = currentSongIndex + 1;
           } else {
             currentSongIndex = 0;
           }
+
+          // Mark the player as loaded after the transition
           isLoaded.value = true;
         }
       });
 
+      // Mark the player as loaded and ready to use
       isLoaded.value = true;
     } catch (e) {
+      // Log any errors encountered during the initialization process
       _logger.e('Error with songcloudinfo handler');
-      // TODO handle this error
+      // TODO: Add additional error handling (e.g., user notification)
     }
   }
 
   void dispose() {
     audioPlayer.pause();
     audioPlayer.dispose();
+
+    updateAndResetDurationLog();
+  }
+
+  /// Stops timer, logs the new duration and resets
+  void updateAndResetDurationLog() async {
+    try {
+      final song = audioPlayer.sequence![currentSongIndex].tag as SongMetadata;
+      songDurationTimer.stop();
+      final elapsed = songDurationTimer.getElapsed();
+      songDurationTimer.reset();
+      await _cloudInfoService.updateSongDuration(playlistId, song, elapsed);
+
+      if (audioPlayer.playing) {
+        songDurationTimer.start();
+      }
+    } catch (e) {
+      _logger.e('Failed to update song duration: $e');
+      rethrow;
+    }
   }
 
   void play() async {
     songDurationTimer.start();
+
     try {
       await audioPlayer.play();
     } catch (e) {
@@ -96,17 +137,13 @@ class Audio {
   }
 
   void pause() async {
-    songDurationTimer.stop();
+    updateAndResetDurationLog();
     try {
       await audioPlayer.pause();
     } catch (e) {
       _logger.e('Audio pause failed. $e');
       rethrow;
     }
-  }
-
-  Duration getSongPlayedDuration() {
-    return songDurationTimer.getElapsed();
   }
 
   void seek(Duration position) async {
@@ -128,19 +165,12 @@ class Audio {
   }
 
   Future seekToIndex(int index) async {
-    if (_authService.isUserLoggedIn()) {}
-
     isLoaded.value = false;
     try {
+      updateAndResetDurationLog();
       await audioPlayer.seek(Duration.zero, index: index);
+
       currentSongIndex = index;
-
-      songDurationTimer.reset();
-
-      // If paused, don't start the timer
-      if (audioPlayer.playerState.playing) {
-        songDurationTimer.start();
-      }
 
       isLoaded.value = true;
     } catch (e) {
@@ -192,6 +222,7 @@ class Audio {
   }
 
   void shuffle() async {
+    updateAndResetDurationLog();
     isAdvance = true;
     // Get the current sequence of AudioSources
     final sequence = audioPlayer.sequence;
@@ -216,7 +247,6 @@ class Audio {
 
     try {
       await seekToIndex(currentSongIndex);
-      print('');
     } catch (e) {
       _logger.e('Failed to seek to shuffled song: $e');
     }
@@ -255,9 +285,6 @@ class Audio {
     }
     return audioPlayer.sequence![audioPlayer.sequence!.length - 1].tag;
   }
-
-  // Caller should check if the user is logged in before calling this function
-  Future getCurrentSongCloudInfo() async {}
 
   List<SongMetadata> getSongOrder() {
     // Get the current sequence of audio sources
