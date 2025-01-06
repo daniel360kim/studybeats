@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class SongQueue extends StatefulWidget {
   const SongQueue({
@@ -64,7 +66,7 @@ class _SongQueueState extends State<SongQueue> {
             child: Column(
               children: [
                 buildHeader(),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 buildCurrentSong(),
                 const SizedBox(height: 10),
                 isLoading
@@ -257,16 +259,40 @@ class _QueueSongItemState extends State<QueueSongItem> {
                             child: PopupMenuButton(
                               itemBuilder: (context) {
                                 return [
-                                  const PopupMenuItem(
-                                    child: PopupMenuDetails(
-                                      icon: Icons.info,
-                                      text: 'Details',
+                                  PopupMenuItem(
+                                    onTap: () {
+                                      final link = widget.song?.youtubeLink;
+                                      if (link != null) {
+                                        // Copy link to clipboard
+                                        Clipboard.setData(
+                                            ClipboardData(text: link));
+                                        // Show snackbar
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Link copied to clipboard'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: const PopupMenuDetails(
+                                      icon: Icons.copy,
+                                      text: 'Copy link',
                                     ),
                                   ),
-                                  const PopupMenuItem(
-                                    child: PopupMenuDetails(
-                                      icon: Icons.share,
-                                      text: 'Share',
+                                  PopupMenuItem(
+                                    onTap: () {
+                                      final link = widget.song?.youtubeLink;
+                                      if (link != null) {
+                                        // Open link in browser
+                                        // ignore: unawaited_futures
+                                        launchUrlString(link);
+                                      }
+                                    },
+                                    child: const PopupMenuDetails(
+                                      icon: Icons.open_in_browser,
+                                      text: 'Open in browser',
                                     ),
                                   ),
                                 ];

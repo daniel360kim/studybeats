@@ -12,7 +12,7 @@ import 'package:studybeats/studyroom/audio_widgets/controls/volume.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/background_sounds.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/equalizer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/songcredits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shimmer/shimmer.dart';
@@ -47,7 +47,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   bool verticalLayout = false;
   bool _showQueue = false;
-  bool _showSongInfo = false;
   bool _showEqualizer = false;
   bool _showBackgroundSound = false;
 
@@ -117,10 +116,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              if (_showQueue ||
-                  _showSongInfo ||
-                  _showEqualizer ||
-                  _showBackgroundSound)
+              if (_showQueue || _showEqualizer || _showBackgroundSound)
                 const Spacer(),
               _showQueue
                   ? Align(
@@ -144,14 +140,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                             updateSong();
                           });
                         },
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-              _showSongInfo
-                  ? Align(
-                      alignment: Alignment.bottomRight,
-                      child: SongCredits(
-                        song: currentSongInfo,
                       ),
                     )
                   : const SizedBox.shrink(),
@@ -306,11 +294,6 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         volumeChanged: (volume) => _audio.setVolume(volume),
       ),
       IconControls(
-        onInfoPressed: (enabled) {
-          setState(() {
-            _showSongInfo = enabled;
-          });
-        },
         onListPressed: (enabled) {
           setState(() {
             _showQueue = enabled;
