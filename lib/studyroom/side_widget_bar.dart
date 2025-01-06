@@ -70,6 +70,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
               children: [
                 NavigationItem(
                   selectedIndex: _selectedIndex,
+                  toolTip: 'Change scene',
                   index: 0,
                   imagePath: 'assets/icons/scene.png',
                   onItemTapped: (value) {
@@ -78,6 +79,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                 ),
                 NavigationItem(
                   selectedIndex: _selectedIndex,
+                  toolTip: 'Studybeats Bot',
                   index: 1,
                   imagePath: 'assets/icons/robot.png',
                   onItemTapped: (value) {
@@ -86,6 +88,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                 ),
                 NavigationItem(
                   selectedIndex: _selectedIndex,
+                  toolTip: 'Pomodoro Timer',
                   index: 2,
                   imagePath: 'assets/icons/timer.png',
                   onItemTapped: (value) {
@@ -94,6 +97,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                 ),
                 NavigationItem(
                   selectedIndex: _selectedIndex,
+                  toolTip: 'Todo List',
                   index: 3,
                   imagePath: 'assets/icons/todo.png',
                   onItemTapped: (value) {
@@ -215,6 +219,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
 class NavigationItem extends StatefulWidget {
   const NavigationItem({
     required this.selectedIndex,
+    required this.toolTip,
     required this.index,
     required this.imagePath,
     required this.onItemTapped,
@@ -222,6 +227,7 @@ class NavigationItem extends StatefulWidget {
   });
 
   final int? selectedIndex;
+  final String toolTip;
   final int index;
   final String imagePath;
   final ValueChanged onItemTapped;
@@ -243,41 +249,44 @@ class _NavigationItemState extends State<NavigationItem> {
       onExit: (_) => setState(() {
         _hovering = false;
       }),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 50,
-            width: 50,
-            child: GestureDetector(
-              onTap: () => widget.onItemTapped(widget.index),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected || _hovering
-                      ? Colors.white.withOpacity(0.4)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10.0),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.5),
-                            offset: const Offset(0, 2),
-                            blurRadius: 8.0,
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Center(
-                  child: Image.asset(
-                    widget.imagePath,
-                    fit: BoxFit.fill,
+      child: Tooltip(
+        message: widget.toolTip,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 50,
+              width: 50,
+              child: GestureDetector(
+                onTap: () => widget.onItemTapped(widget.index),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected || _hovering
+                        ? Colors.white.withOpacity(0.4)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10.0),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.5),
+                              offset: const Offset(0, 2),
+                              blurRadius: 8.0,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      widget.imagePath,
+                      fit: BoxFit.fill,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 3.0)
-        ],
+            const SizedBox(height: 3.0)
+          ],
+        ),
       ),
     );
   }

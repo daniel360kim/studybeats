@@ -71,7 +71,7 @@ class AiMessage extends StatelessWidget {
           color: kFlourishPurple,
         ),
       );
-      messageTitle = 'ChatGPT';
+      messageTitle = 'Studybeats Bot';
     }
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
