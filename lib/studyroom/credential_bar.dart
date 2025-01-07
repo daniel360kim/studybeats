@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
-import 'package:studybeats/api//auth/auth_service.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/auth/urls.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';

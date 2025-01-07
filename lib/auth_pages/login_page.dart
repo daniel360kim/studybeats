@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
-import 'package:studybeats/auth/unknown_error.dart';
-import 'package:studybeats/auth/widgets/error_message.dart';
-import 'package:studybeats/auth/widgets/textfield.dart';
-import 'package:studybeats/auth/widgets/third_party_button.dart';
+import 'package:studybeats/auth_pages/unknown_error.dart';
+import 'package:studybeats/auth_pages/widgets/error_message.dart';
+import 'package:studybeats/auth_pages/widgets/textfield.dart';
+import 'package:studybeats/auth_pages/widgets/third_party_button.dart';
 import 'package:studybeats/api/auth/validators.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';

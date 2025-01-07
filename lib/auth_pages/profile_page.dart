@@ -161,7 +161,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               child: _loadingImagePicker
-                  ? const CircularProgressIndicator()
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      color: Colors.blue,
+                    )
                   : const Icon(
                       Icons.edit,
                       size: 15,
@@ -178,7 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _loadingImagePicker = true);
     final file = await ImagePickerWeb.getImageAsFile();
     // load the file for optimistic UI updates
-    // TODO set loading to false when image picker cancel
+
     final reader = html.FileReader();
     reader.onLoadEnd.listen((event) {
       setState(() {
@@ -186,6 +189,31 @@ class _ProfilePageState extends State<ProfilePage> {
         _imageFile = reader.result as Uint8List;
       });
     });
+    reader.onAbort.listen((event) {
+      setState(() {
+        _loadingImagePicker = false;
+        _imageFile = reader.result as Uint8List;
+      });
+      return;
+    });
+
+    reader.onError.listen((event) {
+      setState(() {
+        _loadingImagePicker = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong. Please try again later'),
+          ),
+        );
+      });
+    });
+
+    if (file == null) {
+      setState(() {
+        _loadingImagePicker = false;
+        return;
+      });
+    }
 
     reader.readAsArrayBuffer(file!);
     try {

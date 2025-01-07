@@ -1,11 +1,11 @@
 // router.dart
 import 'package:studybeats/api/analytics/analytics_service.dart';
-import 'package:studybeats/auth/login_page.dart';
-import 'package:studybeats/auth/profile_page.dart';
-import 'package:studybeats/auth/signup/create_password.dart';
-import 'package:studybeats/auth/signup/name_page.dart';
-import 'package:studybeats/auth/signup/signup_page.dart';
-import 'package:studybeats/auth/subscription_page.dart';
+import 'package:studybeats/auth_pages/login_page.dart';
+import 'package:studybeats/auth_pages/profile_page.dart';
+import 'package:studybeats/auth_pages/signup/create_password.dart';
+import 'package:studybeats/auth_pages/signup/name_page.dart';
+import 'package:studybeats/auth_pages/signup/signup_page.dart';
+import 'package:studybeats/auth_pages/subscription_page.dart';
 import 'package:studybeats/mobile_landing_page.dart';
 import 'package:studybeats/studyroom/study_page.dart';
 import 'package:flutter/material.dart';

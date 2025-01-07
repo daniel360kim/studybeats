@@ -98,7 +98,8 @@ class Audio {
     } catch (e) {
       // Log any errors encountered during the initialization process
       _logger.e('Error initializing audio player: $e');
-      onError();;
+      onError();
+      ;
     }
   }
 
@@ -127,7 +128,8 @@ class Audio {
       }
     } catch (e) {
       _logger.e('Failed to update song duration: $e');
-      onError();;
+      onError();
+      ;
     }
   }
 

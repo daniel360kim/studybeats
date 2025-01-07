@@ -1,5 +1,5 @@
 import 'package:studybeats/api/Stripe/subscription_service.dart';
-import 'package:studybeats/auth/unknown_error.dart';
+import 'package:studybeats/auth_pages/unknown_error.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/router.dart';

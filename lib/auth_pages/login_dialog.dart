@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/auth/widgets/textfield.dart';
-import 'package:studybeats/auth/widgets/third_party_button.dart';
+import 'package:studybeats/auth_pages/widgets/textfield.dart';
+import 'package:studybeats/auth_pages/widgets/third_party_button.dart';
 
 class LoginDialog extends StatelessWidget {
   final String title;
