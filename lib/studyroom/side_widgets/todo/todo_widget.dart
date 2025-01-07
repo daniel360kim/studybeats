@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 
-import 'package:studybeats/studyroom/studytools/todo/todo_inputs.dart';
-import 'package:studybeats/studyroom/studytools/todo/todo_list.dart';
+import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
+import 'package:studybeats/studyroom/side_widgets/todo/todo_list.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';

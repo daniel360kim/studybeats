@@ -3,10 +3,10 @@ import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/timer_fx/objects.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/studyroom/studytools/aichat/aichat.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/scene_select.dart';
-import 'package:studybeats/studyroom/studytools/timer/timer.dart';
-import 'package:studybeats/studyroom/studytools/todo/todo_widget.dart';
+import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
+import 'package:studybeats/studyroom/side_widgets/scene_select.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/timer.dart';
+import 'package:studybeats/studyroom/side_widgets/todo/todo_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/timer_fx/objects.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/studytools/timer/timer_player.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/timer_player.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'timer.dart';

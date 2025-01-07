@@ -4,7 +4,7 @@ import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/studyroom/studytools/aichat/aimessage.dart';
+import 'package:studybeats/studyroom/side_widgets/aichat/aimessage.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
