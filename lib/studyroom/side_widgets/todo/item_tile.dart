@@ -487,7 +487,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   style: ElevatedButton.styleFrom(
                     foregroundColor: kFlourishAliceBlue,
                     backgroundColor: kFlourishAdobe,
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     fixedSize: const Size(110, 30),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),

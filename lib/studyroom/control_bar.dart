@@ -1,11 +1,9 @@
 import 'dart:ui';
 
 import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
-import 'package:studybeats/api/audio/cloud_info/objects.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/studyroom/audio/audio.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/playlist_controls.dart';
@@ -24,10 +22,12 @@ import 'audio_widgets/controls/music_controls.dart';
 class Player extends StatefulWidget {
   const Player({
     required this.playlistId,
+    required this.onLoaded,
     super.key,
   });
 
   final int playlistId;
+  final VoidCallback onLoaded;
 
   @override
   State<Player> createState() => _PlayerState();
@@ -51,6 +51,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   final _authService = AuthService();
   bool _audioPlayerError = false;
+  bool _notifiedLoaded = false;
 
   @override
   void initState() {
@@ -85,11 +86,13 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   void _showError() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Something went wrong. Please try again later'),
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again later'),
+        ),
+      );
+    });
   }
 
   @override
@@ -112,7 +115,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (_audio.audioPlayer.sequence == null || _audioPlayerError) {
+    if (_audioPlayerError) {
       return Align(
         alignment: Alignment.bottomCenter,
         child: Shimmer.fromColors(
@@ -126,83 +129,96 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         ),
       );
     }
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.start,
+    return StreamBuilder<SequenceState?>(
+        stream: _audio.audioPlayer.sequenceStateStream,
+        builder: (context, snapshot) {
+          final sequenceState = snapshot.data;
+          if (sequenceState != null && !_notifiedLoaded && snapshot.hasData) {
+            // Notify that everything is loaded
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onLoaded();
+              _notifiedLoaded = true; // Ensure callback is called only once
+            });
+          }
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (_showQueue || _showEqualizer || _showBackgroundSound)
-                const Spacer(),
-              _showQueue
-                  ? Align(
-                      alignment: Alignment.bottomRight,
-                      child: SongQueue(
-                        songOrder: _audio.audioPlayer.sequence!
-                                .map((audioSource) {
-                                  return audioSource.tag as SongMetadata;
-                                })
-                                .toList()
-                                .isEmpty
-                            ? null
-                            : _audio.audioPlayer.sequence!.map((audioSource) {
-                                return audioSource.tag as SongMetadata;
-                              }).toList(),
-                        currentSong: currentSongInfo,
-                        queue: songQueue.isEmpty ? null : songQueue,
-                        onSongSelected: (index) async {
-                       
-                            await _audio.play();
-                            _audio.seekToIndex(index).then((value) {
-                              updateSong();
-                            });
-                          
-                        },
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-              _showEqualizer
-                  ? Align(
-                      alignment: Alignment.bottomRight,
+              Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    if (_showQueue || _showEqualizer || _showBackgroundSound)
+                      const Spacer(),
+                    _showQueue
+                        ? Align(
+                            alignment: Alignment.bottomRight,
+                            child: SongQueue(
+                              songOrder: _audio.audioPlayer.sequence!
+                                      .map((audioSource) {
+                                        return audioSource.tag as SongMetadata;
+                                      })
+                                      .toList()
+                                      .isEmpty
+                                  ? null
+                                  : _audio.audioPlayer.sequence!
+                                      .map((audioSource) {
+                                      return audioSource.tag as SongMetadata;
+                                    }).toList(),
+                              currentSong: currentSongInfo,
+                              queue: songQueue.isEmpty ? null : songQueue,
+                              onSongSelected: (index) async {
+                                await _audio.play();
+                                _audio.seekToIndex(index).then((value) {
+                                  updateSong();
+                                });
+                              },
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                    _showEqualizer
+                        ? Align(
+                            alignment: Alignment.bottomRight,
+                            child: StreamBuilder<PositionData>(
+                                stream: _audio.positionDataStream,
+                                builder: (context, snapshot) {
+                                  final elapsedDuration =
+                                      snapshot.data?.position ?? Duration.zero;
+                                  return EqualizerControls(
+                                    song: currentSongInfo,
+                                    elapsedDuration: elapsedDuration,
+                                    onSpeedChange: (value) =>
+                                        _audio.setSpeed(value),
+                                  );
+                                }),
+                          )
+                        : const SizedBox.shrink(),
+                    Visibility(
+                      visible: _showBackgroundSound,
+                      maintainState: true,
                       child: StreamBuilder<PositionData>(
                           stream: _audio.positionDataStream,
                           builder: (context, snapshot) {
-                            final elapsedDuration =
-                                snapshot.data?.position ?? Duration.zero;
-                            return EqualizerControls(
-                              song: currentSongInfo,
-                              elapsedDuration: elapsedDuration,
-                              onSpeedChange: (value) => _audio.setSpeed(value),
-                            );
+                            return const BackgroundSfxControls();
                           }),
                     )
-                  : const SizedBox.shrink(),
-              Visibility(
-                visible: _showBackgroundSound,
-                maintainState: true,
-                child: StreamBuilder<PositionData>(
-                    stream: _audio.positionDataStream,
-                    builder: (context, snapshot) {
-                      return const BackgroundSfxControls();
-                    }),
-              )
-            ]),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width,
-            height: verticalLayout ? 300 : 80,
-            child: Stack(
-              children: [
-                buildBackdrop(),
-                buildControls(),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+                  ]),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: verticalLayout ? 300 : 80,
+                  child: Stack(
+                    children: [
+                      buildBackdrop(),
+                      buildControls(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        });
   }
 
   Widget buildBackdrop() {

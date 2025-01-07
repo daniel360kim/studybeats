@@ -1,5 +1,4 @@
 import 'package:card_swiper/card_swiper.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/timer_fx/objects.dart';
 import 'package:studybeats/api/timer_fx/timer_fx_service.dart';
 import 'package:studybeats/colors.dart';
@@ -359,7 +358,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
           });
           widget.onTimerSoundEnabled(_enableTimerSound);
         },
-        icon: Icon(
+        icon: const Icon(
           Icons.notifications_off,
           color: kFlourishBlackish,
         ),

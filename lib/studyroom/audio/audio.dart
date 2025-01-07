@@ -5,7 +5,6 @@ import 'package:audio_session/audio_session.dart';
 import 'package:studybeats/api/audio/audio_service.dart';
 import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
 import 'package:studybeats/api/audio/objects.dart';
-import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/foundation.dart';
@@ -99,7 +98,6 @@ class Audio {
       // Log any errors encountered during the initialization process
       _logger.e('Error initializing audio player: $e');
       onError();
-      ;
     }
   }
 
@@ -129,7 +127,6 @@ class Audio {
     } catch (e) {
       _logger.e('Failed to update song duration: $e');
       onError();
-      ;
     }
   }
 

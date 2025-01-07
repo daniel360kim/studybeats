@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
@@ -15,7 +13,8 @@ import 'package:studybeats/studyroom/side_widgets/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart'; // Add the shimmer package
+import 'package:studybeats/studyroom/splash_screen.dart';
+// Add the shimmer package
 
 class StudyRoom extends StatefulWidget {
   const StudyRoom({super.key});
@@ -27,6 +26,8 @@ class StudyRoom extends StatefulWidget {
 class _StudyRoomState extends State<StudyRoom> {
   bool _showTimer = false;
   bool _loadingScene = true;
+  bool _loadingControlBar = true;
+  bool _splashFinished = false;
   PomodoroDurations timerDurations =
       PomodoroDurations(Duration.zero, Duration.zero);
   TimerFxData? _timerFxData;
@@ -44,14 +45,6 @@ class _StudyRoomState extends State<StudyRoom> {
 
   final _logger = getLogger('StudyRoom Page Widget');
 
-  String formatDuration(Duration duration) {
-    // Account for the
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
-  }
-
   @override
   void initState() {
     super.initState();
@@ -67,7 +60,8 @@ class _StudyRoomState extends State<StudyRoom> {
           setState(() {
             _currentScene = null;
             _backgroundImageUrl = null;
-            _loadingScene = true;
+            _loadingScene =
+                false; // Ensure loading state is false even if empty
             _playlistId = null;
           });
           return;
@@ -83,17 +77,8 @@ class _StudyRoomState extends State<StudyRoom> {
               (scene) => scene.id == initialSceneIndex,
               orElse: () => _sceneList.first);
 
-          if (_currentScene == null) {
-            _logger.e('No scenes found');
-            _currentScene = null;
-            _backgroundImageUrl = null;
-            _loadingScene = true;
-            _playlistId = null;
-            return;
-          }
-
           _backgroundImageUrl = backgroundUrl;
-          _playlistId = _currentScene!.playlistId;
+          _playlistId = _currentScene?.playlistId;
           _loadingScene = false;
         });
       });
@@ -102,7 +87,7 @@ class _StudyRoomState extends State<StudyRoom> {
       setState(() {
         _currentScene = null;
         _backgroundImageUrl = null;
-        _loadingScene = true;
+        _loadingScene = false;
         _playlistId = null;
       });
     }
@@ -122,33 +107,20 @@ class _StudyRoomState extends State<StudyRoom> {
       final url = await _sceneService.getBackgroundImageUrl(_currentScene!);
       setState(() {
         _backgroundImageUrl = url;
-        if (_currentScene == null) {
-          _logger.e('No scenes found');
-          _currentScene = null;
-          _backgroundImageUrl = null;
-          _loadingScene = true;
-          _playlistId = null;
-          return;
-        }
-        _playlistId = _currentScene!.playlistId;
+        _playlistId = _currentScene?.playlistId;
       });
     } catch (e) {
       _logger.e('Error while changing scene $e');
-      _currentScene = null;
-      _backgroundImageUrl = null;
+      setState(() {
+        _currentScene = null;
+        _backgroundImageUrl = null;
+        _playlistId = null;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final timerDuration = timerDurations.studyTime;
-
-    SystemChrome.setApplicationSwitcherDescription(
-      ApplicationSwitcherDescription(
-        label: _showTimer ? timerDuration.toString() : 'Study Room',
-        primaryColor: Theme.of(context).primaryColor.value,
-      ),
-    );
     return Scaffold(
       body: Stack(
         children: [
@@ -160,17 +132,13 @@ class _StudyRoomState extends State<StudyRoom> {
                   timerSoundEnabled: _timerSoundEnabled,
                   timerFxData: _timerFxData!,
                   onTimerDurationChanged: (value) {
-                    // Look at the durations and determine if the timer is on focus or break
                     late final String timeDescription;
                     if (value.studyTime.inSeconds <= 0) {
-                      // If the focus time is zero, then the timer is on break
                       timeDescription = formatDuration(value.breakTime);
                     } else {
-                      // Otherwise, the timer is on focus
                       timeDescription = formatDuration(value.studyTime);
                     }
 
-                    // Update the application switcher description
                     SystemChrome.setApplicationSwitcherDescription(
                       ApplicationSwitcherDescription(
                         label: timeDescription,
@@ -193,7 +161,6 @@ class _StudyRoomState extends State<StudyRoom> {
                   },
                 )
               : const SizedBox.shrink(),
-          // buildMainControls(),
         ],
       ),
     );
@@ -202,38 +169,20 @@ class _StudyRoomState extends State<StudyRoom> {
   Widget buildBackgroundImage() {
     return Stack(
       children: [
-        _loadingScene || _currentScene == null || _backgroundImageUrl == null
-            ? Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: Colors.white,
-                ),
-              )
-            : ClipRRect(
-                child: CachedNetworkImage(
-                  imageUrl: _backgroundImageUrl!,
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height,
-                  fit: BoxFit.cover,
-                ),
-              ),
-        _loadingScene || _currentScene == null || _backgroundImageUrl == null
-            ? Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Container(
-                  height: MediaQuery.of(context).size.height - 80,
-                  width: 50,
-                  color: Colors.white,
-                ),
-              )
-            : Positioned(
-                top: 0,
-                left: 0,
-                child: SideWidgetBar(
+        if (_backgroundImageUrl != null)
+          ClipRRect(
+            child: CachedNetworkImage(
+              imageUrl: _backgroundImageUrl!,
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              fit: BoxFit.cover,
+            ),
+          ),
+        Positioned(
+          top: 0,
+          left: 0,
+          child: _currentScene != null
+              ? SideWidgetBar(
                   onTimerSoundEnabled: (value) => setState(() {
                     _timerSoundEnabled = value;
                   }),
@@ -251,25 +200,19 @@ class _StudyRoomState extends State<StudyRoom> {
                   },
                   currentScene: _currentScene!,
                   currentSceneBackgroundUrl: _backgroundImageUrl!,
-                ),
-              ),
-        _loadingScene || _currentScene == null || _playlistId == null
-            ? Align(
-                alignment: Alignment.bottomCenter,
-                child: Shimmer.fromColors(
-                  baseColor: Colors.grey[600]!,
-                  highlightColor: Colors.grey[300]!,
-                  child: Container(
-                    width: MediaQuery.of(context).size.width,
-                    height: 80,
-                    color: Colors.grey,
-                  ),
-                ),
-              )
-            : Player(
-                key: ValueKey(_playlistId),
-                playlistId: _playlistId!,
-              ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        if (_playlistId != null)
+          Player(
+            key: ValueKey(_playlistId),
+            playlistId: _playlistId!,
+            onLoaded: () {
+              setState(() {
+                _loadingControlBar = false;
+              });
+            },
+          ),
         Positioned(
           top: 20,
           right: 20,
@@ -284,7 +227,20 @@ class _StudyRoomState extends State<StudyRoom> {
             },
           ),
         ),
+        if (_loadingControlBar || _loadingScene || !_splashFinished)
+          SplashScreen(onFinished: () {
+            setState(() {
+              _splashFinished = true;
+            });
+          })
       ],
     );
+  }
+
+  String formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 }
