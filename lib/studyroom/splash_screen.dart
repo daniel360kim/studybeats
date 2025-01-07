@@ -64,27 +64,16 @@ class SplashScreenState extends State<SplashScreen>
                         height: 100,
                       ),
                       const SizedBox(width: 15),
-                      AnimatedTextKit(
-                        animatedTexts: [
-                          ColorizeAnimatedText(
+                   
+                          const Text(
                             'Studybeats',
-                            textStyle: const TextStyle(
+                            style:  TextStyle(
+                              color: kFlourishAdobe,
                               fontFamily: 'Inter',
                               fontSize: 50.0,
                               fontWeight: FontWeight.bold,
                             ),
-                            colors: [
-                              kFlourishAdobe, // Light Orange
-                              const Color(0xFFFF9A3D), // Slightly darker orange
-                              const Color(0xFFFF7F2A), // Medium Orange
-                              const Color(0xFFFB6A0C), // Darker Orange
-                              const Color(0xFFEA5700), // Very dark orange
-                            ],
-                            speed: const Duration(milliseconds: 500),
                           ),
-                        ],
-                        repeatForever: false,
-                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
