@@ -45,7 +45,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
     return Row(
       children: [
         _buildControlBar(),
-        if (_selectedIndex != null) _getSelectedWidget(),
+        _getSelectedWidget(),
       ],
     );
   }
@@ -111,108 +111,79 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   }
 
   Widget _getSelectedWidget() {
-    switch (_selectedIndex) {
-      case 0:
-        return SceneSelector(
-          onSceneSelected: ((id) async {
-            widget.onSceneChanged(id);
-            await AuthService().changeselectedSceneId(
-                id); // handles being logged out as well, no need to check
-          }),
-          onClose: () {
-            setState(() {
-              _selectedIndex = null;
-            });
-          },
-          currentScene: widget.currentScene,
-          currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
-        );
-      case 1:
-        if (!AuthService().isUserLoggedIn()) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.goNamed(AppRoute.loginPage.name);
-            /* // TODO add login dialog instead of page
-            showDialog(
-              context: context,
-              builder: (context) => LoginDialog(
-                title: 'Alert Title',
+    return Column(
+      children: [
+        Visibility(
+          maintainState: true,
+          visible: _selectedIndex == 0 && _selectedIndex != null,
+          child: SceneSelector(
+            onSceneSelected: ((id) async {
+              widget.onSceneChanged(id);
+              await AuthService().changeselectedSceneId(id);
+            }),
+            onClose: () {
+              setState(() {
+                _selectedIndex = null;
+              });
+            },
+            currentScene: widget.currentScene,
+            currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
+          ),
+        ),
+        Visibility(
+          maintainState: true,
+          visible: _selectedIndex == 1 && _selectedIndex != null,
+          child: AuthService().isUserLoggedIn()
+              ? AiChat(onClose: () {
+                  setState(() {
+                    _selectedIndex = null;
+                  });
+                })
+              : _redirectToLogin(),
+        ),
+        Visibility(
+          maintainState: true,
+          visible: _selectedIndex == 2 && _selectedIndex != null,
+          child: PomodoroTimer(
+            onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
+            onTimerSoundSelected: (value) => widget.timerFxData(value),
+            onStartPressed: (value) {
+              widget.onShowTimer(value);
+              setState(() {
+                _selectedIndex = null;
+              });
+            },
+            onClose: () {
+              setState(() {
+                _selectedIndex = null;
+              });
+            },
+          ),
+        ),
+        Visibility(
+          maintainState: true,
+          visible: _selectedIndex == 3 && _selectedIndex != null,
+          child: AuthService().isUserLoggedIn()
+              ? Todo(onClose: () {
+                  setState(() {
+                    _selectedIndex = null;
+                  });
+                })
+              : _redirectToLogin(),
+        ),
+      ],
+    );
+  }
 
+  Widget _redirectToLogin() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.goNamed(AppRoute.loginPage.name);
+      setState(() {
+        _selectedIndex = null;
+      });
+    });
 
-                onConfirm: () {
-                  // Handle confirmation action
-                  Navigator.of(context).pop();
-                },
-                isError: true, // Set to true if it's an error alert
-                isLoading:
-                    false, // Set to true if you want to show a loading indicator
-              ),
-            );
-            */
-            setState(() {
-              _selectedIndex = null;
-            });
-          });
-
-          return const SizedBox();
-        }
-        return AiChat(onClose: () {
-          setState(() {
-            _selectedIndex = null;
-          });
-        });
-      case 2:
-        return PomodoroTimer(
-          onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
-          onTimerSoundSelected: (value) => widget.timerFxData(value),
-          onStartPressed: (value) {
-            widget.onShowTimer(value);
-
-            setState(() {
-              _selectedIndex = null;
-            });
-          },
-          onClose: () {
-            setState(() {
-              _selectedIndex = null;
-            });
-          },
-        );
-      case 3:
-        if (!AuthService().isUserLoggedIn()) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.goNamed(AppRoute.loginPage.name);
-            /* // TODO add login dialog instead of page
-            showDialog(
-              context: context,
-              builder: (context) => LoginDialog(
-                title: 'Alert Title',
-
-
-                onConfirm: () {
-                  // Handle confirmation action
-                  Navigator.of(context).pop();
-                },
-                isError: true, // Set to true if it's an error alert
-                isLoading:
-                    false, // Set to true if you want to show a loading indicator
-              ),
-            );
-            */
-            setState(() {
-              _selectedIndex = null;
-            });
-          });
-
-          return const SizedBox();
-        }
-        return Todo(onClose: () {
-          setState(() {
-            _selectedIndex = null;
-          });
-        });
-      default:
-        return const Placeholder();
-    }
+    return const SizedBox();
   }
 }
 

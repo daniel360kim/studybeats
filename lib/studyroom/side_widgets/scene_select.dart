@@ -226,6 +226,7 @@ class _SceneSelectionState extends State<SceneSelection> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20.0),
               child: CachedNetworkImage(
+                fadeInDuration: Duration.zero,
                 placeholder: (context, url) => Shimmer.fromColors(
                   baseColor: Colors.grey[300]!,
                   highlightColor: Colors.grey[100]!,
