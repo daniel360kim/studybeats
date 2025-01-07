@@ -50,12 +50,16 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   bool _isCurrentSongFavorite = false;
 
   final _authService = AuthService();
+  bool _audioPlayerError = false;
 
   @override
   void initState() {
     super.initState();
 
-    _audio = Audio(playlistId: widget.playlistId);
+    _audio = Audio(
+      playlistId: widget.playlistId,
+      onError: _showError,
+    );
     initAudio();
 
     _audio.isLoaded.addListener(() {
@@ -66,13 +70,26 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   void initAudio() async {
-    _audio.initPlayer();
     try {
+      await _audio.initPlayer();
       await _songCloudInfoService.init();
     } catch (e) {
-      // TODO implement proper error handling
+      if (mounted) {
+        _showError();
+      }
+      setState(() {
+        _audioPlayerError = true;
+      });
     }
     updateSong();
+  }
+
+  void _showError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Something went wrong. Please try again later'),
+      ),
+    );
   }
 
   @override
@@ -95,7 +112,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (_audio.audioPlayer.sequence == null) {
+    if (_audio.audioPlayer.sequence == null || _audioPlayerError) {
       return Align(
         alignment: Alignment.bottomCenter,
         child: Shimmer.fromColors(
@@ -134,11 +151,13 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                               }).toList(),
                         currentSong: currentSongInfo,
                         queue: songQueue.isEmpty ? null : songQueue,
-                        onSongSelected: (index) {
-                          _audio.play();
-                          _audio.seekToIndex(index).then((value) {
-                            updateSong();
-                          });
+                        onSongSelected: (index) async {
+                       
+                            await _audio.play();
+                            _audio.seekToIndex(index).then((value) {
+                              updateSong();
+                            });
+                          
                         },
                       ),
                     )
@@ -165,7 +184,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
                 child: StreamBuilder<PositionData>(
                     stream: _audio.positionDataStream,
                     builder: (context, snapshot) {
-                      return BackgroundSfxControls();
+                      return const BackgroundSfxControls();
                     }),
               )
             ]),
@@ -229,9 +248,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
           final playing = playerState?.playing;
           if (playing != null) {
             return Controls(
-              onShuffle: () {
-                _audio.shuffle();
-              },
+              onShuffle: _audio.shuffle,
               onPrevious: _previousSong,
               onPlay: _audio.play,
               onPause: _audio.pause,

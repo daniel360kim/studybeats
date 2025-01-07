@@ -15,12 +15,14 @@ import 'package:rxdart/rxdart.dart';
 class Audio {
   Audio({
     required this.playlistId,
+    required this.onError,
   });
 
   final _logger = getLogger('AudioController');
   final _cloudInfoService = SongCloudInfoService();
 
   final int playlistId;
+  final VoidCallback onError;
   final audioPlayer = AudioPlayer();
   final ValueNotifier<bool> isLoaded = ValueNotifier<bool>(false);
 
@@ -34,7 +36,7 @@ class Audio {
 
   final _playlist =
       ConcatenatingAudioSource(children: [], useLazyPreparation: false);
-  void initPlayer() async {
+  Future<void> initPlayer() async {
     try {
       // Initialize the audio service to fetch playlist information
       final service = AudioService();
@@ -67,10 +69,10 @@ class Audio {
       );
 
       // Listen for position discontinuities, such as song transitions or skips
-      audioPlayer.positionDiscontinuityStream.listen((discontinuity) {
+      audioPlayer.positionDiscontinuityStream.listen((discontinuity) async {
         // Handle position discontinuity caused by auto-advancing to the next song
         if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance) {
-          updateAndResetDurationLog();
+          await updateAndResetDurationLog();
           if (isAdvance) {
             isAdvance = false; // Prevent unnecessary updates when shuffling
             return;
@@ -95,20 +97,24 @@ class Audio {
       isLoaded.value = true;
     } catch (e) {
       // Log any errors encountered during the initialization process
-      _logger.e('Error with songcloudinfo handler');
-      // TODO: Add additional error handling (e.g., user notification)
+      _logger.e('Error initializing audio player: $e');
+      onError();;
     }
   }
 
-  void dispose() {
+  void dispose() async {
     audioPlayer.pause();
     audioPlayer.dispose();
-
-    updateAndResetDurationLog();
+    try {
+      await updateAndResetDurationLog();
+    } catch (e) {
+      _logger.e('Duration update failed during dispose');
+      // No rethrow since the user is going to another page
+    }
   }
 
   /// Stops timer, logs the new duration and resets
-  void updateAndResetDurationLog() async {
+  Future<void> updateAndResetDurationLog() async {
     try {
       final song = audioPlayer.sequence![currentSongIndex].tag as SongMetadata;
       songDurationTimer.stop();
@@ -121,28 +127,28 @@ class Audio {
       }
     } catch (e) {
       _logger.e('Failed to update song duration: $e');
-      rethrow;
+      onError();;
     }
   }
 
-  void play() async {
+  Future play() async {
     songDurationTimer.start();
 
     try {
       await audioPlayer.play();
     } catch (e) {
       _logger.e('Audio play failed. $e');
-      rethrow;
+      onError();
     }
   }
 
   void pause() async {
-    updateAndResetDurationLog();
     try {
+      await updateAndResetDurationLog();
       await audioPlayer.pause();
     } catch (e) {
       _logger.e('Audio pause failed. $e');
-      rethrow;
+      onError();
     }
   }
 
@@ -151,7 +157,7 @@ class Audio {
       await audioPlayer.seek(position);
     } catch (e) {
       _logger.e('Audio seek to ${position.inMilliseconds} failed. $e');
-      rethrow;
+      onError();
     }
   }
 
@@ -160,14 +166,14 @@ class Audio {
       await audioPlayer.setSpeed(speed);
     } catch (e) {
       _logger.e('Audio set speed to $speed failed');
-      rethrow;
+      onError();
     }
   }
 
   Future seekToIndex(int index) async {
     isLoaded.value = false;
     try {
-      updateAndResetDurationLog();
+      await updateAndResetDurationLog();
       await audioPlayer.seek(Duration.zero, index: index);
 
       currentSongIndex = index;
@@ -175,7 +181,7 @@ class Audio {
       isLoaded.value = true;
     } catch (e) {
       _logger.e('Audio seek to $index failed');
-      rethrow;
+      onError();
     }
   }
 
@@ -192,7 +198,7 @@ class Audio {
     try {
       await seekToIndex(nextIndex).then((value) => isLoaded.value = true);
     } catch (e) {
-      rethrow;
+      onError();
     }
   }
 
@@ -208,7 +214,7 @@ class Audio {
     try {
       await seekToIndex(prevIndex).then((value) => isLoaded.value = true);
     } catch (e) {
-      rethrow;
+      onError();
     }
   }
 
@@ -217,12 +223,17 @@ class Audio {
       await audioPlayer.setVolume(volume);
     } catch (e) {
       _logger.e('Audio set volume to $volume failed');
-      rethrow;
+      onError();
     }
   }
 
-  void shuffle() async {
-    updateAndResetDurationLog();
+  Future shuffle() async {
+    try {
+      await updateAndResetDurationLog();
+    } catch (e) {
+      _logger.e('Failed to shuffle: $e');
+      onError();
+    }
     isAdvance = true;
     // Get the current sequence of AudioSources
     final sequence = audioPlayer.sequence;
