@@ -1,5 +1,16 @@
 {
   "projects": {
     "default": "flourish-web-fa343"
-  }
+  },
+  "targets": {
+    "flourish-web-fa343": {
+      "hosting": {
+        "app": [
+          "flourish-web-fa343"
+        ]
+      }
+    }
+  },
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }
