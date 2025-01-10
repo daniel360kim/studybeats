@@ -372,7 +372,10 @@ class OpenaiService {
         final todayTokenData = todayTokenUsage.data() as Map<String, dynamic>;
         final todayTokenUsageData =
             Usage.fromJson(todayTokenData['tokenUsage']);
-
+        // 0 represents infinite tokens
+        if (_tokenLimit == 0) {
+          _tokenLimitExceeded = false;
+        }
         if (todayTokenUsageData.totalTokens! > _tokenLimit) {
           _tokenLimitExceeded = true; // User has exceeded the token limit
         } else {

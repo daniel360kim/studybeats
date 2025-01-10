@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/gestures.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
@@ -52,6 +53,7 @@ class _AiChatState extends State<AiChat> {
   Uint8List? _imageFile;
   String? _imageUrl;
   String _errorMessage = '';
+  bool _showTokenMessage = false;
 
   final List<Map<String, dynamic>> _conversationHistory = [];
   int numCharacters = 0;
@@ -70,6 +72,7 @@ class _AiChatState extends State<AiChat> {
 
   void _init() async {
     await _openaiService.init();
+    await _openaiService.checkTokenUsage();
     await _analyticsService.logOpenFeature(ContentType.aiChat, 'AiChat');
     final url = await _authService.getProfilePictureUrl();
     // Get conversation history from Firestore
@@ -83,13 +86,15 @@ class _AiChatState extends State<AiChat> {
         });
       }
       _scrollToBottom();
+      setState(() {
+        _showTokenMessage = _openaiService.tokenLimitExceeded;
+      });
     } catch (e) {
       _logger.e('Failed to get conversation history from Firestore: $e');
       if (mounted) {
         setState(() {
           _showError = true;
-          _errorMessage =
-              'Failed to get conversation history from Firestore: $e';
+          _errorMessage = 'Failed to get conversation history';
         });
       }
       return;
@@ -134,10 +139,7 @@ class _AiChatState extends State<AiChat> {
     if (_loadingResponse || _loadingConversationHistory || _loadingImage) {
       return;
     }
-    if (_openaiService.tokenLimitExceeded) {
-      _showTokenLimitExceededAlert(context);
-      return;
-    }
+
     if ([_textEditingController.text, _imageFile, _imageUrl]
         .every((element) => element == null)) {
       _logger.w('No message to send');
@@ -188,6 +190,11 @@ class _AiChatState extends State<AiChat> {
           _conversationHistory.add(message);
         });
         await _openaiService.addToConversationHistory(message);
+        await _openaiService.checkTokenUsage();
+
+        setState(() {
+          _showTokenMessage = _openaiService.tokenLimitExceeded;
+        });
 
         _scrollToBottom();
       }
@@ -196,7 +203,7 @@ class _AiChatState extends State<AiChat> {
       setState(() {
         _loadingResponse = false;
         _showError = true;
-        _errorMessage = 'Failed to store message in Firestore: $e';
+        _errorMessage = 'Failed to store message';
         _conversationHistory.removeLast(); // Remove the placeholder message
       });
     }
@@ -229,7 +236,7 @@ class _AiChatState extends State<AiChat> {
         _conversationHistory.removeLast(); // Remove the placeholder message
         _loadingResponse = false;
         _showError = true;
-        _errorMessage = 'Failed to get response from API: $e';
+        _errorMessage = 'Failed to get response';
       });
     }
   }
@@ -309,7 +316,15 @@ class _AiChatState extends State<AiChat> {
                             ),
                           ),
                         ),
-                      buildTextInputFields(),
+                      _showTokenMessage
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10.0,
+                                vertical: 15.0,
+                              ),
+                              child: _getTokenExceededMessage(context),
+                            )
+                          : buildTextInputFields(),
                     ],
                   ),
                   if (_showScrollToBottomButton)
@@ -580,7 +595,8 @@ class _AiChatState extends State<AiChat> {
                         LinearProgressIndicator(
                           value: tokensUsedToday / tokenLimit,
                           backgroundColor: Colors.grey[300],
-                          valueColor: const AlwaysStoppedAnimation(Colors.blue),
+                          valueColor:
+                              const AlwaysStoppedAnimation(kFlourishAdobe),
                         ),
                       ],
                     ),
@@ -622,28 +638,33 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  void _showTokenLimitExceededAlert(BuildContext context) {
+  Widget _getTokenExceededMessage(BuildContext context) {
+    /*
     final resetTime = DateTime.now().add(const Duration(days: 1)).toLocal();
     final formattedTime = DateFormat('MMMM d, y').format(resetTime);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Token Limit Exceeded'),
-          content: Text(
-            'You have exceeded the token limit. The token limit resets on $formattedTime.', // TODO show option to upgrade to premium
+  */
+    return RichText(
+      text: TextSpan(
+        children: [
+          const TextSpan(
+            text: 'You have exceeded the token limit for today. ',
+            style: TextStyle(color: kFlourishLightBlackish, fontSize: 12),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
+          TextSpan(
+            text: 'Upgrade for more',
+            style: const TextStyle(
+              color: kFlourishAdobe, // Set the color of "Upgrade for more"
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
-          ],
-        );
-      },
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                // Navigate to the upgrade page
+                context.goNamed(AppRoute.subscriptionPage.name);
+              },
+          ),
+        ],
+      ),
     );
   }
 
@@ -657,7 +678,7 @@ class _AiChatState extends State<AiChat> {
       _logger.e('Failed to clear chat: $e');
       setState(() {
         _showError = true;
-        _errorMessage = 'Failed to clear chat: $e';
+        _errorMessage = 'Failed to clear chat. Please try again.';
       });
     }
   }

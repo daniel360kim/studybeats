@@ -139,7 +139,7 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                 ),
               ),
               Visibility(
-                maintainState: true,
+                maintainState: false,
                 visible: _selectedIndex == 1 && _selectedIndex != null,
                 child: AiChat(onClose: () {
                   setState(() {
