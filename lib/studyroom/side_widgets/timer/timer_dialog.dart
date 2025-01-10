@@ -154,7 +154,7 @@ class _TimerDialogState extends State<TimerDialog> {
                         child: Center(
                           child: Text(
                             _isOnFocus ? 'Focus' : 'Break',
-                            style: GoogleFonts.inter(
+                            style: TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.w900,
                               color: kFlourishAliceBlue,
@@ -169,7 +169,7 @@ class _TimerDialogState extends State<TimerDialog> {
                   ),
                   Text(
                     _formattedTime(_currentTime),
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 60,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,

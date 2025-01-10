@@ -240,6 +240,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                       onPressed: () {
                         PomodoroDurations durations =
                             PomodoroDurations(studyTime, breakTime);
+
                         widget.onStartPressed(durations);
                       },
                       child: Text(
@@ -398,8 +399,14 @@ class TimerSwiperItem extends StatefulWidget {
 }
 
 class _TimerSwiperItemState extends State<TimerSwiperItem> {
-  Duration _hourTimer = const Duration();
-  Duration _minuteTimer = const Duration();
+  late Duration _hourTimer;
+  late Duration _minuteTimer;
+  @override
+  void initState() {
+    _hourTimer = Duration(hours: widget.initialHourValue);
+    _minuteTimer = Duration(minutes: widget.initialMinuteValue);
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
