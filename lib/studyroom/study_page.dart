@@ -132,12 +132,7 @@ class _StudyRoomState extends State<StudyRoom> {
                   timerSoundEnabled: _timerSoundEnabled,
                   timerFxData: _timerFxData!,
                   onTimerDurationChanged: (value) {
-                    late final String timeDescription;
-                    if (value.studyTime.inSeconds <= 0) {
-                      timeDescription = formatDuration(value.breakTime);
-                    } else {
-                      timeDescription = formatDuration(value.studyTime);
-                    }
+                    final timeDescription = formatDuration(value);
 
                     SystemChrome.setApplicationSwitcherDescription(
                       ApplicationSwitcherDescription(
@@ -237,10 +232,28 @@ class _StudyRoomState extends State<StudyRoom> {
     );
   }
 
-  String formatDuration(Duration duration) {
+  String formatDuration(TabDescriptionReporter report) {
+    // Determine the type description
+    late String typeDescription = 'Break:';
+    if (report.isFocus) {
+      typeDescription = 'Focus:';
+    }
+
+    // Helper to format two-digit numbers
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
+
+    // Extract hours, minutes, and seconds
+    final hours = twoDigits(report.duration.inHours);
+    final minutes = twoDigits(report.duration.inMinutes.remainder(60));
+    final seconds = twoDigits(report.duration.inSeconds.remainder(60));
+
+    // Format the output string
+    if (report.duration.inHours > 0) {
+      // Include hours if they are greater than 0
+      return '$typeDescription $hours:$minutes:$seconds';
+    } else {
+      // Omit hours if they are 0
+      return '$typeDescription $minutes:$seconds';
+    }
   }
 }

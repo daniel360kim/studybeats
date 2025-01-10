@@ -8,6 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'timer.dart';
 
+class TabDescriptionReporter {
+  bool isFocus;
+  Duration duration;
+
+  TabDescriptionReporter({required this.isFocus, required this.duration});
+}
+
 class TimerDialog extends StatefulWidget {
   const TimerDialog({
     required this.focusTimerDuration,
@@ -23,7 +30,7 @@ class TimerDialog extends StatefulWidget {
   final Duration breakTimerDuration;
   final ValueChanged<PomodoroDurations> onExit;
   final bool timerSoundEnabled;
-  final ValueChanged<PomodoroDurations> onTimerDurationChanged;
+  final ValueChanged<TabDescriptionReporter> onTimerDurationChanged;
   final TimerFxData timerFxData;
 
   @override
@@ -78,12 +85,12 @@ class _TimerDialogState extends State<TimerDialog> {
   }
 
   void _updateTimer(Timer timer) {
-    widget.onTimerDurationChanged(PomodoroDurations(
-      _currentTime,
-      _isOnFocus ? widget.breakTimerDuration : widget.focusTimerDuration,
-    ));
     final elapsed = DateTime.now().difference(_startTime);
     final remainingTime = _initialTime - elapsed;
+
+    final report =
+        TabDescriptionReporter(isFocus: _isOnFocus, duration: remainingTime);
+    widget.onTimerDurationChanged(report);
 
     if (remainingTime.inSeconds <= 0) {
       setState(() {
