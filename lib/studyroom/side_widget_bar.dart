@@ -35,6 +35,13 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   int? _selectedIndex;
 
   void _onItemTapped(int index) {
+    if (!AuthService().isUserLoggedIn()) {
+      setState(() {
+        _selectedIndex = null;
+      });
+      _redirectToLogin();
+      return;
+    }
     setState(() {
       _selectedIndex = _selectedIndex == index ? null : index;
     });
@@ -111,76 +118,74 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   }
 
   Widget _getSelectedWidget() {
-    return Column(
-      children: [
-        Visibility(
-          maintainState: true,
-          visible: _selectedIndex == 0 && _selectedIndex != null,
-          child: SceneSelector(
-            onSceneSelected: ((id) async {
-              widget.onSceneChanged(id);
-              await AuthService().changeselectedSceneId(id);
-            }),
-            onClose: () {
-              setState(() {
-                _selectedIndex = null;
-              });
-            },
-            currentScene: widget.currentScene,
-            currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
-          ),
-        ),
-        Visibility(
-          maintainState: true,
-          visible: _selectedIndex == 1 && _selectedIndex != null,
-          child: AuthService().isUserLoggedIn()
-              ? AiChat(onClose: () {
+    return AuthService().isUserLoggedIn()
+        ? Column(
+            children: [
+              Visibility(
+                maintainState: true,
+                visible: _selectedIndex == 0 && _selectedIndex != null,
+                child: SceneSelector(
+                  onSceneSelected: ((id) async {
+                    widget.onSceneChanged(id);
+                    await AuthService().changeselectedSceneId(id);
+                  }),
+                  onClose: () {
+                    setState(() {
+                      _selectedIndex = null;
+                    });
+                  },
+                  currentScene: widget.currentScene,
+                  currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
+                ),
+              ),
+              Visibility(
+                maintainState: true,
+                visible: _selectedIndex == 1 && _selectedIndex != null,
+                child: AiChat(onClose: () {
                   setState(() {
                     _selectedIndex = null;
                   });
-                })
-              : _redirectToLogin(),
-        ),
-        Visibility(
-          maintainState: true,
-          visible: _selectedIndex == 2 && _selectedIndex != null,
-          child: PomodoroTimer(
-            onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
-            onTimerSoundSelected: (value) => widget.timerFxData(value),
-            onStartPressed: (value) {
-              widget.onShowTimer(value);
-              setState(() {
-                _selectedIndex = null;
-              });
-            },
-            onClose: () {
-              setState(() {
-                _selectedIndex = null;
-              });
-            },
-          ),
-        ),
-        Visibility(
-          maintainState: true,
-          visible: _selectedIndex == 3 && _selectedIndex != null,
-          child: AuthService().isUserLoggedIn()
-              ? Todo(onClose: () {
-                  setState(() {
-                    _selectedIndex = null;
-                  });
-                })
-              : _redirectToLogin(),
-        ),
-      ],
-    );
+                }),
+              ),
+              Visibility(
+                maintainState: true,
+                visible: _selectedIndex == 2 && _selectedIndex != null,
+                child: PomodoroTimer(
+                  onTimerSoundEnabled: (value) =>
+                      widget.onTimerSoundEnabled(value),
+                  onTimerSoundSelected: (value) => widget.timerFxData(value),
+                  onStartPressed: (value) {
+                    widget.onShowTimer(value);
+                    setState(() {
+                      _selectedIndex = null;
+                    });
+                  },
+                  onClose: () {
+                    setState(() {
+                      _selectedIndex = null;
+                    });
+                  },
+                ),
+              ),
+              Visibility(
+                  maintainState: true,
+                  visible: _selectedIndex == 3 && _selectedIndex != null,
+                  child: Todo(onClose: () {
+                    setState(() {
+                      _selectedIndex = null;
+                    });
+                  })),
+            ],
+          )
+        : const SizedBox();
   }
 
   Widget _redirectToLogin() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.goNamed(AppRoute.loginPage.name);
       setState(() {
         _selectedIndex = null;
       });
+      context.goNamed(AppRoute.loginPage.name);
     });
 
     return const SizedBox();
