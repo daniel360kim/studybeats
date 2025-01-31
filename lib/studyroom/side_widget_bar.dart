@@ -35,13 +35,6 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   int? _selectedIndex;
 
   void _onItemTapped(int index) {
-    if (!AuthService().isUserLoggedIn()) {
-      setState(() {
-        _selectedIndex = null;
-      });
-      _redirectToLogin();
-      return;
-    }
     setState(() {
       _selectedIndex = _selectedIndex == index ? null : index;
     });
@@ -90,6 +83,13 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                   index: 1,
                   imagePath: 'assets/icons/robot.png',
                   onItemTapped: (value) {
+                    if (!AuthService().isUserLoggedIn()) {
+                      setState(() {
+                        _selectedIndex = null;
+                      });
+                      _redirectToLogin();
+                      return;
+                    }
                     _onItemTapped(value);
                   },
                 ),
@@ -108,6 +108,13 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                   index: 3,
                   imagePath: 'assets/icons/todo.png',
                   onItemTapped: (value) {
+                    if (!AuthService().isUserLoggedIn()) {
+                      setState(() {
+                        _selectedIndex = null;
+                      });
+                      _redirectToLogin();
+                      return;
+                    }
                     _onItemTapped(value);
                   },
                 ),
@@ -118,66 +125,67 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   }
 
   Widget _getSelectedWidget() {
-    return AuthService().isUserLoggedIn()
-        ? Column(
-            children: [
-              Visibility(
+    return Column(
+      children: [
+        Visibility(
+          maintainState: true,
+          visible: _selectedIndex == 0 && _selectedIndex != null,
+          child: SceneSelector(
+            onSceneSelected: ((id) async {
+              widget.onSceneChanged(id);
+              await AuthService().changeselectedSceneId(id);
+            }),
+            onClose: () {
+              setState(() {
+                _selectedIndex = null;
+              });
+            },
+            currentScene: widget.currentScene,
+            currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
+          ),
+        ),
+        AuthService().isUserLoggedIn()
+            ? Visibility(
                 maintainState: true,
-                visible: _selectedIndex == 0 && _selectedIndex != null,
-                child: SceneSelector(
-                  onSceneSelected: ((id) async {
-                    widget.onSceneChanged(id);
-                    await AuthService().changeselectedSceneId(id);
-                  }),
-                  onClose: () {
-                    setState(() {
-                      _selectedIndex = null;
-                    });
-                  },
-                  currentScene: widget.currentScene,
-                  currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
-                ),
-              ),
-              Visibility(
-                maintainState: false,
                 visible: _selectedIndex == 1 && _selectedIndex != null,
                 child: AiChat(onClose: () {
                   setState(() {
                     _selectedIndex = null;
                   });
                 }),
-              ),
-              Visibility(
+              )
+            : const SizedBox.shrink(),
+        Visibility(
+          maintainState: true,
+          visible: _selectedIndex == 2 && _selectedIndex != null,
+          child: PomodoroTimer(
+            onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
+            onTimerSoundSelected: (value) => widget.timerFxData(value),
+            onStartPressed: (value) {
+              widget.onShowTimer(value);
+              setState(() {
+                _selectedIndex = null;
+              });
+            },
+            onClose: () {
+              setState(() {
+                _selectedIndex = null;
+              });
+            },
+          ),
+        ),
+        AuthService().isUserLoggedIn()
+            ? Visibility(
                 maintainState: true,
-                visible: _selectedIndex == 2 && _selectedIndex != null,
-                child: PomodoroTimer(
-                  onTimerSoundEnabled: (value) =>
-                      widget.onTimerSoundEnabled(value),
-                  onTimerSoundSelected: (value) => widget.timerFxData(value),
-                  onStartPressed: (value) {
-                    widget.onShowTimer(value);
-                    setState(() {
-                      _selectedIndex = null;
-                    });
-                  },
-                  onClose: () {
-                    setState(() {
-                      _selectedIndex = null;
-                    });
-                  },
-                ),
-              ),
-              Visibility(
-                  maintainState: true,
-                  visible: _selectedIndex == 3 && _selectedIndex != null,
-                  child: Todo(onClose: () {
-                    setState(() {
-                      _selectedIndex = null;
-                    });
-                  })),
-            ],
-          )
-        : const SizedBox();
+                visible: _selectedIndex == 3 && _selectedIndex != null,
+                child: Todo(onClose: () {
+                  setState(() {
+                    _selectedIndex = null;
+                  });
+                }))
+            : const SizedBox.shrink(),
+      ],
+    );
   }
 
   Widget _redirectToLogin() {
