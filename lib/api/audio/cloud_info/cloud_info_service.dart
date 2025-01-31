@@ -13,6 +13,7 @@ import 'package:studybeats/log_printer.dart';
 ///
 ///
 ///
+/// In the case that the user is not logged in, the functions will just return
 class SongCloudInfoService {
   final _authService = AuthService();
   final _audioService = AudioService();
@@ -23,6 +24,10 @@ class SongCloudInfoService {
   Future<void> init() async {
     try {
       final email = await _authService.getCurrentUserEmail();
+      if (email == null) {
+        _logger.w('User is not logged in');
+        return;
+      }
       final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
       _audioCollection = userDoc.collection('audioLists');
     } catch (e, s) {
@@ -34,6 +39,9 @@ class SongCloudInfoService {
   Future<void> markSongFavorite(
       int playlistId, SongMetadata song, bool isFavorite) async {
     try {
+      if (!_authService.isUserLoggedIn()) {
+        _logger.w('User is not logged in, ignoring request');
+      }
       final playlist = await _audioService.getPlaylistInfo(playlistId);
       _logger.i(
           'Marking song ${song.trackName} from playlist ${playlist.name} as favorite: $isFavorite');
@@ -80,6 +88,10 @@ class SongCloudInfoService {
     try {
       _logger.i(
           'Checking if song ${song.trackName} from playlist id $playlistId is a favorite');
+      if (!_authService.isUserLoggedIn()) {
+        _logger.w('User is not logged in, ignoring request');
+        return false;
+      }
       final playlist = await _audioService.getPlaylistInfo(playlistId);
       final songDoc = await _audioCollection
           .doc(playlist.id.toString())
@@ -104,6 +116,10 @@ class SongCloudInfoService {
   Future<void> updateSongDuration(
       int playlistId, SongMetadata song, Duration timePlayed) async {
     try {
+      if (!_authService.isUserLoggedIn()) {
+        _logger.w('User is not logged in, ignoring request');
+        return;
+      }
       final playlist = await _audioService.getPlaylistInfo(playlistId);
       _logger.i(
           'Updating song ${song.trackName} from playlist ${playlist.name} with time played $timePlayed');
@@ -151,8 +167,12 @@ class SongCloudInfoService {
   Future<Duration> getPlaylistTotalDuration(int playlistId) async {
     try {
       final playlist = await _audioService.getPlaylistInfo(playlistId);
-      _logger.i('Calculating total duration for playlist ${playlist.name}');
 
+      _logger.i('Calculating total duration for playlist ${playlist.name}');
+      if (!_authService.isUserLoggedIn()) {
+        _logger.w('User is not logged in, ignoring request');
+        return Duration.zero;
+      }
       // Retrieve all songs in the playlist
       final songSnapshots = await _audioCollection
           .doc(playlist.id.toString())
@@ -180,6 +200,11 @@ class SongCloudInfoService {
   Future<Duration> getTotalDurationAllPlaylists() async {
     try {
       _logger.i('Calculating total duration for all playlists');
+
+      if (!_authService.isUserLoggedIn()) {
+        _logger.w('User is not logged in, ignoring request');
+        return Duration.zero;
+      }
 
       // Retrieve all playlists
       final playlistSnapshots = await _audioCollection.get();
