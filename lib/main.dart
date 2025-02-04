@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:studybeats/app.dart';
 import 'package:studybeats/app_state.dart';
 import 'package:studybeats/firebase_options.dart';
@@ -12,7 +13,10 @@ import 'package:url_strategy/url_strategy.dart';
 
 Future<void> main() async {
   runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+    WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+    FlutterNativeSplash.remove();
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );

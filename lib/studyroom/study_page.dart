@@ -13,7 +13,6 @@ import 'package:studybeats/studyroom/side_widgets/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:studybeats/studyroom/splash_screen.dart';
 // Add the shimmer package
 
 class StudyRoom extends StatefulWidget {
@@ -222,12 +221,7 @@ class _StudyRoomState extends State<StudyRoom> {
             },
           ),
         ),
-        if (_loadingControlBar || _loadingScene || !_splashFinished)
-          SplashScreen(onFinished: () {
-            setState(() {
-              _splashFinished = true;
-            });
-          })
+       
       ],
     );
   }
