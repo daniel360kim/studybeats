@@ -33,6 +33,15 @@ class _SignupPageState extends State<SignupPage> {
   final _keyboardListenerFocusNode = FocusNode();
 
   @override
+  void initState() {
+    if (_authService.isUserLoggedIn()) {
+      context.goNamed(AppRoute.studyRoom.name);
+    }
+    super.initState();
+    _keyboardListenerFocusNode.requestFocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: kFlourishBlackish,

@@ -21,7 +21,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameTextController = TextEditingController();
-
   final TextEditingController _passwordTextController = TextEditingController();
 
   bool _passwordVisible = false;
@@ -39,6 +38,18 @@ class _LoginPageState extends State<LoginPage> {
   final _authService = AuthService();
 
   final _keyboardListenerFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    if (_authService.isUserLoggedIn()) {
+      if (context.mounted) {
+        context.goNamed(AppRoute.studyRoom.name);
+      }
+    }
+    super.initState();
+
+    _keyboardListenerFocusNode.requestFocus();
+  }
 
   @override
   Widget build(BuildContext context) {

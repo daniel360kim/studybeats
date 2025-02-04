@@ -6,7 +6,8 @@ import 'package:studybeats/auth_pages/signup/create_password.dart';
 import 'package:studybeats/auth_pages/signup/name_page.dart';
 import 'package:studybeats/auth_pages/signup/signup_page.dart';
 import 'package:studybeats/auth_pages/subscription_page.dart';
-import 'package:studybeats/mobile_landing_page.dart';
+import 'package:studybeats/landing/error_page.dart';
+import 'package:studybeats/landing/mobile_landing_page.dart';
 import 'package:studybeats/studyroom/study_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/utils.dart';
@@ -64,6 +65,7 @@ GoRouter createRouter(BuildContext context) {
   }
 
   return GoRouter(
+    errorBuilder: (context, state) => const ErrorPage(),
     observers: [
       ScreenViewObserver(
         analyticsService: AnalyticsService(),
