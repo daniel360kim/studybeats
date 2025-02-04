@@ -9,13 +9,12 @@ class TodoService {
   final _logger = getLogger('TodoService');
 
   late final CollectionReference<Map<String, dynamic>> _todoCollection;
-  late final CollectionReference<Map<String, dynamic>> _metaCollection;
+
 
   Future<void> init() async {
     final email = await _getUserEmail();
     final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
     _todoCollection = userDoc.collection('todoLists');
-    _metaCollection = userDoc.collection('meta');
 
     // If there are no todo lists, create the default one
     final todoLists = await fetchTodoLists();

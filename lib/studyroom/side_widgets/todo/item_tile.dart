@@ -24,6 +24,7 @@ class TodoItemTile extends StatefulWidget {
 
 class _TodoItemTileState extends State<TodoItemTile> {
   bool _isHovering = false;
+  bool _isDateButtonHovering = false;
   bool _isEditing = false;
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
@@ -125,7 +126,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
                     ),
                   ),
                 if (_isEditing) buildEditControls(),
-                if (widget.item.dueDate != null) buildDeadlineDescription(),
+                if (widget.item.dueDate != null || _isEditing)
+                  buildDeadlineDescription(),
                 if (_isEditing) buildEditSaveControls(),
               ],
             ),
@@ -279,20 +281,37 @@ class _TodoItemTileState extends State<TodoItemTile> {
         alignment: Alignment.centerLeft,
         child: GestureDetector(
           onTap: _isEditing ? () => _selectDate(context) : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.calendar_today,
-                  size: 12, color: kFlourishAdobe), // TODO different colors
-              const SizedBox(width: 4),
-              Text(
-                _getDeadlineDescription(),
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: kFlourishAdobe,
-                ),
+          child: MouseRegion(
+            cursor: _isEditing
+                ? SystemMouseCursors.click
+                : SystemMouseCursors.basic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: _isDateButtonHovering && _isEditing
+                    ? kFlourishAdobe.withOpacity(0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(4),
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.calendar_today,
+                      size: 12, color: kFlourishAdobe),
+                  const SizedBox(width: 4),
+                  Text(
+                    _getDeadlineDescription(),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: kFlourishAdobe,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            onEnter: (_) => setState(() => _isDateButtonHovering = true),
+            onExit: (_) => setState(() => _isDateButtonHovering = false),
           ),
         ),
       ),
@@ -365,18 +384,26 @@ class _TodoItemTileState extends State<TodoItemTile> {
   }
 
   String _getDeadlineDescription() {
+    if (_selectedDate == null) {
+      return 'Add date';
+    }
     final now = DateTime.now();
-    final dueDate = _isEditing ? _selectedDate! : widget.item.dueDate!;
-    final difference = dueDate.difference(now);
+    // Strip time component for proper day comparison
+    final nowDate = DateTime(now.year, now.month, now.day);
+    final fullDueDate = _isEditing ? _selectedDate! : widget.item.dueDate!;
+    final dueDate =
+        DateTime(fullDueDate.year, fullDueDate.month, fullDueDate.day);
+    final differenceInDays = dueDate.difference(nowDate).inDays;
     String day;
-    if (difference.inDays < 0) {
-      day = '${difference.inDays.abs()} days ago';
-    } else if (difference.inDays == 0) {
+    if (differenceInDays < 0) {
+      final absDays = differenceInDays.abs();
+      day = '$absDays ${absDays == 1 ? "day" : "days"} ago';
+    } else if (differenceInDays == 0) {
       day = 'Today';
-    } else if (difference.inDays == 1) {
+    } else if (differenceInDays == 1) {
       day = 'Tomorrow';
-    } else if (difference.inDays < 7) {
-      day = 'In ${difference.inDays} days';
+    } else if (differenceInDays < 7) {
+      day = 'In $differenceInDays days';
     } else {
       day = 'On ${dueDate.month}/${dueDate.day}';
     }
@@ -476,28 +503,58 @@ class _TodoItemTileState extends State<TodoItemTile> {
                 ),
               ),
               // Actions
-              Container(
-                width: 100,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: kFlourishAliceBlue,
-                    backgroundColor: kFlourishAdobe,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    fixedSize: const Size(110, 30),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 100,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _selectedDate = widget.item.dueDate;
+                        _selectedTime = widget.item.dueTime;
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: kFlourishBlackish,
+                        backgroundColor: kFlourishLightBlackish,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        fixedSize: const Size(110, 30),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: Text('Cancel',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                          )),
                     ),
                   ),
-                  child: Text('Save',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                      )),
-                ),
+                  Container(
+                    width: 100,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: kFlourishAliceBlue,
+                        backgroundColor: kFlourishAdobe,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        fixedSize: const Size(110, 30),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: Text('Save',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                          )),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
