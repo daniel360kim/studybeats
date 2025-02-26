@@ -76,6 +76,9 @@ class _EqualizerControlsState extends State<EqualizerControls> {
     );
   }
 
+  String getUpscaledImage(String artworkUrl100) {
+    return artworkUrl100.replaceAll('100x100', '500x500');
+  }
   Widget buildHeader() {
     return Container(
       width: 500,
@@ -95,7 +98,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
             child: widget.song == null
                 ? _buildShimmerThumbnailPlaceholder()
                 : CachedNetworkImage(
-                    imageUrl: widget.song!.artworkUrl100,
+                    imageUrl: getUpscaledImage(widget.song!.artworkUrl100),
                     width: 100,
                     height: 100,
                     fit: BoxFit.cover,

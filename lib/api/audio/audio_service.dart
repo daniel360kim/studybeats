@@ -81,10 +81,14 @@ class AudioService {
           .toList();
 
       // Create audio sources for each song concurrently.
+      int counter = 0;
       List<Future<AudioSource>> audioSourceFutures =
           sources.map((source) async {
+        print(source.songPath);
         final jsonRef = _storageRef.child(source.songPath);
         final uri = Uri.parse(await jsonRef.getDownloadURL());
+        print(uri);
+        _logger.i('Generated URI for song ${++counter}');
         return AudioSource.uri(uri, tag: source);
       }).toList();
 
