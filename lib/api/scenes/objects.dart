@@ -8,6 +8,7 @@ SceneData _$SceneDataFromJson(Map<String, dynamic> json) {
     name: json['name'],
     playlistId: json['playlistId'],
     scenePath: json['scenePath'],
+    thumbnailPath: json['thumbnailPath'],
     fontTheme: json['fontTheme'],
   );
 }
@@ -18,6 +19,7 @@ class SceneData {
   final String name;
   final int playlistId;
   final String scenePath;
+  final String thumbnailPath;
   final String fontTheme;
   
 
@@ -25,6 +27,7 @@ class SceneData {
     required this.id,
     required this.name,
     required this.playlistId,
+    required this.thumbnailPath,
     required this.scenePath,
     required this.fontTheme,
   });

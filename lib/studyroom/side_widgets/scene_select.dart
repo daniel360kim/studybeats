@@ -46,7 +46,7 @@ class _SceneSelectorState extends State<SceneSelector> {
       final List<String> backgroundImageList = [];
       for (final scene in sceneList) {
         backgroundImageList
-            .add(await _sceneService.getBackgroundImageUrl(scene));
+            .add(await _sceneService.getThumbnailImageUrl(scene));
       }
 
       setState(() {
@@ -130,7 +130,6 @@ class _SceneSelectorState extends State<SceneSelector> {
                           width: 400,
                           height: MediaQuery.of(context).size.height - 80 - 390,
                           child: ListView.builder(
-                            
                             itemCount: _sceneList.length,
                             itemBuilder: (BuildContext context, int index) {
                               SceneData scene = _sceneList[index];

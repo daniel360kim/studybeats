@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:studybeats/api/scenes/objects.dart';
@@ -37,6 +38,17 @@ class SceneService {
     } catch (e) {
       _logger.e(
           'Unknown error while getting background image url for ${scene.name} $e');
+      rethrow;
+    }
+  }
+
+  Future<String> getThumbnailImageUrl(SceneData scene) async {
+    try {
+      final jsonRef = _storageRef.child(scene.thumbnailPath);
+      return await jsonRef.getDownloadURL();
+    } catch (e) {
+      _logger.e(
+          'Unknown error while getting thumbnail image url for ${scene.name} $e');
       rethrow;
     }
   }
