@@ -4,6 +4,7 @@ import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/timer_fx/objects.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
+import 'package:studybeats/studyroom/side_widgets/notes/notes.dart';
 import 'package:studybeats/studyroom/side_widgets/scene_select.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/timer.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_widget.dart';
@@ -118,6 +119,15 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                     _onItemTapped(value);
                   },
                 ),
+                NavigationItem(
+                  selectedIndex: _selectedIndex,
+                  toolTip: 'Notes',
+                  index: 4,
+                  imagePath: 'assets/icons/notes.png',
+                  onItemTapped: (value) {
+                    _onItemTapped(value);
+                  },
+                ),
               ],
             )),
       ),
@@ -184,6 +194,16 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                   });
                 }))
             : const SizedBox.shrink(),
+        Visibility(
+            maintainState: true,
+            visible: _selectedIndex == 4 && _selectedIndex != null,
+            child: Notes(
+              onClose: () {
+                setState(() {
+                  _selectedIndex = null;
+                });
+              },
+            ))
       ],
     );
   }

@@ -68,7 +68,7 @@ class AiMessage extends StatelessWidget {
         width: 10,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: kFlourishPurple,
+          color: kFlourishAdobe,
         ),
       );
       messageTitle = 'Studybeats Bot';
