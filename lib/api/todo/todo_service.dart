@@ -12,6 +12,7 @@ class TodoService {
 
 
   Future<void> init() async {
+    try {
     final email = await _getUserEmail();
     final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
     _todoCollection = userDoc.collection('todoLists');
@@ -20,6 +21,11 @@ class TodoService {
     final todoLists = await fetchTodoLists();
     if (todoLists.isEmpty) {
       await createEmptyTodoList();
+    }
+
+    } catch (e, s) {
+      _logger.e('Failed to initialize todo service: $e $s');
+      rethrow;
     }
   }
 

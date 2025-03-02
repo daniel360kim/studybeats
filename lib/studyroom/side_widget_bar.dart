@@ -125,6 +125,13 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                   index: 4,
                   imagePath: 'assets/icons/notes.png',
                   onItemTapped: (value) {
+                    if (!AuthService().isUserLoggedIn()) {
+                      setState(() {
+                        _selectedIndex = null;
+                      });
+                      _redirectToLogin();
+                      return;
+                    }
                     _onItemTapped(value);
                   },
                 ),
@@ -194,16 +201,18 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                   });
                 }))
             : const SizedBox.shrink(),
-        Visibility(
-            maintainState: true,
-            visible: _selectedIndex == 4 && _selectedIndex != null,
-            child: Notes(
-              onClose: () {
-                setState(() {
-                  _selectedIndex = null;
-                });
-              },
-            ))
+        AuthService().isUserLoggedIn()
+            ? Visibility(
+                maintainState: true,
+                visible: _selectedIndex == 4 && _selectedIndex != null,
+                child: Notes(
+                  onClose: () {
+                    setState(() {
+                      _selectedIndex = null;
+                    });
+                  },
+                ))
+            : const SizedBox.shrink(),
       ],
     );
   }

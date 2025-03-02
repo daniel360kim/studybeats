@@ -1,33 +1,76 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:studybeats/api/analytics/analytics_service.dart';
-import 'package:studybeats/api/scenes/objects.dart';
-import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:ui';
-
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/api/notes/notes_service.dart';
+import 'package:studybeats/api/notes/objects.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/notes/draggable_note.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:uuid/uuid.dart';
+import 'draggable_note.dart';
 
 class Notes extends StatefulWidget {
-  const Notes({
-    required this.onClose,
-    super.key,
-  });
-
+  const Notes({required this.onClose, super.key});
   final VoidCallback onClose;
   @override
   State<Notes> createState() => _NotesState();
 }
 
 class _NotesState extends State<Notes> {
+  final NoteService _noteService = NoteService();
   OverlayEntry? _overlayEntry;
   bool _creatingNewNote = false;
+  // For this example, assume a default folder ID and generate a new note ID
+  final String _defaultFolderId = 'defaultFolder';
+  List<NotePreview> _notePreviews = [];
 
-  void _showDraggableNote() {
+  final ValueNotifier<int> _selectedNoteIndex = ValueNotifier<int>(0);
+
+  final _logger = getLogger('Notes Widget');
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotes();
+  }
+
+  void _showError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Something went wrong',
+          style: TextStyle(color: Colors.white), // Text color
+        ),
+        backgroundColor: Colors.red[400]!, // Set background color to red
+        duration: const Duration(seconds: 3), // Show for 5 seconds
+      ),
+    );
+  }
+
+  void _fetchNotes() async {
+    try {
+      await _noteService.init();
+      final notePreviews =
+          await _noteService.fetchNotePreviews(_defaultFolderId);
+      setState(() {
+        _notePreviews = notePreviews;
+      });
+    } catch (e) {
+      _showError();
+      _logger.e('Error fetching notes: $e');
+    }
+  }
+
+  void _showDraggableNote(String noteId) {
+    _logger.d('Showing draggable note with ID: $noteId');
+    if (_overlayEntry != null) {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+    }
     _overlayEntry = OverlayEntry(
       builder: (context) => DraggableNote(
+        folderId: _defaultFolderId,
+        noteId: noteId,
         initialTop: MediaQuery.of(context).size.height / 2 - 125,
         initialLeft: MediaQuery.of(context).size.width / 2 - 150,
         onClose: () {
@@ -47,16 +90,16 @@ class _NotesState extends State<Notes> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        // Side panel showing a "New note" button.
         SizedBox(
           width: 400,
           height: MediaQuery.of(context).size.height - 80,
           child: Column(
             children: [
               buildTopBar(),
-              ClipRRect(
+              Expanded(
                 child: Container(
                   width: 400,
-                  height: MediaQuery.of(context).size.height - 120,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
@@ -72,7 +115,7 @@ class _NotesState extends State<Notes> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Todo',
+                        'Notes',
                         style: GoogleFonts.inter(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -80,15 +123,9 @@ class _NotesState extends State<Notes> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      if (!_creatingNewNote)
-                        NewNoteButton(
-                          onPressed: () {
-                            setState(() {
-                              _creatingNewNote = true;
-                            });
-                            _showDraggableNote();
-                          },
-                        ),
+                      Expanded(
+                        child: buildNotePreviews(),
+                      ),
                     ],
                   ),
                 ),
@@ -102,14 +139,77 @@ class _NotesState extends State<Notes> {
 
   Widget buildTopBar() {
     return Container(
-      height: 40,
+      height: 50,
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
           IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.add),
+            onPressed: () async {
+              final selectedNoteId = _notePreviews[_selectedNoteIndex.value].id;
+              try {
+                if (_creatingNewNote) {
+                  _overlayEntry?.remove();
+                  _overlayEntry = null;
+                  setState(() {
+                    _creatingNewNote = false;
+                  });
+                }
+
+                await _noteService.deleteNote(
+                  _defaultFolderId,
+                  selectedNoteId,
+                );
+              } catch (e) {
+                _logger.e('Error deleting note: $e');
+                _showError();
+                _showError();
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'Note deleted',
+                    style: TextStyle(color: Colors.white), // Text color
+                  ),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () async {
+                      await _noteService.undoDelete(
+                          _defaultFolderId, selectedNoteId);
+                    },
+                    textColor: Colors.yellow, // Change undo button color
+                  ),
+                  duration:
+                      const Duration(seconds: 15), // Matches deletion time
+                  behavior:
+                      SnackBarBehavior.floating, // Makes it smaller in width
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12), // Rounded edges
+                  ),
+                  margin: const EdgeInsets.symmetric(
+                      horizontal: 50, vertical: 10), // Reduce width
+                  backgroundColor: kFlourishBlackish, // Customize background
+                ),
+              );
+            },
+            tooltip: 'Delete selected note',
+            icon: const Icon(Icons.delete_outlined),
+          ),
+          const VerticalDivider(
+            indent: 8,
+            endIndent: 8,
+          ),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _creatingNewNote = true;
+              });
+              final newNoteId = const Uuid().v4();
+              // Close any existing notes
+
+              _showDraggableNote(newNoteId);
+            },
+            icon: const Icon(Icons.add),
             tooltip: 'Create a new note',
           ),
           const Spacer(),
@@ -121,81 +221,154 @@ class _NotesState extends State<Notes> {
       ),
     );
   }
+
+  Widget buildNotePreviews() {
+    return StreamBuilder<List<NotePreview>>(
+      stream: _noteService.notePreviewsStream(_defaultFolderId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            _notePreviews.isEmpty) {
+          return Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: ListView.builder(
+              itemCount: 10,
+              itemBuilder: (context, index) {
+                return Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: kFlourishLightBlackish,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 200,
+                            height: 20,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: 300,
+                            height: 20,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        } else if (snapshot.hasError) {
+          _logger.e('Error fetching notes: ${snapshot.error}');
+          _showError();
+          return const SizedBox();
+        } else if (snapshot.hasData) {
+          final notes = snapshot.data!;
+          _notePreviews = notes;
+          debugPrint('Rebuilding notes list with ${notes.length} notes');
+          return ListView.builder(
+            key: ValueKey<int>(notes.length),
+            itemCount: notes.length,
+            itemBuilder: (context, index) {
+              final note = notes[index];
+              return ValueListenableBuilder<int>(
+                valueListenable: _selectedNoteIndex,
+                builder: (context, selectedIndex, child) {
+                  return GestureDetector(
+                      onTap: () {
+                        _selectedNoteIndex.value = index;
+                      },
+                      onDoubleTap: () {
+                        _selectedNoteIndex.value = index;
+                        _showDraggableNote(note.id);
+                      },
+                      child: NotePreviewItem(
+                        color: Colors.transparent,
+                        title: note.title,
+                        preview: note.preview,
+                        isSelected: selectedIndex == index,
+                      ));
+                },
+              );
+            },
+          );
+        } else {
+          return const Center(child: Text('No notes available'));
+        }
+      },
+    );
+  }
 }
 
-class NewNoteButton extends StatefulWidget {
-  const NewNoteButton({required this.onPressed, super.key});
+class NotePreviewItem extends StatelessWidget {
+  const NotePreviewItem(
+      {required this.color,
+      required this.title,
+      required this.preview,
+      required this.isSelected,
+      super.key});
 
-  final VoidCallback onPressed;
-
-  @override
-  State<NewNoteButton> createState() => _NewNoteButtonState();
-}
-
-class _NewNoteButtonState extends State<NewNoteButton> {
-  bool _isHovering = false;
+  final Color color;
+  final String title;
+  final String preview;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: Expanded(
-        child: MouseRegion(
-          onEnter: (_) {
-            setState(() {
-              _isHovering = true;
-            });
-          },
-          onExit: (_) {
-            setState(() {
-              _isHovering = false;
-            });
-          },
-          child: GestureDetector(
-            onTap: widget.onPressed,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: _isHovering
-                    ? kFlourishNotesYellow.withOpacity(0.1)
-                    : Colors.transparent,
-                borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isSelected ? kFlourishNotesYellow.withOpacity(0.3) : color,
+
+        //only bottom border if not selected
+        border: isSelected
+            ? null
+            : const Border(
+                bottom: BorderSide(
+                  color: kFlourishLightBlackish,
+                  width: 0.5,
+                ),
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 15.0,
-                vertical: 8.0,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: kFlourishBlackish,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _isHovering
-                          ? kFlourishNotesYellow
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.add,
-                      color: _isHovering
-                          ? kFlourishAliceBlue
-                          : kFlourishNotesYellow,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'New note',
-                    style: GoogleFonts.inter(
-                      color: kFlourishNotesYellow,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
-                ],
+              const SizedBox(height: 8),
+              Text(
+                preview,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                    fontSize: 14, color: kFlourishLightBlackish),
               ),
-            ),
+            ],
           ),
-        ),
+          const Spacer(),
+        ],
       ),
     );
   }
