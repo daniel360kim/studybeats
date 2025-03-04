@@ -8,7 +8,7 @@
    <p align="center">
     An interactive web-based productivity suite with real-time interactive study tools.
     <br />
-    <a href="https://studybeats.co"><strong>Visit the website »</strong></a>
+    <a href="https://app.studybeats.co"><strong>Visit the website »</strong></a>
     <br />
     <br />
   </p>
