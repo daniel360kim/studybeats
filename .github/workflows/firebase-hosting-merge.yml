@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2.2.1
+        uses: subosito/flutter-action@v2.18.0
         with:
           flutter-version: '3.27.0' # Specify Flutter version
           
@@ -42,7 +42,7 @@ jobs:
         run: flutter build web --no-tree-shake-icons --web-renderer html --release # Uses the specified Flutter version
       
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: FirebaseExtended/action-hosting-deploy@v0.9.0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FLOURISH_WEB_FA343 }}
