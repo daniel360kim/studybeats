@@ -157,53 +157,43 @@ class _TodoState extends State<Todo> {
                             _uncompletedTodoItems!.isNotEmpty)
                           Expanded(
                             child: TodoListWidget(
+                                uncompleted: _uncompletedTodoItems!,
                                 sortBy: _selectedSortOption,
                                 filter: _selectedFilterOption,
-                                key: ValueKey(_selectedSortOption),
-                                uncompleted: _uncompletedTodoItems ?? [],
-                                onItemMarkedAsDone: (itemId) async {
+                                onItemMarkedAsDone: (id) async {
                                   try {
+                                    final listId = await _todoService
+                                        .getDefaultTodoListId();
                                     await _todoService.markTodoItemAsDone(
-                                      listId: _todoLists!.first.id,
-                                      todoItemId: itemId,
-                                    );
+                                        listId: listId, todoItemId: id);
+                                    setState(() {
+                                      _uncompletedTodoItems =
+                                          _uncompletedTodoItems!
+                                              .where((item) => item.id != id)
+                                              .toList();
+                                    });
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Failed to mark item as done: $e'),
+                                      const SnackBar(
+                                        content:
+                                            Text('Failed to mark task as done'),
                                       ),
                                     );
-                                    return;
                                   }
-                                  setState(() {
-                                    _uncompletedTodoItems!.removeWhere(
-                                        (element) => element.id == itemId);
-                                  });
                                 },
-                                onItemDetailsChanged: (item) async {
-                                  // Update the item details
+                                onItemDetailsChanged: (newItem) {
                                   try {
-                                    await _todoService.updateIncompleteTodoItem(
-                                        listId: _todoLists!.first.id,
-                                        updatedItem: item);
+                                    final listId = _todoLists!.first.id;
+                                    _todoService.updateIncompleteTodoItem(
+                                        listId: listId, updatedItem: newItem);
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Failed to update item details: $e'),
+                                      const SnackBar(
+                                        content: Text('Failed to update task'),
                                       ),
                                     );
                                   }
-
-                                  setState(() {
-                                    final index = _uncompletedTodoItems!
-                                        .indexWhere(
-                                            (element) => element.id == item.id);
-                                    _uncompletedTodoItems![index] = item;
-                                  });
                                 }),
-
                             // Show snack bar on completed with undo option
                           )
                       ],
