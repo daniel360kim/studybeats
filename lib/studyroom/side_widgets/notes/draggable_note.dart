@@ -290,7 +290,7 @@ class _DraggableNoteState extends State<DraggableNote> {
         ),
       ),
       child: QuillSimpleToolbar(
-        configurations: QuillSimpleToolbarConfigurations(
+        config: QuillSimpleToolbarConfig(
           showBoldButton: true,
           showItalicButton: true,
           showUnderLineButton: true,
@@ -396,7 +396,7 @@ class _DraggableNoteState extends State<DraggableNote> {
             child: QuillEditor.basic(
               focusNode: _editorFocusNode,
               controller: _controller,
-              configurations: QuillEditorConfigurations(
+              config: QuillEditorConfig(
                 placeholder: 'Start writing...',
                 customStyles: DefaultStyles(
                   placeHolder: DefaultTextBlockStyle(
