@@ -21,11 +21,15 @@ class Todo extends StatefulWidget {
 
 class _TodoState extends State<Todo> {
   final _todoService = TodoService();
+  final _todoListService = TodoListService();
+
   List<TodoList>? _todoLists;
   List<TodoItem>? _uncompletedTodoItems;
   bool _creatingNewTask = false;
   SortBy _selectedSortOption = SortBy.dueDate;
   TodoFilter _selectedFilterOption = TodoFilter.none;
+
+  String? _selectedListId;
 
   @override
   void initState() {
@@ -36,11 +40,14 @@ class _TodoState extends State<Todo> {
   void _fetchTodoItems() async {
     try {
       await _todoService.init();
-      final todoLists = await _todoService.fetchTodoLists();
+      await _todoListService.init();
+
+      final todoLists = await _todoListService.fetchTodoLists();
+
       final uncompletedTodoItems = todoLists.first.categories.uncompleted;
       setState(() {
         _todoLists = todoLists;
-
+        _selectedListId = todoLists.first.id;
         _uncompletedTodoItems = uncompletedTodoItems;
       });
     } catch (e) {
@@ -110,8 +117,8 @@ class _TodoState extends State<Todo> {
                                 }
                               });
                               try {
-                                final listId =
-                                    await _todoService.getDefaultTodoListId();
+                                final listId = await _todoListService
+                                    .getDefaultTodoListId();
                                 await _todoService.addTodoItem(
                                   listId: listId,
                                   todoItem: newTask,
@@ -154,7 +161,8 @@ class _TodoState extends State<Todo> {
                           ),
                         const SizedBox(height: 16),
                         if (_uncompletedTodoItems != null ||
-                            _uncompletedTodoItems!.isNotEmpty)
+                            _uncompletedTodoItems!.isNotEmpty ||
+                            _selectedListId != null)
                           Expanded(
                             child: TodoListWidget(
                               uncompletedStream:
@@ -164,10 +172,8 @@ class _TodoState extends State<Todo> {
                               filter: _selectedFilterOption,
                               onItemMarkedAsDone: (id) async {
                                 try {
-                                  final listId =
-                                      await _todoService.getDefaultTodoListId();
                                   await _todoService.markTodoItemAsDone(
-                                      listId: listId, todoItemId: id);
+                                      listId: _selectedListId!, todoItemId: id);
                                   setState(() {
                                     _uncompletedTodoItems =
                                         _uncompletedTodoItems!

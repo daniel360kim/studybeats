@@ -4,25 +4,24 @@ import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:flutter/material.dart';
 
-class TodoService {
+class TodoListService {
   final _authService = AuthService();
-  final _logger = getLogger('TodoService');
+  final _logger = getLogger('TodoListService');
 
-  late final CollectionReference<Map<String, dynamic>> _todoCollection;
+  late final CollectionReference<Map<String, dynamic>> _todoListCollection;
 
-
+  // Client code should check and handle user not being logged in before calling this method
   Future<void> init() async {
     try {
-    final email = await _getUserEmail();
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
-    _todoCollection = userDoc.collection('todoLists');
+      final email = await _getUserEmail();
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+      _todoListCollection = userDoc.collection('todoLists');
 
-    // If there are no todo lists, create the default one
-    final todoLists = await fetchTodoLists();
-    if (todoLists.isEmpty) {
-      await createEmptyTodoList();
-    }
-
+      // If there are no todo lists, create the default one
+      final todoLists = await fetchTodoLists();
+      if (todoLists.isEmpty) {
+        await createEmptyTodoList();
+      }
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
       rethrow;
@@ -47,7 +46,7 @@ class TodoService {
   Future<void> createEmptyTodoList() async {
     try {
       _logger.i('Creating empty todo list');
-      final id = _todoCollection.doc().id;
+      final id = _todoListCollection.doc().id;
       final emptyList = TodoList(
         id: id,
         name: 'My List',
@@ -65,7 +64,7 @@ class TodoService {
   Future<void> createTodoList(TodoList todoList) async {
     try {
       _logger.i('Creating todo list: ${todoList.name}');
-      await _todoCollection.doc(todoList.id).set(todoList.toJson());
+      await _todoListCollection.doc(todoList.id).set(todoList.toJson());
     } catch (e, s) {
       _logger.e('Failed to create todo list: $e $s');
       rethrow;
@@ -75,7 +74,7 @@ class TodoService {
   Future<List<TodoList>> fetchTodoLists() async {
     try {
       _logger.i('Fetching todo lists');
-      final querySnapshot = await _todoCollection.get();
+      final querySnapshot = await _todoListCollection.get();
       if (querySnapshot.docs.isEmpty) {
         await createEmptyTodoList();
         return fetchTodoLists();
@@ -98,6 +97,40 @@ class TodoService {
       return todoLists.first.id;
     } catch (e, s) {
       _logger.e('Failed to get default todo list id: $e $s');
+      rethrow;
+    }
+  }
+}
+
+class TodoService {
+  final _authService = AuthService();
+  final _logger = getLogger('TodoService');
+
+  late final CollectionReference<Map<String, dynamic>> _todoCollection;
+
+  Future<void> init() async {
+    try {
+      final email = await _getUserEmail();
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+      _todoCollection = userDoc.collection('todoLists');
+
+    } catch (e, s) {
+      _logger.e('Failed to initialize todo service: $e $s');
+      rethrow;
+    }
+  }
+
+  Future<String> _getUserEmail() async {
+    try {
+      final email = await _authService.getCurrentUserEmail();
+      if (email != null) {
+        return email;
+      } else {
+        _logger.e('User email is null');
+        throw Exception('User email is null');
+      }
+    } catch (e, s) {
+      _logger.e('Failed to get user email: $e $s');
       rethrow;
     }
   }
@@ -218,9 +251,8 @@ class TodoService {
     }
   }
 
-  Future<List<TodoItem>> fetchUncompletedTodoItems() async {
+  Future<List<TodoItem>> fetchUncompletedTodoItems(final String listId) async {
     try {
-      final listId = (await fetchTodoLists()).first.id;
       final todoListDoc = _todoCollection.doc(listId);
       final todoListSnapshot = await todoListDoc.get();
       final todoList = TodoList.fromJson(todoListSnapshot.data()!);
@@ -266,7 +298,6 @@ class TodoService {
       rethrow;
     }
   }
-
 
   Stream<List<TodoItem>> streamUncompletedTodoItems(String listId) {
     try {
