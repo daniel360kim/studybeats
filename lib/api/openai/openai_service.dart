@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/rendering.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
@@ -31,7 +34,7 @@ class OpenaiService {
   final OpenAI openAi = OpenAI.instance.build(
     token: OPENAI_PROJECT_API_KEY,
     baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
-    enableLog: true,
+    enableLog: false,
   );
 
   final _authService = AuthService();
@@ -265,8 +268,6 @@ class OpenaiService {
 
       final response = await openAi.onChatCompletion(request: request);
 
-      _logger.i('Received response from OpenAI');
-
       if (response == null ||
           response.choices.first.message == null ||
           response.choices.first.message!.content.isEmpty) {
@@ -416,5 +417,50 @@ class OpenaiService {
 
   int getTokenLimit() {
     return _tokenLimit;
+  }
+
+  Stream<String> getStreamingResponse(List<Map<String, dynamic>> messages) {
+    final StreamController<String> controller = StreamController<String>();
+
+    try {
+      _logger.i('Starting OpenAI Streaming Response');
+
+      final request = ChatCompleteText(
+        user: _uid,
+        messages: messages,
+        maxToken: 1000,
+        model: Gpt4OMiniChatModel(),
+        stream: true, // Enable streaming mode
+      );
+
+      openAi.onChatCompletionSSE(request: request).listen(
+        (event) {
+          if (event.choices == null) {
+            _logger.e('Streaming Error: No choices found');
+            controller.addError('Streaming failed: No choices found');
+            controller.close();
+          }
+          final chunk = event.choices!.last.message?.content;
+          if (chunk != null) {
+            _logger.i('Streaming chunk: $chunk');
+            controller.add(chunk); // Emit chunk to the stream
+          }
+        },
+        onDone: () {
+          controller.close(); // Close the stream when finished
+        },
+        onError: (error) {
+          _logger.e('Streaming Error: $error');
+          controller.addError('Streaming failed: $error');
+          controller.close();
+        },
+      );
+    } catch (e) {
+      _logger.e('Unexpected streaming error: $e');
+      controller.addError('Unexpected error: $e');
+      controller.close();
+    }
+
+    return controller.stream;
   }
 }

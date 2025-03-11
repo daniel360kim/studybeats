@@ -55,6 +55,10 @@ class _AiChatState extends State<AiChat> {
   String _errorMessage = '';
   bool _showTokenMessage = false;
 
+  final double _maxWidth = 1200;
+  final double _minWidth = 300;
+  double _currentWidth = 400;
+
   final List<Map<String, dynamic>> _conversationHistory = [];
   int numCharacters = 0;
 
@@ -244,7 +248,7 @@ class _AiChatState extends State<AiChat> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 400,
+      width: _currentWidth,
       height: MediaQuery.of(context).size.height - 80,
       child: KeyboardListener(
         focusNode: _keyboardListenerFocusNode,
@@ -279,30 +283,34 @@ class _AiChatState extends State<AiChat> {
                               ),
                             )
                           : Expanded(
-                              child: ListView.builder(
-                                cacheExtent: 100000,
-                                controller: _scrollController,
-                                itemCount: _conversationHistory.length,
-                                itemBuilder: (context, index) {
-                                  final message = OpenaiService()
-                                      .convertMessage(
-                                          _conversationHistory[index]);
-                                  final isUser = message.messageType ==
-                                          MessageType.userMessageTextOnly ||
-                                      message.messageType ==
-                                          MessageType.userMessageWithImage;
+                              // Padding keeps resize tab from covering scroll input
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 0, 5, 0),
+                                child: ListView.builder(
+                                  cacheExtent: 100000,
+                                  controller: _scrollController,
+                                  itemCount: _conversationHistory.length,
+                                  itemBuilder: (context, index) {
+                                    final message = OpenaiService()
+                                        .convertMessage(
+                                            _conversationHistory[index]);
+                                    final isUser = message.messageType ==
+                                            MessageType.userMessageTextOnly ||
+                                        message.messageType ==
+                                            MessageType.userMessageWithImage;
 
-                                  return AiMessage(
-                                    isUser: isUser,
-                                    message: message.message,
-                                    profilePictureUrl: _profilePictureUrl,
-                                    imageUrl: message.imageUrl,
-                                    onCopyIconPressed: _copyToClipboard,
-                                    isLoadingResponse: _loadingResponse &&
-                                        index + 1 ==
-                                            _conversationHistory.length,
-                                  );
-                                },
+                                    return AiMessage(
+                                      isUser: isUser,
+                                      message: message.message,
+                                      profilePictureUrl: _profilePictureUrl,
+                                      imageUrl: message.imageUrl,
+                                      onCopyIconPressed: _copyToClipboard,
+                                      isLoadingResponse: _loadingResponse &&
+                                          index + 1 ==
+                                              _conversationHistory.length,
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                       if (_showError)
@@ -337,6 +345,32 @@ class _AiChatState extends State<AiChat> {
                         child: const Icon(Icons.arrow_downward),
                       ),
                     ),
+                  // Tab to allow for resizing of widget
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onHorizontalDragUpdate: (details) {
+                        setState(() {
+                          _currentWidth += details.primaryDelta!;
+                          if (_currentWidth < _minWidth) {
+                            _currentWidth = _minWidth;
+                          }
+                          if (_currentWidth > _maxWidth) {
+                            _currentWidth = _maxWidth;
+                          }
+                        });
+                      },
+                      child: Container(
+                        height: MediaQuery.of(context).size.height,
+                        width: 5,
+                        color: Colors.transparent,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.resizeColumn,
+                        ),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
