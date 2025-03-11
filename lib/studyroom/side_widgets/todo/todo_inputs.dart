@@ -144,6 +144,7 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
   List<Widget> buildInputFields() {
     return [
       TextField(
+        autofocus: true,
         controller: _titleController,
         inputFormatters: [LengthLimitingTextInputFormatter(100)],
         decoration: InputDecoration(

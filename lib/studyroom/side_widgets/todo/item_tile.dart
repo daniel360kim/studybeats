@@ -4,19 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class TodoItemTile extends StatefulWidget {
-  const TodoItemTile(
-      {required this.item,
-      required this.onItemMarkedAsDone,
-      required this.onItemDetailsChanged,
-      required this.onItemDateTimeChanged,
-      required this.onPriorityChanged,
-      super.key});
+  const TodoItemTile({
+    required this.item,
+    required this.isEditing,
+    required this.onEditStart,
+    required this.onEditEnd,
+    required this.onItemMarkedAsDone,
+    required this.onItemDetailsChanged,
+    required this.onItemDateTimeChanged,
+    required this.onItemDelete,
+    super.key,
+  });
 
   final TodoItem item;
+  final bool isEditing;
+  final VoidCallback onEditStart;
+  final VoidCallback onEditEnd;
   final VoidCallback onItemMarkedAsDone;
   final ValueChanged<TodoItem> onItemDetailsChanged;
   final ValueChanged<TodoItem> onItemDateTimeChanged;
-  final ValueChanged<TodoItem> onPriorityChanged;
+  final VoidCallback onItemDelete;
 
   @override
   State<TodoItemTile> createState() => _TodoItemTileState();
@@ -25,7 +32,6 @@ class TodoItemTile extends StatefulWidget {
 class _TodoItemTileState extends State<TodoItemTile> {
   bool _isHovering = false;
   bool _isDateButtonHovering = false;
-  bool _isEditing = false;
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
 
@@ -42,10 +48,26 @@ class _TodoItemTileState extends State<TodoItemTile> {
     _descriptionController =
         TextEditingController(text: widget.item.description);
 
-    setState(() {
+    _selectedDate = widget.item.dueDate;
+    _selectedTime = widget.item.dueTime;
+  }
+
+  @override
+  void didUpdateWidget(covariant TodoItemTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the item has changed externally, update our controllers.
+    if (oldWidget.item.title != widget.item.title) {
+      _titleController.text = widget.item.title;
+    }
+    if (oldWidget.item.description != widget.item.description) {
+      _descriptionController.text = widget.item.description ?? '';
+    }
+    if (oldWidget.item.dueDate != widget.item.dueDate) {
       _selectedDate = widget.item.dueDate;
+    }
+    if (oldWidget.item.dueTime != widget.item.dueTime) {
       _selectedTime = widget.item.dueTime;
-    });
+    }
   }
 
   @override
@@ -55,42 +77,33 @@ class _TodoItemTileState extends State<TodoItemTile> {
     super.dispose();
   }
 
-  void _toggleEditMode() {
-    setState(() {
-      _isEditing = !_isEditing;
-    });
-  }
-
   void _saveChanges() {
-    setState(() {
-      widget.item.title = _titleController.text;
-      widget.item.description = _descriptionController.text;
-      widget.item.dueDate = _selectedDate;
-      widget.item.dueTime = _selectedTime;
-
-      widget.onItemDetailsChanged(widget.item);
-      _isEditing = false;
-    });
+    // Update the item with the latest edits.
+    widget.item.title = _titleController.text;
+    widget.item.description = _descriptionController.text;
+    widget.item.dueDate = _selectedDate;
+    widget.item.dueTime = _selectedTime;
+    widget.onItemDetailsChanged(widget.item);
+    // Notify parent to turn editing off.
+    widget.onEditEnd();
   }
 
   void _cancelEditing() {
-    setState(() {
-      _titleController.text = widget.item.title;
-      _descriptionController.text = widget.item.description ?? '';
-      _selectedDate = widget.item.dueDate;
-      _selectedTime = widget.item.dueTime;
-      _isEditing = false;
-    });
+    // Reset controllers to the original values.
+    _titleController.text = widget.item.title;
+    _descriptionController.text = widget.item.description ?? '';
+    _selectedDate = widget.item.dueDate;
+    _selectedTime = widget.item.dueTime;
+    widget.onEditEnd();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (_isEditing) {
-          return;
+        if (!widget.isEditing) {
+          widget.onEditStart();
         }
-        _toggleEditMode();
       },
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovering = true),
@@ -101,7 +114,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
           child: Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: _isHovering || _isEditing
+              color: _isHovering || widget.isEditing
                   ? kFlourishLightBlackish.withOpacity(0.1)
                   : Colors.transparent,
             ),
@@ -110,25 +123,27 @@ class _TodoItemTileState extends State<TodoItemTile> {
                 buildTitle(),
                 if (widget.item.description != null &&
                     widget.item.description!.isNotEmpty &&
-                    !_isEditing)
+                    !widget.isEditing)
                   Padding(
                     padding: const EdgeInsets.only(left: 40, bottom: 8),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(widget.item.description!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          )),
+                      child: Text(
+                        widget.item.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
                     ),
                   ),
-                if (_isEditing) buildEditControls(),
-                if (widget.item.dueDate != null || _isEditing)
+                if (widget.isEditing) buildEditControls(),
+                if (widget.item.dueDate != null || widget.isEditing)
                   buildDeadlineDescription(),
-                if (_isEditing) buildEditSaveControls(),
+                if (widget.isEditing) buildEditSaveControls(),
               ],
             ),
           ),
@@ -159,9 +174,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
             size: 12,
             color: Colors.red,
           ),
-        const SizedBox(width: 8),
         Expanded(
-          child: _isEditing
+          child: widget.isEditing
               ? TextFormField(
                   onTap: () {
                     if (!_titleTextFieldHighlighted) {
@@ -204,7 +218,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
                 ),
         ),
         Visibility(
-          visible: _isHovering && !_isEditing,
+          visible: _isHovering && !widget.isEditing,
           child: Row(
             children: [
               IconButton(
@@ -212,9 +226,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
                 iconSize: 18,
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
-                onPressed: () {
-                  _toggleEditMode();
-                },
+                onPressed: widget.onEditStart,
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -227,8 +239,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
                 onPressed: () {
                   setState(() {
                     widget.item.isFavorite = !widget.item.isFavorite;
-                    widget.onPriorityChanged(widget.item);
                   });
+                  widget.onItemDetailsChanged(widget.item);
                 },
               ),
             ],
@@ -280,16 +292,16 @@ class _TodoItemTileState extends State<TodoItemTile> {
       child: Align(
         alignment: Alignment.centerLeft,
         child: GestureDetector(
-          onTap: _isEditing ? () => _selectDate(context) : null,
+          onTap: widget.isEditing ? () => _selectDate(context) : null,
           child: MouseRegion(
-            cursor: _isEditing
+            cursor: widget.isEditing
                 ? SystemMouseCursors.click
                 : SystemMouseCursors.basic,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
-                color: _isDateButtonHovering && _isEditing
+                color: _isDateButtonHovering && widget.isEditing
                     ? kFlourishAdobe.withOpacity(0.1)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
@@ -332,8 +344,16 @@ class _TodoItemTileState extends State<TodoItemTile> {
             ),
           ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              IconButton(
+                icon: const Icon(Icons.delete_outlined),
+                iconSize: 25,
+                onPressed: () {
+                  widget.onItemDelete();
+                },
+              ),
+              const Spacer(),
               OutlinedButton(
                 onPressed: _cancelEditing,
                 style: OutlinedButton.styleFrom(
@@ -388,9 +408,9 @@ class _TodoItemTileState extends State<TodoItemTile> {
       return 'Add date';
     }
     final now = DateTime.now();
-    // Strip time component for proper day comparison
     final nowDate = DateTime(now.year, now.month, now.day);
-    final fullDueDate = _isEditing ? _selectedDate! : widget.item.dueDate!;
+    final fullDueDate =
+        widget.isEditing ? _selectedDate! : widget.item.dueDate!;
     final dueDate =
         DateTime(fullDueDate.year, fullDueDate.month, fullDueDate.day);
     final differenceInDays = dueDate.difference(nowDate).inDays;
@@ -411,7 +431,6 @@ class _TodoItemTileState extends State<TodoItemTile> {
     if (_selectedTime == null) {
       return day;
     }
-
     return '$day at ${_showTimeFormatted(_selectedTime!)}';
   }
 
@@ -428,30 +447,25 @@ class _TodoItemTileState extends State<TodoItemTile> {
       builder: (BuildContext context) {
         return Dialog(
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(12), // Top corners rounded
-            ),
+            borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Date Picker
               SizedBox(
                 height: 300,
                 width: 300,
                 child: Theme(
                   data: ThemeData.light().copyWith(
                     colorScheme: ColorScheme.light(
-                      primary: kFlourishAdobe, // Header background color
-                      onPrimary: Colors.white, // Header text color
-                      onSurface: Colors.black, // Text color for selectable days
-                      surface:
-                          Colors.grey.shade200, // Background for selected date
+                      primary: kFlourishAdobe,
+                      onPrimary: Colors.white,
+                      onSurface: Colors.black,
+                      surface: Colors.grey.shade200,
                     ),
-                    dialogBackgroundColor:
-                        Colors.white, // Dialog background color
+                    dialogBackgroundColor: Colors.white,
                     datePickerTheme: const DatePickerThemeData(
-                      backgroundColor: Colors.white, // Picker background
+                      backgroundColor: Colors.white,
                     ),
                   ),
                   child: Builder(
@@ -470,7 +484,6 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   ),
                 ),
               ),
-              // Dropdown Menu for Time
               Container(
                 width: 300,
                 padding:
@@ -502,7 +515,6 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   ],
                 ),
               ),
-              // Actions
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -572,29 +584,26 @@ class _TodoItemTileState extends State<TodoItemTile> {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
-              primary: kFlourishBlackish, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: kFlourishBlackish, // Text color in the picker
+              primary: kFlourishBlackish,
+              onPrimary: Colors.white,
+              onSurface: kFlourishBlackish,
             ),
-            dialogBackgroundColor: Colors.white, // Dialog background color
+            dialogBackgroundColor: Colors.white,
             textSelectionTheme: TextSelectionThemeData(
-              cursorColor: kFlourishBlackish, // Cursor color
-              selectionColor:
-                  Colors.grey.shade300, // Text selection highlight color
-              selectionHandleColor: kFlourishBlackish, // Selection handle color
+              cursorColor: kFlourishBlackish,
+              selectionColor: Colors.grey.shade300,
+              selectionHandleColor: kFlourishBlackish,
             ),
             timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white, // Picker background
-              hourMinuteTextColor:
-                  kFlourishBlackish, // Text color for hour and minute
-              dayPeriodTextColor: kFlourishBlackish, // AM/PM text color
+              backgroundColor: Colors.white,
+              hourMinuteTextColor: kFlourishBlackish,
+              dayPeriodTextColor: kFlourishBlackish,
               dayPeriodColor: kFlourishAdobe,
-              hourMinuteColor: Colors.grey.shade200, // Hour/minute background
-              dialBackgroundColor: Colors.white, // Dial background
-              dialHandColor: kFlourishAdobe, // Dial hand color
-              dialTextColor: kFlourishBlackish, // Dial text color
-              entryModeIconColor:
-                  kFlourishBlackish, // Icon color for switching modes
+              hourMinuteColor: Colors.grey.shade200,
+              dialBackgroundColor: Colors.white,
+              dialHandColor: kFlourishAdobe,
+              dialTextColor: kFlourishBlackish,
+              entryModeIconColor: kFlourishBlackish,
             ),
           ),
           child: child!,
@@ -605,7 +614,6 @@ class _TodoItemTileState extends State<TodoItemTile> {
       setState(() {
         _selectedTime = picked;
       });
-
       if (_selectedDate == null) {
         setState(() {
           _selectedDate = DateTime.now();

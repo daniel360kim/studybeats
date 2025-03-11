@@ -157,43 +157,65 @@ class _TodoState extends State<Todo> {
                             _uncompletedTodoItems!.isNotEmpty)
                           Expanded(
                             child: TodoListWidget(
-                                uncompleted: _uncompletedTodoItems!,
-                                sortBy: _selectedSortOption,
-                                filter: _selectedFilterOption,
-                                onItemMarkedAsDone: (id) async {
-                                  try {
-                                    final listId = await _todoService
-                                        .getDefaultTodoListId();
-                                    await _todoService.markTodoItemAsDone(
-                                        listId: listId, todoItemId: id);
-                                    setState(() {
-                                      _uncompletedTodoItems =
-                                          _uncompletedTodoItems!
-                                              .where((item) => item.id != id)
-                                              .toList();
-                                    });
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content:
-                                            Text('Failed to mark task as done'),
-                                      ),
-                                    );
-                                  }
-                                },
-                                onItemDetailsChanged: (newItem) {
-                                  try {
-                                    final listId = _todoLists!.first.id;
-                                    _todoService.updateIncompleteTodoItem(
-                                        listId: listId, updatedItem: newItem);
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Failed to update task'),
-                                      ),
-                                    );
-                                  }
-                                }),
+                              uncompletedStream:
+                                  _todoService.streamUncompletedTodoItems(
+                                      _todoLists!.first.id),
+                              sortBy: _selectedSortOption,
+                              filter: _selectedFilterOption,
+                              onItemMarkedAsDone: (id) async {
+                                try {
+                                  final listId =
+                                      await _todoService.getDefaultTodoListId();
+                                  await _todoService.markTodoItemAsDone(
+                                      listId: listId, todoItemId: id);
+                                  setState(() {
+                                    _uncompletedTodoItems =
+                                        _uncompletedTodoItems!
+                                            .where((item) => item.id != id)
+                                            .toList();
+                                  });
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('Failed to mark task as done'),
+                                    ),
+                                  );
+                                }
+                              },
+                              onItemDetailsChanged: (newItem) {
+                                try {
+                                  final listId = _todoLists!.first.id;
+                                  _todoService.updateIncompleteTodoItem(
+                                      listId: listId, updatedItem: newItem);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Failed to update task'),
+                                    ),
+                                  );
+                                }
+                              },
+                              onItemDelete: (id) {
+                                try {
+                                  final listId = _todoLists!.first.id;
+                                  _todoService.deleteUncompletedItem(
+                                      listId, id);
+                                  setState(() {
+                                    _uncompletedTodoItems =
+                                        _uncompletedTodoItems!
+                                            .where((i) => i.id != id)
+                                            .toList();
+                                  });
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Failed to delete task'),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                             // Show snack bar on completed with undo option
                           )
                       ],

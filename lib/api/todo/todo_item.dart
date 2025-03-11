@@ -50,6 +50,31 @@ class TodoItem {
   factory TodoItem.fromJson(Map<String, dynamic> json) =>
       todoItemFromJson(json);
 
+  // Copy with 
+  TodoItem copyWith({
+    String? id,
+    String? title,
+    String? description,
+    bool? isDone,
+    bool? isFavorite,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? dueDate,
+    TimeOfDay? dueTime,
+  }) {
+    return TodoItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      isDone: isDone ?? this.isDone,
+      isFavorite: isFavorite ?? this.isFavorite,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      dueDate: dueDate ?? this.dueDate,
+      dueTime: dueTime ?? this.dueTime,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

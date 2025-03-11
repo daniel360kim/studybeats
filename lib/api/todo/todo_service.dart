@@ -231,4 +231,53 @@ class TodoService {
       rethrow;
     }
   }
+
+  Future<void> deleteUncompletedItem(String listId, String itemId) async {
+    try {
+      _logger.i('Deleting uncompleted todo item');
+
+      // Get the list document reference
+      final listDoc = _todoCollection.doc(listId);
+
+      // Fetch the document to get the current state
+      final todoListSnapshot = await listDoc.get();
+      final todoList = TodoList.fromJson(todoListSnapshot.data()!);
+
+      // Find the item to delete
+      final todoItemIndex = todoList.categories.uncompleted.indexWhere(
+        (item) => item.id == itemId,
+      );
+
+      if (todoItemIndex == -1) {
+        throw Exception('Todo item not found in uncompleted list');
+      }
+
+      // Update Firestore: Remove the item from 'uncompleted'
+      final updatedItems = List<TodoItem>.from(todoList.categories.uncompleted);
+      updatedItems.removeAt(todoItemIndex);
+
+      await listDoc.update({
+        'categories.uncompleted': updatedItems.map((e) => e.toJson()).toList(),
+      });
+
+      _logger.i('Todo item deleted successfully');
+    } catch (e, s) {
+      _logger.e('Failed to delete uncompleted todo item: $e $s');
+      rethrow;
+    }
+  }
+
+
+  Stream<List<TodoItem>> streamUncompletedTodoItems(String listId) {
+    try {
+      final todoListDoc = _todoCollection.doc(listId);
+      return todoListDoc.snapshots().map((snapshot) {
+        final todoList = TodoList.fromJson(snapshot.data()!);
+        return todoList.categories.uncompleted;
+      });
+    } catch (e, s) {
+      _logger.e('Failed to stream uncompleted todo items: $e $s');
+      rethrow;
+    }
+  }
 }
