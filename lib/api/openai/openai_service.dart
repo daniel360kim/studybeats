@@ -337,7 +337,9 @@ class OpenaiService {
           'tokenUsage': updatedTodayTokenUsage.toJson(),
         });
 
-        if (updatedTodayTokenUsage.totalTokens! > _tokenLimit) {
+        if (_tokenLimit == 0) {
+          _tokenLimitExceeded = false;
+        } else if (updatedTodayTokenUsage.totalTokens! > _tokenLimit) {
           _tokenLimitExceeded = true; // User has exceeded the token limit
         } else {
           _tokenLimitExceeded = false; // User has not exceeded the token limit
@@ -375,8 +377,7 @@ class OpenaiService {
         // 0 represents infinite tokens
         if (_tokenLimit == 0) {
           _tokenLimitExceeded = false;
-        }
-        if (todayTokenUsageData.totalTokens! > _tokenLimit) {
+        } else if (todayTokenUsageData.totalTokens! > _tokenLimit) {
           _tokenLimitExceeded = true; // User has exceeded the token limit
         } else {
           _tokenLimitExceeded = false; // User has not exceeded the token limit
