@@ -219,19 +219,39 @@ class _AiChatState extends State<AiChat> {
           'content': '',
         });
       });
-      final response =
-          await _openaiService.getAPIResponse(_conversationHistory);
-      Map<String, dynamic> message = {
-        'role': 'assistant',
-        'content': response,
-      };
 
-      await _openaiService.addToConversationHistory(message);
-      setState(() {
-        numCharacters = 0;
-        _conversationHistory.last = message;
-        _loadingResponse = false;
-      });
+      final stream = _openaiService.getCompletionStream(_conversationHistory);
+
+      stream.listen(
+        onError: (error) {
+          setState(() {
+            _logger.e('Failed to get response from API: $error');
+            _loadingResponse = false;
+            _showError = true;
+            _errorMessage = 'Failed to get response';
+          });
+        },
+        (response) {
+          setState(() {
+            _loadingResponse = false;
+            _conversationHistory.last['content'] +=
+                response.choices.first.delta.content;
+          });
+        },
+        onDone: () async {
+          Map<String, dynamic> message = {
+            'role': 'assistant',
+            'content': _conversationHistory.last['content'],
+          };
+
+          await _openaiService.addToConversationHistory(message);
+
+          setState(() {
+            numCharacters = 0;
+            _conversationHistory.last = message;
+          });
+        },
+      );
 
       _scrollToBottom();
     } catch (e) {

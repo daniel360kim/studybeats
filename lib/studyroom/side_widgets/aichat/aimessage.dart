@@ -6,6 +6,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
+import 'package:studybeats/studyroom/side_widgets/aichat/profile.dart';
 
 final kStyleSheet = MarkdownStyleSheet(
   p: GoogleFonts.inter(
@@ -63,14 +64,18 @@ class AiMessage extends StatelessWidget {
         );
       }
     } else {
-      profileImage = Container(
-        height: 10,
-        width: 10,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: kFlourishAdobe,
-        ),
-      );
+      if (isLoadingResponse) {
+        profileImage = PulsatingCircle(size: 10, color: kFlourishAdobe);
+      } else {
+        profileImage = Container(
+          height: 10,
+          width: 10,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: kFlourishAdobe,
+          ),
+        );
+      }
       messageTitle = 'Studybeats Bot';
     }
     return Container(
@@ -113,21 +118,7 @@ class AiMessage extends StatelessWidget {
                         message,
                         style: GoogleFonts.inter(fontSize: 16),
                       )
-                    : isLoadingResponse
-                        ? SizedBox(
-                            height: 10,
-                            width: 20,
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: Lottie.asset(
-                                'assets/animations/loading_dots.json',
-                                height: 60,
-                                width: 100,
-                                fit: BoxFit.fill,
-                              ),
-                            ),
-                          )
-                        : AiParser(message),
+                    : AiParser(message),
               ),
               IconButton(
                 icon: const Icon(Icons.copy, size: 16),

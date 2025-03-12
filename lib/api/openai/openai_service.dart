@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/rendering.dart';
+import 'package:openai_dart/openai_dart.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/secrets.dart';
-import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
 
 enum MessageType {
   aiResponse,
@@ -28,14 +28,29 @@ class AiStorageMessage {
   });
 }
 
+class Usage {
+  final int? promptTokens;
+  final int? completionTokens;
+  final int? totalTokens;
+
+  Usage(this.promptTokens, this.completionTokens, this.totalTokens);
+
+  Usage.fromJson(Map<String, dynamic> json)
+      : promptTokens = json['promptTokens'],
+        completionTokens = json['completionTokens'],
+        totalTokens = json['totalTokens'];
+
+  Map<String, dynamic> toJson() => {
+        'promptTokens': promptTokens,
+        'completionTokens': completionTokens,
+        'totalTokens': totalTokens,
+      };
+}
+
 class OpenaiService {
   final _logger = getLogger('OpenAI Firebase Service');
   final _stripeSubscriptionService = StripeSubscriptionService();
-  final OpenAI openAi = OpenAI.instance.build(
-    token: OPENAI_PROJECT_API_KEY,
-    baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 120)),
-    enableLog: false,
-  );
+  final client = OpenAIClient(apiKey: OPENAI_PROJECT_API_KEY);
 
   final _authService = AuthService();
 
@@ -256,35 +271,90 @@ class OpenaiService {
     }
   }
 
+  List<ChatCompletionMessage> convertMessages(
+      List<Map<String, dynamic>> messages) {
+    final List<ChatCompletionMessage> chatMessages = [];
+    for (var message in messages) {
+      switch (message['role']) {
+        case 'user':
+          if (message['content'] is List) {
+            final List<ChatCompletionMessageContentPart> contentParts = [];
+            for (var contentItem in message['content']) {
+              if (contentItem['type'] == 'text') {
+                contentParts.add(
+                  ChatCompletionMessageContentPart.text(
+                      text: contentItem['text']),
+                );
+              } else if (contentItem['type'] == 'image_url') {
+                contentParts.add(
+                  ChatCompletionMessageContentPart.image(
+                    imageUrl: ChatCompletionMessageImageUrl(
+                      url: contentItem['image_url']['url'],
+                    ),
+                  ),
+                );
+              }
+            }
+            chatMessages.add(
+              ChatCompletionMessage.user(
+                content: ChatCompletionUserMessageContent.parts(contentParts),
+              ),
+            );
+          } else {
+            chatMessages.add(
+              ChatCompletionMessage.user(
+                content:
+                    ChatCompletionUserMessageContent.string(message['content']),
+              ),
+            );
+          }
+          break;
+        case 'assistant':
+          chatMessages.add(
+            ChatCompletionMessage.system(
+              content: message['content'],
+            ),
+          );
+          break;
+        default:
+          _logger.e('Unknown message role');
+          throw Exception('Unknown message role');
+      }
+    }
+    return chatMessages;
+  }
+
   Future<String> getAPIResponse(List<Map<String, dynamic>> messages) async {
     try {
       _logger.i('Starting request to OpenAI API');
-      final request = ChatCompleteText(
-        user: _uid,
-        messages: messages,
-        maxToken: 1000,
-        model: Gpt4OMiniChatModel(),
+
+      final List<ChatCompletionMessage> chatMessages =
+          convertMessages(messages);
+
+      final response = await client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId('gpt-4o-mini'),
+          messages: chatMessages,
+          temperature: 0,
+        ),
       );
 
-      final response = await openAi.onChatCompletion(request: request);
-
-      if (response == null ||
-          response.choices.first.message == null ||
-          response.choices.first.message!.content.isEmpty) {
-        _logger.e('Invalid response from OpenAI');
-        throw Exception('Invalid response from OpenAI');
+      if (response.usage == null) {
+        _logger.w('No usage response found in API');
+        Sentry.captureMessage('No usage response found in API');
+      } else {
+        final Usage usage = Usage(
+          response.usage!.promptTokens,
+          response.usage!.completionTokens,
+          response.usage!.totalTokens,
+        );
+        await updateAndCheckTokenUsage(usage);
       }
-
-      final usage = response.usage;
-
-      if (usage == null) {
-        _logger.e('Usage data not found in response');
-        throw Exception('Usage data not found in response');
+      if (response.choices.isEmpty) {
+        _logger.w('No response found in API');
+        throw Exception('No response found in API');
       }
-
-      await updateAndCheckTokenUsage(usage);
-
-      return response.choices.first.message!.content;
+      return response.choices.first.message.content!;
     } catch (e) {
       _logger.e('Unexpected error sending message to API: $e');
       throw Exception('Failed to send message to OpenAI API: $e');
@@ -419,48 +489,19 @@ class OpenaiService {
     return _tokenLimit;
   }
 
-  Stream<String> getStreamingResponse(List<Map<String, dynamic>> messages) {
-    final StreamController<String> controller = StreamController<String>();
+  Stream<CreateChatCompletionStreamResponse> getCompletionStream(
+      List<Map<String, dynamic>> messages) {
+    _logger.i('Starting streaming request to OpenAI API');
 
-    try {
-      _logger.i('Starting OpenAI Streaming Response');
+    final List<ChatCompletionMessage> chatMessages = convertMessages(messages);
 
-      final request = ChatCompleteText(
-        user: _uid,
-        messages: messages,
-        maxToken: 1000,
-        model: Gpt4OMiniChatModel(),
-        stream: true, // Enable streaming mode
-      );
+    final stream = client.createChatCompletionStream(
+      request: CreateChatCompletionRequest(
+        model: ChatCompletionModel.modelId('gpt-4o'),
+        messages: chatMessages,
+      ),
+    );
 
-      openAi.onChatCompletionSSE(request: request).listen(
-        (event) {
-          if (event.choices == null) {
-            _logger.e('Streaming Error: No choices found');
-            controller.addError('Streaming failed: No choices found');
-            controller.close();
-          }
-          final chunk = event.choices!.last.message?.content;
-          if (chunk != null) {
-            _logger.i('Streaming chunk: $chunk');
-            controller.add(chunk); // Emit chunk to the stream
-          }
-        },
-        onDone: () {
-          controller.close(); // Close the stream when finished
-        },
-        onError: (error) {
-          _logger.e('Streaming Error: $error');
-          controller.addError('Streaming failed: $error');
-          controller.close();
-        },
-      );
-    } catch (e) {
-      _logger.e('Unexpected streaming error: $e');
-      controller.addError('Unexpected error: $e');
-      controller.close();
-    }
-
-    return controller.stream;
+    return stream;
   }
 }
