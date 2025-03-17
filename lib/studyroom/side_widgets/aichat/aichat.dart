@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
+import 'package:openai_dart/openai_dart.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
@@ -10,6 +11,7 @@ import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/studyroom/side_widgets/aichat/tokenizer.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/colors.dart';
@@ -66,7 +68,6 @@ class _AiChatState extends State<AiChat> {
   final _analyticsService = AnalyticsService();
 
   final OpenaiService _openaiService = OpenaiService();
-
   @override
   void initState() {
     super.initState();
@@ -149,6 +150,11 @@ class _AiChatState extends State<AiChat> {
       _logger.w('No message to send');
       return;
     }
+
+    setState(() {
+      _showError = false;
+    });
+    int promptTokens = 0;
     try {
       late final String? text;
       if (_textEditingController.text.isNotEmpty) {
@@ -163,13 +169,16 @@ class _AiChatState extends State<AiChat> {
       setState(() {
         numCharacters = 0;
         _loadingResponse = true;
+        _loadingImage = true;
       });
 
       if (_imageUrl != null) {
+        promptTokens = Tokenizer().numTokensFromString(text) +
+            Tokenizer().sizeFromImageUrl(_imageUrl!);
         Map<String, dynamic> message = {
           'role': 'user',
           'content': [
-            {'type': 'text', 'text': text ?? ' '},
+            {'type': 'text', 'text': text ?? ''},
             {
               'type': 'image_url',
               'image_url': {'url': _imageUrl}
@@ -186,6 +195,7 @@ class _AiChatState extends State<AiChat> {
         });
         _scrollToBottom();
       } else {
+        promptTokens = Tokenizer().numTokensFromString(text);
         Map<String, dynamic> message = {
           'role': 'user',
           'content': text,
@@ -194,7 +204,6 @@ class _AiChatState extends State<AiChat> {
           _conversationHistory.add(message);
         });
         await _openaiService.addToConversationHistory(message);
-        await _openaiService.checkTokenUsage();
 
         setState(() {
           _showTokenMessage = _openaiService.tokenLimitExceeded;
@@ -233,23 +242,40 @@ class _AiChatState extends State<AiChat> {
         },
         (response) {
           setState(() {
-            _loadingResponse = false;
             _conversationHistory.last['content'] +=
                 response.choices.first.delta.content;
           });
         },
         onDone: () async {
-          Map<String, dynamic> message = {
-            'role': 'assistant',
-            'content': _conversationHistory.last['content'],
-          };
+          try {
+            final completionTokens = Tokenizer()
+                .numTokensFromString(_conversationHistory.last['content']);
+            final usage = Usage(promptTokens, completionTokens,
+                promptTokens + completionTokens);
 
-          await _openaiService.addToConversationHistory(message);
+            await _openaiService.updateAndCheckTokenUsage(usage);
+            Map<String, dynamic> message = {
+              'role': 'assistant',
+              'content': _conversationHistory.last['content'],
+            };
+            await _openaiService.addToConversationHistory(message);
 
-          setState(() {
-            numCharacters = 0;
-            _conversationHistory.last = message;
-          });
+            setState(() {
+              numCharacters = 0;
+              _conversationHistory.last = message;
+              _loadingImage = false;
+              _loadingResponse = false;
+            });
+          } catch (e) {
+            _logger.e('Failed to store message in Firestore: $e');
+            setState(() {
+              _loadingResponse = false;
+              _showError = true;
+              _errorMessage = 'Failed to store message';
+              _conversationHistory
+                  .removeLast(); // Remove the placeholder message
+            });
+          }
         },
       );
 

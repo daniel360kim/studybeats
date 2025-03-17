@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:studybeats/api/todo/todo_item.dart'; // Your TodoItem model.
+import 'package:studybeats/api/todo/todo_service.dart';
+import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/item_tile.dart'; // Your tile widget.
 
 // Sorting and filtering enums.
@@ -34,17 +36,13 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   final List<TodoItem> _items = [];
   StreamSubscription<List<TodoItem>>? _subscription;
-
-  // Track the id of the item currently being edited.
   String? _editingItemId;
 
   @override
   void initState() {
     super.initState();
     _subscription = widget.uncompletedStream.listen((newItems) {
-      // Sort the new items.
       final sortedNewItems = _sortItems(newItems);
-      // Update our AnimatedList.
       _updateList(sortedNewItems);
     });
   }
@@ -67,15 +65,11 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     super.dispose();
   }
 
-  /// Sorts items based on the widget.sortBy setting.
-  /// If an item is in editing mode, its order is not disturbed.
   List<TodoItem> _sortItems(List<TodoItem> items) {
     final sorted = List<TodoItem>.from(items);
     sorted.sort((a, b) {
-      // If one of the items is being edited, keep it in place.
       if (a.id == _editingItemId) return -1;
       if (b.id == _editingItemId) return 1;
-      // Otherwise, sort normally.
       switch (widget.sortBy) {
         case SortBy.dueDate:
           if (a.dueDate == null && b.dueDate == null) return 0;
@@ -89,12 +83,10 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     return sorted;
   }
 
-  /// Diff the new list with our current _items list and animate removals and insertions.
   void _updateList(List<TodoItem> newItems) {
-    // Build a map for quick lookup of new items by id.
     final newItemsMap = {for (var item in newItems) item.id: item};
 
-    // Remove items that no longer exist.
+    // Remove items no longer present.
     for (int i = _items.length - 1; i >= 0; i--) {
       if (!newItemsMap.containsKey(_items[i].id)) {
         final removedItem = _items.removeAt(i);
@@ -107,19 +99,16 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       }
     }
 
-    // Process each new item in order.
+    // Insert or update items.
     for (int i = 0; i < newItems.length; i++) {
       final newItem = newItems[i];
       final existingIndex = _items.indexWhere((item) => item.id == newItem.id);
       if (existingIndex == -1) {
-        // The item is new, so insert it.
         _items.insert(i, newItem);
         _listKey.currentState
             ?.insertItem(i, duration: const Duration(milliseconds: 300));
       } else {
-        // Update the existing item.
         _items[existingIndex] = newItem;
-        // Optionally, if the item’s position has changed, consider moving it.
         if (existingIndex != i) {
           final item = _items.removeAt(existingIndex);
           _listKey.currentState?.removeItem(
@@ -135,14 +124,12 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     }
   }
 
-  /// Build a tile for an item that is being removed.
   Widget _buildRemovedItem(TodoItem item, Animation<double> animation) {
     return SizeTransition(
       sizeFactor: animation,
       child: TodoItemTile(
         key: ValueKey(item.id),
         item: item,
-        // For removed items we can disable editing.
         isEditing: false,
         onEditStart: () {},
         onEditEnd: () {},
@@ -154,7 +141,51 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     );
   }
 
-  /// Remove an item by index.
+  /// Optimistically marks an item as done with undo support.
+  void _handleMarkAsDone(int index) {
+    // Capture the removed item.
+    final removedItem = _items[index];
+
+    // Remove the item immediately from the UI.
+    _removeItem(index);
+
+    // Show a SnackBar with an UNDO option.
+    final snackBar = SnackBar(
+      content: Text('Item completed', style: TextStyle(color: Colors.white)),
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () {
+          // If undo is pressed, reinsert the item.
+          setState(() {
+            final undoneRemovedItem = removedItem.copyWith(isDone: false);
+            _items.insert(index, undoneRemovedItem);
+            _listKey.currentState?.insertItem(
+              index,
+              duration: const Duration(milliseconds: 300),
+            );
+          });
+        },
+        textColor: kFlourishAdobe,
+      ),
+      duration: const Duration(seconds: 3),
+      behavior: SnackBarBehavior.floating, // Makes it smaller in width
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12), // Rounded edges
+      ),
+      margin: const EdgeInsets.symmetric(
+          horizontal: 50, vertical: 10), // Reduce width
+      backgroundColor: kFlourishBlackish, // Customize background
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar).closed.then((reason) {
+      // If the SnackBar was dismissed without undo, perform the final deletion.
+      if (reason != SnackBarClosedReason.action) {
+        widget.onItemMarkedAsDone(removedItem.id);
+      }
+    });
+  }
+
+  /// Remove an item by index and animate its removal.
   TodoItem _removeItem(int index) {
     final removedItem = _items.removeAt(index);
     _listKey.currentState?.removeItem(
@@ -162,7 +193,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       (context, animation) => _buildRemovedItem(removedItem, animation),
       duration: const Duration(milliseconds: 300),
     );
-
     return removedItem;
   }
 
@@ -174,7 +204,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       itemBuilder: (context, index, animation) {
         final item = _items[index];
 
-        // Apply filtering as needed.
+        // Apply filtering.
         if (widget.filter == TodoFilter.priority && !item.isFavorite) {
           return const SizedBox.shrink();
         }
@@ -182,38 +212,34 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           return const SizedBox.shrink();
         }
 
-        // Wrap each item in a SizeTransition for animation.
         return SizeTransition(
           key: ValueKey(item.id),
           sizeFactor: animation,
           child: TodoItemTile(
-              key: ValueKey(item.id),
-              item: item,
-              // Mark this tile as editing if its id matches our _editingItemId.
-              isEditing: item.id == _editingItemId,
-              // When editing starts, record the item’s id.
-              onEditStart: () {
-                setState(() {
-                  _editingItemId = item.id;
-                });
-              },
-              // When editing ends, clear the editing state.
-              onEditEnd: () {
-                setState(() {
-                  _editingItemId = null;
-                });
-              },
-              // When the user marks the item as done, remove it.
-              onItemMarkedAsDone: () {
-                final removedItem = _removeItem(index);
-                widget.onItemMarkedAsDone(removedItem.id);
-              },
-              onItemDetailsChanged: widget.onItemDetailsChanged,
-              onItemDateTimeChanged: widget.onItemDetailsChanged,
-              onItemDelete: () {
-                final removedItem = _removeItem(index);
-                widget.onItemDelete(removedItem.id);
-              }),
+            key: ValueKey(item.id),
+            item: item,
+            isEditing: item.id == _editingItemId,
+            onEditStart: () {
+              setState(() {
+                _editingItemId = item.id;
+              });
+            },
+            onEditEnd: () {
+              setState(() {
+                _editingItemId = null;
+              });
+            },
+            // Use our optimistic update handler.
+            onItemMarkedAsDone: () {
+              _handleMarkAsDone(index);
+            },
+            onItemDetailsChanged: widget.onItemDetailsChanged,
+            onItemDateTimeChanged: widget.onItemDetailsChanged,
+            onItemDelete: () {
+              final removedItem = _removeItem(index);
+              widget.onItemDelete(removedItem.id);
+            },
+          ),
         );
       },
     );

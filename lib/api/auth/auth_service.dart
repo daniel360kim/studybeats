@@ -356,4 +356,14 @@ class AuthService {
     _logger.i('Generating profile picture reference. Uuid: $fileName');
     return FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
   }
+
+  Future<void> sendResetPasswordEmail(String email) async {
+    _logger.i('Sending password reset email');
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      _logger.e('Password reset email failed. $e');
+      rethrow;
+    }
+  }
 }

@@ -9,6 +9,7 @@ import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/secrets.dart';
+import 'package:studybeats/studyroom/side_widgets/aichat/tokenizer.dart';
 
 enum MessageType {
   aiResponse,
@@ -36,14 +37,14 @@ class Usage {
   Usage(this.promptTokens, this.completionTokens, this.totalTokens);
 
   Usage.fromJson(Map<String, dynamic> json)
-      : promptTokens = json['promptTokens'],
-        completionTokens = json['completionTokens'],
-        totalTokens = json['totalTokens'];
+      : promptTokens = json['prompt_tokens'],
+        completionTokens = json['completion_tokens'],
+        totalTokens = json['total_tokens'];
 
   Map<String, dynamic> toJson() => {
-        'promptTokens': promptTokens,
-        'completionTokens': completionTokens,
-        'totalTokens': totalTokens,
+        'prompt_tokens': promptTokens,
+        'completion_tokens': completionTokens,
+        'total_tokens': totalTokens,
       };
 }
 
@@ -323,7 +324,7 @@ class OpenaiService {
     }
     return chatMessages;
   }
-
+  
   Future<String> getAPIResponse(List<Map<String, dynamic>> messages) async {
     try {
       _logger.i('Starting request to OpenAI API');
@@ -339,17 +340,6 @@ class OpenaiService {
         ),
       );
 
-      if (response.usage == null) {
-        _logger.w('No usage response found in API');
-        Sentry.captureMessage('No usage response found in API');
-      } else {
-        final Usage usage = Usage(
-          response.usage!.promptTokens,
-          response.usage!.completionTokens,
-          response.usage!.totalTokens,
-        );
-        await updateAndCheckTokenUsage(usage);
-      }
       if (response.choices.isEmpty) {
         _logger.w('No response found in API');
         throw Exception('No response found in API');
@@ -363,6 +353,7 @@ class OpenaiService {
 
   Future<void> updateAndCheckTokenUsage(Usage tokenUsage) async {
     try {
+      _logger.i('Updating token logs');
       // Update token usage for the conversation all time
       Usage currentTokenUsage = Usage(0, 0, 0);
       final tokenSnapshot =

@@ -3,6 +3,7 @@ import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/auth_pages/login_page.dart';
 import 'package:studybeats/auth_pages/profile_page.dart';
 import 'package:studybeats/auth_pages/signup/create_password.dart';
+import 'package:studybeats/auth_pages/signup/forgot_password.dart';
 import 'package:studybeats/auth_pages/signup/name_page.dart';
 import 'package:studybeats/auth_pages/signup/signup_page.dart';
 import 'package:studybeats/auth_pages/subscription_page.dart';
@@ -50,6 +51,7 @@ enum AppRoute {
   createPasswordPage,
   profilePage,
   subscriptionPage,
+  forgotPassword,
 }
 
 GoRouter createRouter(BuildContext context) {
@@ -166,6 +168,21 @@ GoRouter createRouter(BuildContext context) {
             name: AppRoute.createPasswordPage.name,
             key: state.pageKey,
             child: const CreatePasswordPage(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: AppRoute.forgotPassword.name,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            name: AppRoute.createPasswordPage.name,
+            key: state.pageKey,
+            child: const ForgotPasswordPage(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
