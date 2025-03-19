@@ -35,7 +35,7 @@ class _DraggableNoteState extends State<DraggableNote> {
   final QuillController _controller = QuillController.basic();
   final TextEditingController _titleController = TextEditingController();
   final FocusNode _editorFocusNode = FocusNode();
-  final NoteService _noteService = NoteService();
+  late final NoteService _noteService;
 
   double _top = 200;
   double _left = 100;
@@ -74,6 +74,7 @@ class _DraggableNoteState extends State<DraggableNote> {
     _left = widget.initialLeft;
 
     // If this note already exists, load its content.
+    _noteService = NoteService();
     _loadNote();
 
     // Listen for changes to autosave.
@@ -98,6 +99,7 @@ class _DraggableNoteState extends State<DraggableNote> {
   void _loadNote() async {
     try {
       // Initialize the service (ensure folders exist, etc.).
+
       await _noteService.init();
       NoteItem? note =
           await _noteService.getNoteById(widget.folderId, widget.noteId);

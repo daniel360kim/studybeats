@@ -366,4 +366,40 @@ class AuthService {
       rethrow;
     }
   }
+
+  Future<void> sendEmailChangeEmail(String email) async {
+    _logger.i('Sending email change email');
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.verifyBeforeUpdateEmail(email);
+      } else {
+        _logger.e('User is null while changing email');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e('Email change failed. $e');
+      rethrow;
+    }
+  }
+
+  Future<void> changeName(String displayName) async {
+    _logger.i('Changing display name');
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .update({'name': displayName});
+      } else {
+        _logger.e('User is null while changing display name');
+        throw Exception();
+      }
+    } catch (e) {
+      _logger.e('Display name change failed. $e');
+      rethrow;
+    }
+  }
+
 }

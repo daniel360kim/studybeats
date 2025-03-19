@@ -20,6 +20,7 @@ class NoteService {
   Future<void> init() async {
     try {
       final email = await _getUserEmail();
+      
       final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
       _folderCollection = userDoc.collection('folders');
 

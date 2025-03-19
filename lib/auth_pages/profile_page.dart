@@ -1,4 +1,7 @@
+import 'package:go_router/go_router.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
+import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/router.dart';
 import 'package:universal_html/html.dart' as html;
 import 'dart:typed_data';
 
@@ -33,9 +36,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool _loadingImagePicker = false;
 
+  final _logger = getLogger('ProfilePage');
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_authService.isUserLoggedIn()) {
+        _logger.w('User is not logged in, redirecting to login page');
+        context.goNamed(AppRoute.loginPage.name);
+      }
+    });
+
     getMembershipStatus();
     // Fetch the profile image URL once during initialization
     updateProfilePictureUrl();

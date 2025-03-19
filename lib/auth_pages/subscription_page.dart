@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/auth_pages/unknown_error.dart';
 import 'package:studybeats/colors.dart';
@@ -27,11 +28,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   final List<Product> _monthlyProducts = [];
   final List<Product> _yearlyProducts = [];
 
-  final StripeProductService _stripeProductService = StripeProductService();
+  late final StripeProductService _stripeProductService =
+      StripeProductService();
   Interval _selectedInterval = Interval.yearly; // Track selected interval
 
   final _logger = getLogger('Subscription Page');
-  final _stripeSubscriptionService = StripeSubscriptionService();
+  late final _stripeSubscriptionService = StripeSubscriptionService();
 
   bool _isPro = false;
 
@@ -41,13 +43,35 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   @override
   void initState() {
     super.initState();
-    _getSubscriptionStatus();
+    // Schedule redirection for login check after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FirebaseAuth.instance.currentUser == null) {
+        _logger.w('User is not logged in, redirecting to login page');
+        context.goNamed(AppRoute.loginPage.name);
+      } else {
+        _getSubscriptionStatus();
+      }
+    });
     _getProducts();
+  }
+
+  void _getSubscriptionStatus() async {
+    bool status = await _stripeSubscriptionService.hasProMembership();
+    if (mounted) {
+      setState(() {
+        _isPro = status;
+      });
+      // Now that _isPro has been updated, check and redirect if necessary.
+      if (_isPro) {
+        _logger.w('User is already a pro member, redirecting to account page');
+        context.goNamed(AppRoute.accountPage.name);
+      }
+    }
   }
 
   void _getProducts() async {
     final products = await _stripeProductService.getActiveProducts();
-  
+
     setState(() {
       for (final product in products) {
         for (final price in product.prices) {
@@ -65,15 +89,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     });
     _logger.i(
         'Found ${_monthlyProducts.length} monthly products and ${_yearlyProducts.length} yearly products');
-  }
-
-  void _getSubscriptionStatus() async {
-    bool status = await _stripeSubscriptionService.hasProMembership();
-    if (mounted) {
-      setState(() {
-        _isPro = status;
-      });
-    }
   }
 
   AppBar _buildAppBar() {
@@ -99,26 +114,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            // Your code here
-          },
-          child: const Text(
-            'Action 1',
-            style: TextStyle(color: kFlourishBlackish),
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            // Your code here
-          },
-          child: const Text(
-            'Action 2',
-            style: TextStyle(color: kFlourishBlackish),
-          ),
-        ),
-      ],
+      actions: [],
     );
   }
 
@@ -378,14 +374,26 @@ class _ProductDetailsState extends State<ProductDetails> {
                           _loading = true;
                           widget.onError(false);
                         });
+
+                        late final String price;
+                        if (widget.selectedInterval == Interval.monthly) {
+                          price = widget.product.prices
+                              .firstWhere((price) =>
+                                  price.interval == PricingInterval.month)
+                              .docId!;
+                        } else {
+                          price = widget.product.prices
+                              .firstWhere((price) =>
+                                  price.interval == PricingInterval.year)
+                              .docId!;
+                        }
                         String url = await StripeSubscriptionService()
-                            .createCheckoutSession(
-                                widget.product.prices.first.docId!);
+                            .createCheckoutSession(price);
                         _logger.i(
                             'Checkout url received succesfully! Redirecting to $url');
                         if (await canLaunchUrlString(url)) {
-                          await launchUrlString(
-                              url); // TODO dont make a new tab
+                          await launchUrlString(url,
+                              webOnlyWindowName: '_self');
                           setState(() => _loading = false);
                         } else {
                           setState(() => _loading = false);

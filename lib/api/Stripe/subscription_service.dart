@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:studybeats/api/Stripe/objects.dart';
 import 'package:studybeats/api/Stripe/product_service.dart';
 import 'package:studybeats/api/Stripe/stripe_service.dart';
 
@@ -82,12 +85,12 @@ class StripeSubscriptionService extends StripeService {
   }
 
   Future<String> createCheckoutSession(String price) async {
-    logger.i('Creating checkout session');
+    logger.i('Creating checkout session for price: $price');
     try {
       final docRef = await _document.collection('checkout_sessions').add({
         'price': price,
-        'success_url': 'https://www.google.com',
-        'cancel_url': 'https://www.google.com',
+        'success_url': 'https://app.studybeats.co',
+        'cancel_url': 'https://app.studybeats.co',
       });
 
       final Completer<String> completer = Completer<String>();
@@ -112,6 +115,56 @@ class StripeSubscriptionService extends StripeService {
       return completer.future;
     } catch (e) {
       logger.e('Unexpected error while processing checkout. $e');
+      rethrow;
+    }
+  }
+
+  Future<SubscriptionDetails> getSubscriptionDetails() async {
+    logger.i('Getting subscription details');
+    try {
+      final querySnapshot = await _document
+          .collection('subscriptions')
+          .where('status', whereIn: ['trialing', 'active']).get();
+
+      if (querySnapshot.docs.isEmpty) {
+        logger.i('No active subscriptions found');
+        return SubscriptionDetails(
+          active: false,
+          currentPeriodEnd: DateTime.now(),
+          currentPeriodStart: DateTime.now(),
+          interval: 'month',
+          unitPrice: 0,
+        );
+      }
+
+      final subscription = querySnapshot.docs.first;
+      final data = subscription.data();
+      final details = SubscriptionDetails.fromJson(data);
+
+      logger.i('Subscription details: $details');
+      return details;
+    } catch (e) {
+      logger.e('Unexpected error while getting subscription details. $e');
+      rethrow;
+    }
+  }
+
+  Future<String> getCustomerPortal() async {
+    logger.i('Getting customer portal...');
+    try {
+      final HttpsCallable functionRef = FirebaseFunctions.instance
+          .httpsCallableFromUrl(
+              'https://us-west2-flourish-web-fa343.cloudfunctions.net/ext-firestore-stripe-payments-createPortalLink');
+      final response = await functionRef.call(<String, dynamic>{
+        'returnUrl': 'https://app.studybeats.co/account',
+      });
+
+      final String url = response.data['url'];
+
+      logger.i('Customer portal url: $url');
+      return url;
+    } catch (e) {
+      logger.e('Unexpected error while getting customer portal. $e');
       rethrow;
     }
   }

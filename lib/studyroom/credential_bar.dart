@@ -12,8 +12,11 @@ import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 
 class CredentialBar extends StatefulWidget {
-  const CredentialBar(
-      {required this.loggedIn, required this.onLogout, super.key});
+  const CredentialBar({
+    required this.loggedIn,
+    required this.onLogout,
+    super.key,
+  });
 
   final bool loggedIn;
   final VoidCallback onLogout;
@@ -25,19 +28,16 @@ class CredentialBar extends StatefulWidget {
 class _CredentialBarState extends State<CredentialBar> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          if (!widget.loggedIn) notLoggedIn(),
-          const SizedBox(width: 16),
-          if (widget.loggedIn)
-            ProfilePicture(
-              onLogout: widget.onLogout,
-            )
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (!widget.loggedIn) notLoggedIn(),
+        const SizedBox(width: 16),
+        if (widget.loggedIn)
+          ProfilePicture(
+            onLogout: widget.onLogout,
+          )
+      ],
     );
   }
 
@@ -188,8 +188,11 @@ class _ProfilePictureState extends State<ProfilePicture>
               child: PopupMenuButton<int>(
                 itemBuilder: (context) {
                   return [
-                    const PopupMenuItem<int>(
+                    PopupMenuItem<int>(
                       value: 1,
+                      onTap: () {
+                        context.goNamed(AppRoute.accountPage.name);
+                      },
                       child: PopupMenuDetails(
                         icon: Icons.account_box,
                         text: 'Account',
@@ -203,25 +206,17 @@ class _ProfilePictureState extends State<ProfilePicture>
                         text: 'Profile',
                       ),
                     ),
-                    !_isPro
-                        ? PopupMenuItem<int>(
-                            value: 1,
-                            onTap: () =>
-                                context.goNamed(AppRoute.subscriptionPage.name),
-                            child: const PopupMenuDetails(
-                              icon: Icons.star,
-                              text: 'Upgrade',
-                            ),
-                          )
-                        : PopupMenuItem<int>(
-                            value: 1,
-                            onTap: () {},
-                            child: const PopupMenuDetails(
-                              icon: Icons.star,
-                              text: 'Subscription',
-                            ),
-                          ),
-                    const PopupMenuDivider(), // TODO actually handle upgrading to premium
+                    if (!_isPro)
+                      PopupMenuItem<int>(
+                        value: 1,
+                        onTap: () =>
+                            context.goNamed(AppRoute.subscriptionPage.name),
+                        child: const PopupMenuDetails(
+                          icon: Icons.star,
+                          text: 'Upgrade',
+                        ),
+                      ),
+                    const PopupMenuDivider(),
                     PopupMenuItem<int>(
                       value: 1,
                       onTap: () async {
@@ -243,50 +238,49 @@ class _ProfilePictureState extends State<ProfilePicture>
                   animation: _scaleAnimation,
                   builder: (context, child) {
                     return Transform.scale(
-                        scale: _isPressed ? 0.95 : _scaleAnimation.value,
-                        child: _loadingProfilePicture
-                            ? Shimmer.fromColors(
-                                baseColor: Colors.grey[300]!,
-                                highlightColor: Colors.grey[100]!,
-                                child: Container(
-                                  height: _iconSize,
-                                  width: _iconSize,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                ),
-                              )
-                            : Container(
+                      scale: _isPressed ? 0.95 : _scaleAnimation.value,
+                      child: _loadingProfilePicture
+                          ? Shimmer.fromColors(
+                              baseColor: Colors.grey[300]!,
+                              highlightColor: Colors.grey[100]!,
+                              child: Container(
                                 height: _iconSize,
                                 width: _iconSize,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape
-                                      .circle, // Set the shape to circle
-                                ),
-                                child: ClipRRect(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(30),
-                                  child: CachedNetworkImage(
-                                    height: _iconSize,
-                                    width: _iconSize,
-                                    imageUrl: pfpUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        Shimmer.fromColors(
-                                      baseColor: Colors.grey[300]!,
-                                      highlightColor: Colors.grey[100]!,
-                                      child: Container(
-                                        height: _iconSize,
-                                        width: _iconSize,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape
-                                              .circle, // Set the shape to circle
-                                        ),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              height: _iconSize,
+                              width: _iconSize,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(30),
+                                child: CachedNetworkImage(
+                                  height: _iconSize,
+                                  width: _iconSize,
+                                  imageUrl: pfpUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) =>
+                                      Shimmer.fromColors(
+                                    baseColor: Colors.grey[300]!,
+                                    highlightColor: Colors.grey[100]!,
+                                    child: Container(
+                                      height: _iconSize,
+                                      width: _iconSize,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ));
+                              ),
+                            ),
+                    );
                   },
                 ),
               ),

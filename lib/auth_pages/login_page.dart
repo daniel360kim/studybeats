@@ -269,6 +269,7 @@ class _LoginPageState extends State<LoginPage> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {
+
               context.goNamed(AppRoute.forgotPassword.name);
             },
             child: Text(
