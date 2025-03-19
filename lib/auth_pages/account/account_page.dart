@@ -16,8 +16,7 @@ import 'package:intl/intl.dart';
 // Import the separate tab widgets
 import 'subscription_tab.dart';
 import 'profile_tab.dart';
-import 'history_tab.dart';
-import 'settings_tab.dart';
+
 import 'help_tab.dart';
 
 class UserData {
@@ -57,7 +56,7 @@ class _AccountPageState extends State<AccountPage>
         context.goNamed(AppRoute.loginPage.name);
       }
     });
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadUserData();
     getMembershipStatus();
     updateProfilePictureUrl();
@@ -133,7 +132,7 @@ class _AccountPageState extends State<AccountPage>
       return;
     }
 
-    reader.readAsArrayBuffer(file!);
+    reader.readAsArrayBuffer(file);
     try {
       await _authService.updateProfilePicture(file);
       updateProfilePictureUrl();
@@ -154,14 +153,22 @@ class _AccountPageState extends State<AccountPage>
     final imageProvider = _imageFile != null
         ? MemoryImage(_imageFile!)
         : (_profileImageUrl != null
-            ? CachedNetworkImageProvider(_profileImageUrl!)
-            : const AssetImage('assets/brand/default_profile.png')) as ImageProvider;
+                ? CachedNetworkImageProvider(_profileImageUrl!)
+                : const AssetImage('assets/brand/default_profile.png'))
+            as ImageProvider;
 
     return Container(
       color: kFlourishBlackish,
-      padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            color: kFlourishLightBlackish,
+            onPressed: () {
+              context.goNamed(AppRoute.studyRoom.name);
+            },
+          ),
           CircleAvatar(
             radius: 20,
             backgroundImage: imageProvider,
@@ -175,7 +182,6 @@ class _AccountPageState extends State<AccountPage>
               fontWeight: FontWeight.bold,
             ),
           ),
-        
         ],
       ),
     );
@@ -199,8 +205,6 @@ class _AccountPageState extends State<AccountPage>
       tabs: const [
         Tab(text: 'Subscription'),
         Tab(text: 'Profile'),
-        Tab(text: 'History'),
-        Tab(text: 'Settings'),
         Tab(text: 'Help'),
       ],
     );
@@ -220,8 +224,7 @@ class _AccountPageState extends State<AccountPage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  SubscriptionTab(
-                  ),
+                  SubscriptionTab(),
                   ProfileTab(
                     name: _displayName,
                     email: _email,
@@ -236,8 +239,6 @@ class _AccountPageState extends State<AccountPage>
                       });
                     },
                   ),
-                  const HistoryTab(),
-                  const SettingsTab(),
                   const HelpTab(),
                 ],
               ),

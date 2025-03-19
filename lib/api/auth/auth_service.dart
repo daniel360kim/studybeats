@@ -336,9 +336,12 @@ class AuthService {
       }
 
       final ref = await _generateProfilePictureReference();
+      print(ref);
       await ref.putBlob(image);
 
       final url = await ref.getDownloadURL();
+
+      _logger.i('Profile picture uploaded to $url');
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -401,5 +404,4 @@ class AuthService {
       rethrow;
     }
   }
-
 }

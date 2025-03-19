@@ -104,6 +104,7 @@ class _LoginPageState extends State<LoginPage> {
                           setState(() {
                             _loading = true;
                           });
+
                           _authService.signUpInWithMicrosoft().then((value) {
                             setState(() {
                               _loading = false;
@@ -269,7 +270,6 @@ class _LoginPageState extends State<LoginPage> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {
-
               context.goNamed(AppRoute.forgotPassword.name);
             },
             child: Text(

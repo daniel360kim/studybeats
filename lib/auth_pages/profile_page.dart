@@ -114,11 +114,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontSize: 14,
                     ),
                   ),
-                  if (isProMember)
-                    const Text(
-                      'Pro Member!',
-                      style: TextStyle(color: kFlourishAliceBlue),
-                    ),
                 ],
               );
             } else {

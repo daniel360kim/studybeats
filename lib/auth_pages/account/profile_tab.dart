@@ -26,7 +26,7 @@ class HoverableInfoRow extends StatefulWidget {
 
 class _HoverableInfoRowState extends State<HoverableInfoRow> {
   bool _isHovered = false;
-
+  
   @override
   Widget build(BuildContext context) {
     // On hover, we’ll change the background color slightly.

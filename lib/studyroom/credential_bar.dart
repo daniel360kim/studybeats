@@ -198,6 +198,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                         text: 'Account',
                       ),
                     ),
+                    /*
                     PopupMenuItem<int>(
                       value: 1,
                       onTap: () => context.goNamed(AppRoute.profilePage.name),
@@ -206,6 +207,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                         text: 'Profile',
                       ),
                     ),
+                    */
                     if (!_isPro)
                       PopupMenuItem<int>(
                         value: 1,
