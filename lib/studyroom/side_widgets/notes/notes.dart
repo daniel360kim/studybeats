@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/notes/notes_service.dart';
 import 'package:studybeats/api/notes/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/router.dart';
 import 'package:uuid/uuid.dart';
 import 'draggable_note.dart';
 
@@ -22,15 +25,22 @@ class _NotesState extends State<Notes> {
   bool _creatingNewNote = false;
   // For this example, assume a default folder ID and generate a new note ID
   final String _defaultFolderId = 'defaultFolder';
-  List<NotePreview> _notePreviews = [];
+  List<NotePreview>? _notePreviews;
 
   final ValueNotifier<int> _selectedNoteIndex = ValueNotifier<int>(0);
 
   final _logger = getLogger('Notes Widget');
+  bool isPro = false;
+
+  int noteLimit = 5; // the number of notes a non-pro user can have
+  int _currentNoteCount = 0;
+
+  late final StripeSubscriptionService _stripeSubscriptionService;
 
   @override
   void initState() {
     super.initState();
+    _stripeSubscriptionService = StripeSubscriptionService();
     _fetchNotes();
   }
 
@@ -49,10 +59,24 @@ class _NotesState extends State<Notes> {
 
   void _fetchNotes() async {
     try {
+      final isPro = await _stripeSubscriptionService.hasProMembership();
+      final activeProduct = await _stripeSubscriptionService.getActiveProduct();
+
+      if (isPro) {
+        setState(() {
+          if (activeProduct.noteLimit == null) {
+            noteLimit = 5;
+          } else {
+            noteLimit = activeProduct.noteLimit!;
+          }
+          this.isPro = true;
+        });
+      }
       await _noteService.init();
       final notePreviews =
           await _noteService.fetchNotePreviews(_defaultFolderId);
       setState(() {
+        _currentNoteCount = notePreviews.length;
         _notePreviews = notePreviews;
       });
     } catch (e) {
@@ -77,6 +101,7 @@ class _NotesState extends State<Notes> {
           _overlayEntry?.remove();
           _overlayEntry = null;
           setState(() {
+            _currentNoteCount = _notePreviews!.length;
             _creatingNewNote = false;
           });
         },
@@ -123,6 +148,8 @@ class _NotesState extends State<Notes> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      if (!isPro && _currentNoteCount >= noteLimit)
+                        buildUpgradeCallout(),
                       Expanded(
                         child: buildNotePreviews(),
                       ),
@@ -146,7 +173,12 @@ class _NotesState extends State<Notes> {
         children: [
           IconButton(
             onPressed: () async {
-              final selectedNoteId = _notePreviews[_selectedNoteIndex.value].id;
+              late final String selectedNoteId;
+              if (_notePreviews == null) {
+                selectedNoteId = '';
+              } else {
+                selectedNoteId = _notePreviews![_selectedNoteIndex.value].id;
+              }
               try {
                 if (_creatingNewNote) {
                   _overlayEntry?.remove();
@@ -155,6 +187,9 @@ class _NotesState extends State<Notes> {
                     _creatingNewNote = false;
                   });
                 }
+                setState(() {
+                  _currentNoteCount--;
+                });
 
                 await _noteService.deleteNote(
                   _defaultFolderId,
@@ -174,6 +209,9 @@ class _NotesState extends State<Notes> {
                   action: SnackBarAction(
                     label: 'Undo',
                     onPressed: () async {
+                      setState(() {
+                        _currentNoteCount++;
+                      });
                       await _noteService.undoDelete(
                           _defaultFolderId, selectedNoteId);
                     },
@@ -199,19 +237,22 @@ class _NotesState extends State<Notes> {
             indent: 8,
             endIndent: 8,
           ),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _creatingNewNote = true;
-              });
-              final newNoteId = const Uuid().v4();
-              // Close any existing notes
+          if (_currentNoteCount < noteLimit || noteLimit == 0)
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _creatingNewNote = true;
+                  _currentNoteCount++;
+                });
+                final newNoteId = const Uuid().v4();
+                // Close any existing notes
 
-              _showDraggableNote(newNoteId);
-            },
-            icon: const Icon(Icons.add),
-            tooltip: 'Create a new note',
-          ),
+                _showDraggableNote(newNoteId);
+              },
+              icon: const Icon(Icons.add),
+              tooltip: 'Create a new note',
+            ),
+          if (!isPro) buildNoteUsageReport(),
           const Spacer(),
           IconButton(
             onPressed: widget.onClose,
@@ -222,55 +263,97 @@ class _NotesState extends State<Notes> {
     );
   }
 
+  Widget buildNoteUsageReport() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          Text('Used: $_currentNoteCount / $noteLimit'),
+        ],
+      ),
+    );
+  }
+
+  Widget buildUpgradeCallout() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: kFlourishNotesYellow.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 20,
+              width: 20,
+              child: Image.asset('assets/icons/crown.png'),
+            ),
+            const SizedBox(width: 10.0),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Need more notes?',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: kFlourishBlackish,
+                  ),
+                ),
+                Text(
+                  'Unlimited notes with Pro',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: kFlourishBlackish,
+                  ),
+                ),
+              ],
+            ),
+            Spacer(),
+            ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kFlourishCyan,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: Size(80, 36), // Set the minimum size
+                ),
+                onPressed: () {
+                  context.goNamed(AppRoute.subscriptionPage.name);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(3.0),
+                  child: Text(
+                    'Upgrade',
+                    style: GoogleFonts.inter(
+                      color: kFlourishBlackish,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ))
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildNotePreviews() {
+    if (_notePreviews == null) return buildLoadingShimmer();
     return StreamBuilder<List<NotePreview>>(
       stream: _noteService.notePreviewsStream(_defaultFolderId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
-            _notePreviews.isEmpty) {
-          return Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
-            child: ListView.builder(
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Colors.transparent,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: kFlourishLightBlackish,
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 200,
-                            height: 20,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            width: 300,
-                            height: 20,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
+            _notePreviews == null) {
+          return buildLoadingShimmer();
         } else if (snapshot.hasError) {
           _logger.e('Error fetching notes: ${snapshot.error}');
           _showError();
@@ -309,6 +392,52 @@ class _NotesState extends State<Notes> {
           return const Center(child: Text('No notes available'));
         }
       },
+    );
+  }
+
+  Shimmer buildLoadingShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        itemCount: 10,
+        itemBuilder: (context, index) {
+          return Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              border: Border(
+                bottom: BorderSide(
+                  color: kFlourishLightBlackish,
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 200,
+                      height: 20,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 300,
+                      height: 20,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+                const Spacer(),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

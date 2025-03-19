@@ -28,6 +28,7 @@ StripeDatabaseProduct _$StripeProductFromJson(
     featureList: featureList,
     color: Color.fromARGB(255, color >> 16, color >> 8, color >> 0),
     tokenLimit: int.tryParse(json['metadata']['token_limit'] ?? '0'),
+    noteLimit: int.tryParse(json['metadata']['note_limit'] ?? '0'),
   );
 }
 
@@ -44,6 +45,7 @@ class StripeDatabaseProduct {
   final List<String?>? featureList;
   final Color? color;
   final int? tokenLimit;
+  final int? noteLimit;
 
   const StripeDatabaseProduct({
     this.docId,
@@ -56,6 +58,7 @@ class StripeDatabaseProduct {
     this.featureList,
     this.color,
     this.tokenLimit,
+    this.noteLimit,
   });
 
   factory StripeDatabaseProduct.fromJson(

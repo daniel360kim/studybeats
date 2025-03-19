@@ -97,7 +97,7 @@ class OpenaiService {
       final product = await _stripeSubscriptionService.getActiveProduct();
       if (product.tokenLimit == null) {
         _logger.w('Token limit not found');
-        _tokenLimit = 10000;
+        _tokenLimit = 1000;
       } else {
         _logger.i('Token limit: ${product.tokenLimit}');
         _tokenLimit = product.tokenLimit!;
