@@ -19,9 +19,9 @@ class Tokenizer {
         }),
       );
 
-      return numTokensFromImage(width, height);
+      return 500;
     } catch (e) {
-      return numTokensFromImage(512, 512);
+      return 500;
     }
   }
 

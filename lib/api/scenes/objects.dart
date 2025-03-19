@@ -10,6 +10,7 @@ SceneData _$SceneDataFromJson(Map<String, dynamic> json) {
     scenePath: json['scenePath'],
     thumbnailPath: json['thumbnailPath'],
     fontTheme: json['fontTheme'],
+    isPro: json['isPro'],
   );
 }
 
@@ -21,6 +22,7 @@ class SceneData {
   final String scenePath;
   final String thumbnailPath;
   final String fontTheme;
+  final bool isPro;
   
 
   SceneData({
@@ -30,6 +32,7 @@ class SceneData {
     required this.thumbnailPath,
     required this.scenePath,
     required this.fontTheme,
+    required this.isPro,
   });
 
   factory SceneData.fromJson(Map<String, dynamic> json) =>

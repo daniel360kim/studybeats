@@ -75,6 +75,13 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
                   index: 0,
                   imagePath: 'assets/icons/scene.png',
                   onItemTapped: (value) {
+                    if (!AuthService().isUserLoggedIn()) {
+                      setState(() {
+                        _selectedIndex = null;
+                      });
+                      _redirectToLogin();
+                      return;
+                    }
                     _onItemTapped(value);
                   },
                 ),
@@ -144,23 +151,26 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   Widget _getSelectedWidget() {
     return Column(
       children: [
-        Visibility(
-          maintainState: true,
-          visible: _selectedIndex == 0 && _selectedIndex != null,
-          child: SceneSelector(
-            onSceneSelected: ((id) async {
-              widget.onSceneChanged(id);
-              await AuthService().changeselectedSceneId(id);
-            }),
-            onClose: () {
-              setState(() {
-                _selectedIndex = null;
-              });
-            },
-            currentScene: widget.currentScene,
-            currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
-          ),
-        ),
+        AuthService().isUserLoggedIn()
+            ? Visibility(
+                maintainState: true,
+                visible: _selectedIndex == 0 && _selectedIndex != null,
+                child: SceneSelector(
+                  onSceneSelected: ((id) async {
+                    widget.onSceneChanged(id);
+                    await AuthService().changeselectedSceneId(id);
+                  }),
+                  onClose: () {
+                    setState(() {
+                      _selectedIndex = null;
+                    });
+                  },
+                  currentScene: widget.currentScene,
+                  currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
+                  onProSceneSelected: () {},
+                ),
+              )
+            : const SizedBox.shrink(),
         AuthService().isUserLoggedIn()
             ? Visibility(
                 maintainState: true,

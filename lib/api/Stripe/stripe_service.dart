@@ -9,7 +9,7 @@ class StripeService {
     user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       logger.e('User is null while instantiating Stripe Service');
-      throw Exception();
+      throw Exception('User is null while instantiating Stripe Service');
     }
   }
 }
