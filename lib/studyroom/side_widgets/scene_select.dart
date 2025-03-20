@@ -118,10 +118,22 @@ class _SceneSelectorState extends State<SceneSelector> {
                         widget: widget,
                         scene: scene,
                         backgroundImageUrl: _sceneBackgroundUrls[index],
-                        isUserPro: true,
+                        isUserPro: _isPro,
                       );
                     }),
-                    if (_proScenes.isNotEmpty) buildProSceneStack(),
+                    if (_proScenes.isNotEmpty && !_isPro)
+                      buildProSceneStack()
+                    else if (_proScenes.isNotEmpty && _isPro)
+                      ..._proScenes.map((scene) {
+                        int index =
+                            _freeScenes.length + _proScenes.indexOf(scene);
+                        return SceneSelection(
+                          widget: widget,
+                          scene: scene,
+                          backgroundImageUrl: _sceneBackgroundUrls[index],
+                          isUserPro: _isPro,
+                        );
+                      }),
                   ],
                 ),
               ),
@@ -222,7 +234,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                       ),
                     ),
                     onPressed: () {
-                      context.goNamed(AppRoute.subscriptionPage.name);
+                      widget.onProSceneSelected();
                     },
                     child: const Text(
                       "Upgrade now",

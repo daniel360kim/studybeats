@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -159,7 +158,7 @@ class _DraggableNoteState extends State<DraggableNote> {
 
     final preview = plainText.replaceAll('\n', ' ').trim();
 
-    return '${formattedDate} - ${preview.length > 35 ? preview.substring(0, 35) : preview}';
+    return '$formattedDate - ${preview.length > 35 ? preview.substring(0, 35) : preview}';
   }
 
   // Autosave by updating the note in Firestore.

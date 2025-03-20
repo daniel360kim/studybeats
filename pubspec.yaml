@@ -73,6 +73,7 @@ dependencies:
   tiktoken: ^1.0.3
   cloud_functions: ^5.3.4
   package_info_plus: ^8.3.0
+  flutter_localization: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

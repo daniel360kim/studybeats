@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/router.dart';
 import 'package:lottie/lottie.dart';
 
 class ErrorPage extends StatelessWidget {

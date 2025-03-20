@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -13,8 +12,9 @@ import 'package:uuid/uuid.dart';
 import 'draggable_note.dart';
 
 class Notes extends StatefulWidget {
-  const Notes({required this.onClose, super.key});
+  const Notes({required this.onClose, required this.onUpgradePressed, super.key});
   final VoidCallback onClose;
+  final VoidCallback onUpgradePressed;
   @override
   State<Notes> createState() => _NotesState();
 }
@@ -327,7 +327,7 @@ class _NotesState extends State<Notes> {
                   minimumSize: Size(80, 36), // Set the minimum size
                 ),
                 onPressed: () {
-                  context.goNamed(AppRoute.subscriptionPage.name);
+                  widget.onUpgradePressed();
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(3.0),

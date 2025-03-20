@@ -84,7 +84,7 @@ class ProfileTab extends StatefulWidget {
   final String name;
 
   const ProfileTab({
-    Key? key,
+    super.key,
     required this.profileImageUrl,
     required this.imageFile,
     required this.loadingImagePicker,
@@ -93,7 +93,7 @@ class ProfileTab extends StatefulWidget {
     required this.onChangeName,
     required this.email,
     required this.name,
-  }) : super(key: key);
+  });
 
   @override
   State<ProfileTab> createState() => _ProfileTabState();

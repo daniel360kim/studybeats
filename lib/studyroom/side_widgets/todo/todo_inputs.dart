@@ -384,11 +384,10 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
               onPrimary: Colors.white, // Header text color
               onSurface: Colors.black, // Text color for selectable days
               surface: Colors.grey.shade200, // Background for selected date
-            ),
-            dialogBackgroundColor: Colors.white, // Dialog background color
+            ), // Dialog background color
             datePickerTheme: const DatePickerThemeData(
               backgroundColor: Colors.white, // Picker background
-            ),
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );
@@ -413,8 +412,7 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
               primary: kFlourishBlackish, // Header background color
               onPrimary: Colors.white, // Header text color
               onSurface: kFlourishBlackish, // Text color in the picker
-            ),
-            dialogBackgroundColor: Colors.white, // Dialog background color
+            ), // Dialog background color
             textSelectionTheme: TextSelectionThemeData(
               cursorColor: kFlourishBlackish, // Cursor color
               selectionColor:
@@ -433,7 +431,7 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
               dialTextColor: kFlourishBlackish, // Dial text color
               entryModeIconColor:
                   kFlourishBlackish, // Icon color for switching modes
-            ),
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );

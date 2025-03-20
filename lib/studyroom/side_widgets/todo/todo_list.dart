@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:studybeats/api/todo/todo_item.dart'; // Your TodoItem model.
-import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/item_tile.dart'; // Your tile widget.
 

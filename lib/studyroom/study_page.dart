@@ -13,10 +13,10 @@ import 'package:studybeats/studyroom/side_widgets/timer/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// Add the shimmer package
+import 'package:studybeats/studyroom/upgrade_dialogs.dart';
 
 class StudyRoom extends StatefulWidget {
-  const StudyRoom({super.key});
+  const StudyRoom({Key? key}) : super(key: key);
 
   @override
   State<StudyRoom> createState() => _StudyRoomState();
@@ -26,22 +26,16 @@ class _StudyRoomState extends State<StudyRoom> {
   bool _showTimer = false;
   bool _loadingScene = true;
   bool _loadingControlBar = true;
-  bool _splashFinished = false;
+  final bool _splashFinished = false;
   PomodoroDurations timerDurations =
       PomodoroDurations(Duration.zero, Duration.zero);
   TimerFxData? _timerFxData;
-
   bool _timerSoundEnabled = false;
-
   SceneData? _currentScene;
   List<SceneData> _sceneList = [];
-
   final SceneService _sceneService = SceneService();
-
   String? _backgroundImageUrl;
-
   int? _playlistId;
-
   final _logger = getLogger('StudyRoom Page Widget');
 
   @override
@@ -59,8 +53,7 @@ class _StudyRoomState extends State<StudyRoom> {
           setState(() {
             _currentScene = null;
             _backgroundImageUrl = null;
-            _loadingScene =
-                false; // Ensure loading state is false even if empty
+            _loadingScene = false;
             _playlistId = null;
           });
           return;
@@ -75,7 +68,6 @@ class _StudyRoomState extends State<StudyRoom> {
           _currentScene = _sceneList.firstWhere(
               (scene) => scene.id == initialSceneIndex,
               orElse: () => _sceneList.first);
-
           _backgroundImageUrl = backgroundUrl;
           _playlistId = _currentScene?.playlistId;
           _loadingScene = false;
@@ -132,7 +124,6 @@ class _StudyRoomState extends State<StudyRoom> {
                   timerFxData: _timerFxData!,
                   onTimerDurationChanged: (value) {
                     final timeDescription = formatDuration(value);
-
                     SystemChrome.setApplicationSwitcherDescription(
                       ApplicationSwitcherDescription(
                         label: timeDescription,
@@ -145,7 +136,6 @@ class _StudyRoomState extends State<StudyRoom> {
                       _showTimer = false;
                       timerDurations = value;
                     });
-
                     SystemChrome.setApplicationSwitcherDescription(
                       ApplicationSwitcherDescription(
                         label: 'Study Room',
@@ -194,6 +184,44 @@ class _StudyRoomState extends State<StudyRoom> {
                   },
                   currentScene: _currentScene!,
                   currentSceneBackgroundUrl: _backgroundImageUrl!,
+                  onUpgradeSelected: (option) async {
+                    // Show the upgrade dialog
+                    switch (option) {
+                      case NavigationOption.scene:
+                        await showDialog(
+                          context: context,
+                          builder: (_) => const PremiumUpgradeDialog(
+                            title: 'Unlock more scenes',
+                            description:
+                                'Get access to more scenes, new genres, and more!',
+                          ),
+                        );
+                        break;
+                      case NavigationOption.notes:
+                        await showDialog(
+                          context: context,
+                          builder: (_) => const PremiumUpgradeDialog(
+                            title: 'Unlock more notes',
+                            description:
+                                'With Pro, you can create unlimited notes and get access to more features!',
+                          ),
+                        );
+
+                        break;
+                      case NavigationOption.aiChat:
+                        await showDialog(
+                          context: context,
+                          builder: (_) => const PremiumUpgradeDialog(
+                            title: 'Unlimited chats with AI',
+                            description:
+                                'Get unlimited access and uploads to the Studybeats AI chat!',
+                          ),
+                        );
+                        break;
+                      default:
+                        break;
+                    }
+                  },
                 )
               : const SizedBox.shrink(),
         ),
@@ -221,7 +249,6 @@ class _StudyRoomState extends State<StudyRoom> {
             },
           ),
         ),
-       
       ],
     );
   }
@@ -233,21 +260,48 @@ class _StudyRoomState extends State<StudyRoom> {
       typeDescription = 'Focus:';
     }
 
-    // Helper to format two-digit numbers
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-
-    // Extract hours, minutes, and seconds
     final hours = twoDigits(report.duration.inHours);
     final minutes = twoDigits(report.duration.inMinutes.remainder(60));
     final seconds = twoDigits(report.duration.inSeconds.remainder(60));
 
-    // Format the output string
     if (report.duration.inHours > 0) {
-      // Include hours if they are greater than 0
       return '$typeDescription $hours:$minutes:$seconds';
     } else {
-      // Omit hours if they are 0
       return '$typeDescription $minutes:$seconds';
     }
+  }
+}
+
+/// A dialog that shows upgrade details and provides buttons for different upgrade options.
+/// Each button returns a different [NavigationOption] value.
+class UpgradeDialog extends StatelessWidget {
+  const UpgradeDialog({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Upgrade to Premium'),
+      content: const Text(
+          'Unlock premium features such as custom scenes, advanced timers, and AI chat enhancements by upgrading now!'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(NavigationOption.scene),
+          child: const Text('Upgrade Scene'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(NavigationOption.timer),
+          child: const Text('Upgrade Timer'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(NavigationOption.aiChat),
+          child: const Text('Upgrade AI Chat'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(), // Cancel returns null.
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
   }
 }

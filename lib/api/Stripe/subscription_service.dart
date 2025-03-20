@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:json_annotation/json_annotation.dart';
 import 'package:studybeats/api/Stripe/objects.dart';
 import 'package:studybeats/api/Stripe/product_service.dart';
 import 'package:studybeats/api/Stripe/stripe_service.dart';

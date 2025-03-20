@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:studybeats/api/Stripe/stripe_service.dart';
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:studybeats/log_printer.dart';
 
 StripeDatabaseProduct _$StripeProductFromJson(
     Map<String, dynamic> json, String docId) {
@@ -114,7 +115,9 @@ class Product {
   Product({required this.product, required this.prices});
 }
 
-class StripeProductService extends StripeService {
+class StripeProductService {
+  final logger = getLogger('StripeProductService');
+
   late final CollectionReference<Map<String, dynamic>> _collection;
   StripeProductService() : super() {
     _collection = FirebaseFirestore.instance.collection('products');
@@ -207,6 +210,24 @@ class StripeProductService extends StripeService {
       return product.product;
     } catch (e) {
       logger.e('Unexpected error while getting free product. $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Product>> getPaidProducts() async {
+    logger.i('Getting paid products');
+    try {
+      final products = await getActiveProducts();
+      final freeProduct = await getFreeProduct();
+
+      final paidProducts = products.where((product) {
+        return product.product.docId != freeProduct.docId;
+      }).toList();
+
+      logger.i('Found ${paidProducts.length} paid products');
+      return paidProducts;
+    } catch (e) {
+      logger.e('Unexpected error while getting paid products. $e');
       rethrow;
     }
   }

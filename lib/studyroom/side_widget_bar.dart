@@ -11,15 +11,25 @@ import 'package:studybeats/studyroom/side_widgets/todo/todo_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+enum NavigationOption {
+  scene,
+  aiChat,
+  timer,
+  todo,
+  notes,
+}
+
 class SideWidgetBar extends StatefulWidget {
-  const SideWidgetBar(
-      {required this.onShowTimer,
-      required this.onSceneChanged,
-      required this.timerFxData,
-      required this.onTimerSoundEnabled,
-      super.key,
-      required this.currentScene,
-      required this.currentSceneBackgroundUrl});
+  const SideWidgetBar({
+    required this.onShowTimer,
+    required this.onSceneChanged,
+    required this.timerFxData,
+    required this.onTimerSoundEnabled,
+    required this.currentScene,
+    required this.currentSceneBackgroundUrl,
+    required this.onUpgradeSelected,
+    Key? key,
+  }) : super(key: key);
 
   final ValueChanged<PomodoroDurations> onShowTimer;
   final ValueChanged<TimerFxData> timerFxData;
@@ -27,17 +37,18 @@ class SideWidgetBar extends StatefulWidget {
   final ValueChanged<int> onSceneChanged;
   final SceneData currentScene;
   final String currentSceneBackgroundUrl;
+  final ValueChanged<NavigationOption> onUpgradeSelected;
 
   @override
   State<SideWidgetBar> createState() => _SideWidgetBarState();
 }
 
 class _SideWidgetBarState extends State<SideWidgetBar> {
-  int? _selectedIndex;
+  NavigationOption? _selectedOption;
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(NavigationOption option) {
     setState(() {
-      _selectedIndex = _selectedIndex == index ? null : index;
+      _selectedOption = _selectedOption == option ? null : option;
     });
   }
 
@@ -56,94 +67,85 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
         child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.6),
-              border: const Border(
-                bottom: BorderSide(
-                  color: Colors.grey,
-                  width: 1.0,
-                ),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.6),
+            border: const Border(
+              bottom: BorderSide(
+                color: Colors.grey,
+                width: 1.0,
               ),
             ),
-            height: MediaQuery.of(context).size.height - 80,
-            width: 50,
-            child: Column(
-              children: [
-                NavigationItem(
-                  selectedIndex: _selectedIndex,
-                  toolTip: 'Change scene',
-                  index: 0,
-                  imagePath: 'assets/icons/scene.png',
-                  onItemTapped: (value) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() {
-                        _selectedIndex = null;
-                      });
-                      _redirectToLogin();
-                      return;
-                    }
-                    _onItemTapped(value);
-                  },
-                ),
-                NavigationItem(
-                  selectedIndex: _selectedIndex,
-                  toolTip: 'Studybeats Bot',
-                  index: 1,
-                  imagePath: 'assets/icons/robot.png',
-                  onItemTapped: (value) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() {
-                        _selectedIndex = null;
-                      });
-                      _redirectToLogin();
-                      return;
-                    }
-                    _onItemTapped(value);
-                  },
-                ),
-                NavigationItem(
-                  selectedIndex: _selectedIndex,
-                  toolTip: 'Pomodoro Timer',
-                  index: 2,
-                  imagePath: 'assets/icons/timer.png',
-                  onItemTapped: (value) {
-                    _onItemTapped(value);
-                  },
-                ),
-                NavigationItem(
-                  selectedIndex: _selectedIndex,
-                  toolTip: 'Todo List',
-                  index: 3,
-                  imagePath: 'assets/icons/todo.png',
-                  onItemTapped: (value) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() {
-                        _selectedIndex = null;
-                      });
-                      _redirectToLogin();
-                      return;
-                    }
-                    _onItemTapped(value);
-                  },
-                ),
-                NavigationItem(
-                  selectedIndex: _selectedIndex,
-                  toolTip: 'Notes',
-                  index: 4,
-                  imagePath: 'assets/icons/notes.png',
-                  onItemTapped: (value) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() {
-                        _selectedIndex = null;
-                      });
-                      _redirectToLogin();
-                      return;
-                    }
-                    _onItemTapped(value);
-                  },
-                ),
-              ],
-            )),
+          ),
+          height: MediaQuery.of(context).size.height - 80,
+          width: 50,
+          child: Column(
+            children: [
+              NavigationItem(
+                selectedOption: _selectedOption,
+                toolTip: 'Change scene',
+                option: NavigationOption.scene,
+                imagePath: 'assets/icons/scene.png',
+                onItemTapped: (option) {
+                  if (!AuthService().isUserLoggedIn()) {
+                    setState(() => _selectedOption = null);
+                    _redirectToLogin();
+                    return;
+                  }
+                  _onItemTapped(option);
+                },
+              ),
+              NavigationItem(
+                selectedOption: _selectedOption,
+                toolTip: 'Studybeats Bot',
+                option: NavigationOption.aiChat,
+                imagePath: 'assets/icons/robot.png',
+                onItemTapped: (option) {
+                  if (!AuthService().isUserLoggedIn()) {
+                    setState(() => _selectedOption = null);
+                    _redirectToLogin();
+                    return;
+                  }
+                  _onItemTapped(option);
+                },
+              ),
+              NavigationItem(
+                selectedOption: _selectedOption,
+                toolTip: 'Pomodoro Timer',
+                option: NavigationOption.timer,
+                imagePath: 'assets/icons/timer.png',
+                onItemTapped: _onItemTapped,
+              ),
+              NavigationItem(
+                selectedOption: _selectedOption,
+                toolTip: 'Todo List',
+                option: NavigationOption.todo,
+                imagePath: 'assets/icons/todo.png',
+                onItemTapped: (option) {
+                  if (!AuthService().isUserLoggedIn()) {
+                    setState(() => _selectedOption = null);
+                    _redirectToLogin();
+                    return;
+                  }
+                  _onItemTapped(option);
+                },
+              ),
+              NavigationItem(
+                selectedOption: _selectedOption,
+                toolTip: 'Notes',
+                option: NavigationOption.notes,
+                imagePath: 'assets/icons/notes.png',
+                onItemTapped: (option) {
+                  if (!AuthService().isUserLoggedIn()) {
+                    setState(() => _selectedOption = null);
+                    _redirectToLogin();
+                    return;
+                  }
+                  _onItemTapped(option);
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -151,109 +153,94 @@ class _SideWidgetBarState extends State<SideWidgetBar> {
   Widget _getSelectedWidget() {
     return Column(
       children: [
-        AuthService().isUserLoggedIn()
-            ? Visibility(
-                maintainState: true,
-                visible: _selectedIndex == 0 && _selectedIndex != null,
-                child: SceneSelector(
-                  onSceneSelected: ((id) async {
-                    widget.onSceneChanged(id);
-                    await AuthService().changeselectedSceneId(id);
-                  }),
-                  onClose: () {
-                    setState(() {
-                      _selectedIndex = null;
-                    });
-                  },
-                  currentScene: widget.currentScene,
-                  currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
-                  onProSceneSelected: () {},
-                ),
-              )
-            : const SizedBox.shrink(),
-        AuthService().isUserLoggedIn()
-            ? Visibility(
-                maintainState: true,
-                visible: _selectedIndex == 1 && _selectedIndex != null,
-                child: AiChat(onClose: () {
-                  setState(() {
-                    _selectedIndex = null;
-                  });
-                }),
-              )
-            : const SizedBox.shrink(),
+        if (AuthService().isUserLoggedIn())
+          Visibility(
+            maintainState: true,
+            visible: _selectedOption == NavigationOption.scene,
+            child: SceneSelector(
+              onSceneSelected: (id) async {
+                widget.onSceneChanged(id);
+                await AuthService().changeselectedSceneId(id);
+              },
+              onClose: () => setState(() => _selectedOption = null),
+              currentScene: widget.currentScene,
+              currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
+              onProSceneSelected: () {
+                widget.onUpgradeSelected(NavigationOption.scene);
+              },
+            ),
+          ),
+        if (AuthService().isUserLoggedIn())
+          Visibility(
+            maintainState: true,
+            visible: _selectedOption == NavigationOption.aiChat,
+            child: AiChat(
+              onClose: () => setState(() => _selectedOption = null),
+              onUpgradePressed: () {
+                widget.onUpgradeSelected(NavigationOption.aiChat);
+              },
+            ),
+          ),
         Visibility(
           maintainState: true,
-          visible: _selectedIndex == 2 && _selectedIndex != null,
+          visible: _selectedOption == NavigationOption.timer,
           child: PomodoroTimer(
-            onTimerSoundEnabled: (value) => widget.onTimerSoundEnabled(value),
-            onTimerSoundSelected: (value) => widget.timerFxData(value),
+            onTimerSoundEnabled: widget.onTimerSoundEnabled,
+            onTimerSoundSelected: widget.timerFxData,
             onStartPressed: (value) {
               widget.onShowTimer(value);
-              setState(() {
-                _selectedIndex = null;
-              });
+              setState(() => _selectedOption = null);
             },
-            onClose: () {
-              setState(() {
-                _selectedIndex = null;
-              });
-            },
+            onClose: () => setState(() => _selectedOption = null),
           ),
         ),
-        AuthService().isUserLoggedIn()
-            ? Visibility(
-                maintainState: true,
-                visible: _selectedIndex == 3 && _selectedIndex != null,
-                child: Todo(onClose: () {
-                  setState(() {
-                    _selectedIndex = null;
-                  });
-                }))
-            : const SizedBox.shrink(),
-        AuthService().isUserLoggedIn()
-            ? Visibility(
-                maintainState: true,
-                visible: _selectedIndex == 4 && _selectedIndex != null,
-                child: Notes(
-                  onClose: () {
-                    setState(() {
-                      _selectedIndex = null;
-                    });
-                  },
-                ))
-            : const SizedBox.shrink(),
+        if (AuthService().isUserLoggedIn())
+          Visibility(
+            maintainState: true,
+            visible: _selectedOption == NavigationOption.todo,
+            child: Todo(
+              onClose: () => setState(() => _selectedOption = null),
+            ),
+          ),
+        if (AuthService().isUserLoggedIn())
+          Visibility(
+            maintainState: true,
+            visible: _selectedOption == NavigationOption.notes,
+            child: Notes(
+              onClose: () => setState(() => _selectedOption = null),
+              onUpgradePressed: () {
+                widget.onUpgradeSelected(NavigationOption.notes);
+              },
+            ),
+          ),
       ],
     );
   }
 
   Widget _redirectToLogin() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _selectedIndex = null;
-      });
+      setState(() => _selectedOption = null);
       context.goNamed(AppRoute.loginPage.name);
     });
-
     return const SizedBox();
   }
 }
 
 class NavigationItem extends StatefulWidget {
   const NavigationItem({
-    required this.selectedIndex,
+    required this.selectedOption,
     required this.toolTip,
-    required this.index,
+    required this.option,
     required this.imagePath,
     required this.onItemTapped,
-    super.key,
-  });
+    Key? key,
+  }) : super(key: key);
 
-  final int? selectedIndex;
+  final NavigationOption? selectedOption;
   final String toolTip;
-  final int index;
+  final NavigationOption option;
   final String imagePath;
-  final ValueChanged onItemTapped;
+  final ValueChanged<NavigationOption> onItemTapped;
 
   @override
   State<NavigationItem> createState() => _NavigationItemState();
@@ -264,14 +251,10 @@ class _NavigationItemState extends State<NavigationItem> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSelected = widget.index == widget.selectedIndex;
+    final bool isSelected = widget.option == widget.selectedOption;
     return MouseRegion(
-      onEnter: (_) => setState(() {
-        _hovering = true;
-      }),
-      onExit: (_) => setState(() {
-        _hovering = false;
-      }),
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
       child: Tooltip(
         message: widget.toolTip,
         child: Column(
@@ -280,7 +263,7 @@ class _NavigationItemState extends State<NavigationItem> {
               height: 50,
               width: 50,
               child: GestureDetector(
-                onTap: () => widget.onItemTapped(widget.index),
+                onTap: () => widget.onItemTapped(widget.option),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -307,7 +290,7 @@ class _NavigationItemState extends State<NavigationItem> {
                 ),
               ),
             ),
-            const SizedBox(height: 3.0)
+            const SizedBox(height: 3.0),
           ],
         ),
       ),

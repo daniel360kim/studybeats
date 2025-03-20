@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
-import 'package:openai_dart/openai_dart.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
@@ -29,9 +28,10 @@ class ConversationMessage {
 }
 
 class AiChat extends StatefulWidget {
-  const AiChat({required this.onClose, super.key});
+  const AiChat({required this.onClose, required this.onUpgradePressed, super.key});
 
   final VoidCallback onClose;
+  final VoidCallback onUpgradePressed;
 
   @override
   State<AiChat> createState() => _AiChatState();
@@ -740,7 +740,7 @@ class _AiChatState extends State<AiChat> {
             recognizer: TapGestureRecognizer()
               ..onTap = () {
                 // Navigate to the upgrade page
-                context.goNamed(AppRoute.subscriptionPage.name);
+                widget.onUpgradePressed();
               },
           ),
         ],

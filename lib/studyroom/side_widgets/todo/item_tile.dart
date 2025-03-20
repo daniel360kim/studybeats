@@ -463,10 +463,9 @@ class _TodoItemTileState extends State<TodoItemTile> {
                       onSurface: Colors.black,
                       surface: Colors.grey.shade200,
                     ),
-                    dialogBackgroundColor: Colors.white,
                     datePickerTheme: const DatePickerThemeData(
                       backgroundColor: Colors.white,
-                    ),
+                    ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
                   ),
                   child: Builder(
                     builder: (context) {
@@ -588,7 +587,6 @@ class _TodoItemTileState extends State<TodoItemTile> {
               onPrimary: Colors.white,
               onSurface: kFlourishBlackish,
             ),
-            dialogBackgroundColor: Colors.white,
             textSelectionTheme: TextSelectionThemeData(
               cursorColor: kFlourishBlackish,
               selectionColor: Colors.grey.shade300,
@@ -604,7 +602,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
               dialHandColor: kFlourishAdobe,
               dialTextColor: kFlourishBlackish,
               entryModeIconColor: kFlourishBlackish,
-            ),
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );

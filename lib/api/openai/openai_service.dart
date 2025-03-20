@@ -2,14 +2,11 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/rendering.dart';
 import 'package:openai_dart/openai_dart.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/secrets.dart';
-import 'package:studybeats/studyroom/side_widgets/aichat/tokenizer.dart';
 
 enum MessageType {
   aiResponse,

@@ -8,7 +8,6 @@ import 'package:studybeats/api/Stripe/objects.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class SubscriptionTab extends StatefulWidget {

@@ -6,7 +6,7 @@ import 'package:studybeats/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HelpTab extends StatefulWidget {
-  const HelpTab({Key? key}) : super(key: key);
+  const HelpTab({super.key});
 
   @override
   _HelpTabState createState() => _HelpTabState();

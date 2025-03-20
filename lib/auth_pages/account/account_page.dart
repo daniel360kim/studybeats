@@ -40,7 +40,7 @@ class _AccountPageState extends State<AccountPage>
   final _authService = AuthService();
   bool isProMember = false;
   bool _loadingImagePicker = false;
-  TextEditingController _nameController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   final _logger = getLogger('AccountPage');
 
