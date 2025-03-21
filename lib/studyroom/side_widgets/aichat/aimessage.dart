@@ -3,7 +3,6 @@ import 'package:studybeats/api/auth/urls.dart';
 import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/profile.dart';
 
@@ -174,11 +173,10 @@ class AiParser extends StatelessWidget {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 controller: scrollController,
-                child: Math.tex(
-                  content,
-                  textStyle: GoogleFonts.inter(
-                    fontSize: 18,
-                  ),
+                child: MarkdownBody(
+                  data: content,
+                  selectable: true,
+                  styleSheet: kStyleSheet,
                 ),
               ),
             ),
