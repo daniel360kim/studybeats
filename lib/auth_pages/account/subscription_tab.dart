@@ -157,7 +157,7 @@ class _SubscriptionTabState extends State<SubscriptionTab> {
               ),
             ),
             onPressed: () {
-              context.goNamed(AppRoute.subscriptionPage.name);
+              context.goNamed(AppRoute.getPro.name);
             },
             icon: const Icon(Icons.star, color: kFlourishBlackish),
             label: Text(

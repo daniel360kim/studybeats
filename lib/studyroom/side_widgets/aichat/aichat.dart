@@ -28,7 +28,8 @@ class ConversationMessage {
 }
 
 class AiChat extends StatefulWidget {
-  const AiChat({required this.onClose, required this.onUpgradePressed, super.key});
+  const AiChat(
+      {required this.onClose, required this.onUpgradePressed, super.key});
 
   final VoidCallback onClose;
   final VoidCallback onUpgradePressed;
@@ -683,8 +684,9 @@ class _AiChatState extends State<AiChat> {
             ),
             actions: [
               ElevatedButton(
-                onPressed: () =>
-                    context.goNamed(AppRoute.subscriptionPage.name),
+                onPressed: () {
+                  widget.onUpgradePressed();
+                },
                 style: ElevatedButton.styleFrom(
                     backgroundColor: kFlourishAdobe,
                     foregroundColor: Colors.white),

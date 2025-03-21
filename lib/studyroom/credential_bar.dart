@@ -15,11 +15,13 @@ class CredentialBar extends StatefulWidget {
   const CredentialBar({
     required this.loggedIn,
     required this.onLogout,
+    required this.onUpgradePressed,
     super.key,
   });
 
   final bool loggedIn;
   final VoidCallback onLogout;
+  final VoidCallback onUpgradePressed;
 
   @override
   State<CredentialBar> createState() => _CredentialBarState();
@@ -36,6 +38,7 @@ class _CredentialBarState extends State<CredentialBar> {
         if (widget.loggedIn)
           ProfilePicture(
             onLogout: widget.onLogout,
+            onUpgradePressed: widget.onUpgradePressed,
           )
       ],
     );
@@ -83,10 +86,12 @@ class _CredentialBarState extends State<CredentialBar> {
 class ProfilePicture extends StatefulWidget {
   const ProfilePicture({
     required this.onLogout,
+    required this.onUpgradePressed,
     super.key,
   });
 
   final VoidCallback onLogout;
+  final VoidCallback onUpgradePressed; 
   @override
   State<ProfilePicture> createState() => _ProfilePictureState();
 }
@@ -211,8 +216,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                     if (!_isPro)
                       PopupMenuItem<int>(
                         value: 1,
-                        onTap: () =>
-                            context.goNamed(AppRoute.subscriptionPage.name),
+                        onTap: () => widget.onUpgradePressed(),
                         child: const PopupMenuDetails(
                           icon: Icons.star,
                           text: 'Upgrade',

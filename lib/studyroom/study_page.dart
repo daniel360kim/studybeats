@@ -16,7 +16,9 @@ import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/upgrade_dialogs.dart';
 
 class StudyRoom extends StatefulWidget {
-  const StudyRoom({Key? key}) : super(key: key);
+  const StudyRoom({this.openPricing = false, super.key});
+
+  final bool openPricing;
 
   @override
   State<StudyRoom> createState() => _StudyRoomState();
@@ -42,6 +44,11 @@ class _StudyRoomState extends State<StudyRoom> {
   void initState() {
     super.initState();
     initScenes();
+    if (widget.openPricing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showInitialUpgradeDialog();
+      });
+    }
   }
 
   void initScenes() {
@@ -108,6 +115,20 @@ class _StudyRoomState extends State<StudyRoom> {
         _playlistId = null;
       });
     }
+  }
+
+  // Used when a redirect to the study room wants the pricing dialog to be shown.
+  // For example, if on landing page, the user clicks on the "Get Started" button.
+  // This will show the pricing dialog initially
+  void showInitialUpgradeDialog() async {
+    await showDialog(
+      context: context,
+      builder: (_) => const PremiumUpgradeDialog(
+        title: 'Upgrade to Pro',
+        description:
+            'Unlock premium features and boost your productivity by upgrading to Pro!',
+      ),
+    );
   }
 
   @override
@@ -242,6 +263,7 @@ class _StudyRoomState extends State<StudyRoom> {
             builder: (context, appState, child) {
               return CredentialBar(
                 loggedIn: appState.loggedIn,
+                onUpgradePressed: showInitialUpgradeDialog,
                 onLogout: () {
                   setState(() {});
                 },

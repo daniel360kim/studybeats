@@ -7,7 +7,6 @@ import 'package:studybeats/auth_pages/signup/create_password.dart';
 import 'package:studybeats/auth_pages/signup/forgot_password.dart';
 import 'package:studybeats/auth_pages/signup/name_page.dart';
 import 'package:studybeats/auth_pages/signup/signup_page.dart';
-import 'package:studybeats/auth_pages/subscription_page.dart';
 import 'package:studybeats/landing/error_page.dart';
 import 'package:studybeats/landing/mobile_landing_page.dart';
 import 'package:studybeats/studyroom/study_page.dart';
@@ -51,9 +50,9 @@ enum AppRoute {
   loginPage,
   createPasswordPage,
   profilePage,
-  subscriptionPage,
   forgotPassword,
   accountPage,
+  getPro,
 }
 
 GoRouter createRouter(BuildContext context) {
@@ -150,18 +149,7 @@ GoRouter createRouter(BuildContext context) {
           },
         ),
       ),
-      GoRoute(
-        path: '/subscribe',
-        name: AppRoute.subscriptionPage.name,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          name: AppRoute.subscriptionPage.name,
-          key: state.pageKey,
-          child: const SubscriptionPage(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      ),
+   
       GoRoute(
         path: '/create-password',
         name: AppRoute.createPasswordPage.name,
@@ -200,6 +188,21 @@ GoRouter createRouter(BuildContext context) {
             name: AppRoute.accountPage.name,
             key: state.pageKey,
             child: const AccountPage(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/get_pro',
+        name: AppRoute.getPro.name,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            name: AppRoute.getPro.name,
+            key: state.pageKey,
+            child: const StudyRoom(openPricing: true),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
