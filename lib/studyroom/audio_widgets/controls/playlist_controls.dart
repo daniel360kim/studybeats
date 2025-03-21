@@ -21,12 +21,10 @@ class _IconControlsState extends State<IconControls> {
   bool isEqualizerEnabled = false;
   bool isBackgroundSoundEnabled = false;
 
-
   void _handleListPressed() {
     setState(() {
       isListEnabled = !isListEnabled;
       if (isListEnabled) {
-
         isEqualizerEnabled = false;
         isBackgroundSoundEnabled = false;
 
@@ -45,7 +43,6 @@ class _IconControlsState extends State<IconControls> {
     setState(() {
       isEqualizerEnabled = !isEqualizerEnabled;
       if (isEqualizerEnabled) {
-
         isListEnabled = false;
         isBackgroundSoundEnabled = false;
 
@@ -55,7 +52,6 @@ class _IconControlsState extends State<IconControls> {
     });
     widget.onEqualizerPressed(isEqualizerEnabled);
     if (!isEqualizerEnabled) {
-
       widget.onListPressed(false);
       widget.onBackgroundSoundPressed(false);
     }
@@ -65,10 +61,8 @@ class _IconControlsState extends State<IconControls> {
     setState(() {
       isBackgroundSoundEnabled = !isBackgroundSoundEnabled;
       if (isBackgroundSoundEnabled) {
-
         isListEnabled = false;
         isEqualizerEnabled = false;
-
 
         widget.onListPressed(false);
         widget.onEqualizerPressed(false);
@@ -76,7 +70,6 @@ class _IconControlsState extends State<IconControls> {
     });
     widget.onBackgroundSoundPressed(isBackgroundSoundEnabled);
     if (!isBackgroundSoundEnabled) {
-
       widget.onListPressed(false);
       widget.onEqualizerPressed(false);
     }
@@ -89,7 +82,7 @@ class _IconControlsState extends State<IconControls> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-        
+          /*
           Container(
             width: 35,
             height: 35,
@@ -108,6 +101,7 @@ class _IconControlsState extends State<IconControls> {
             ),
           ),
           const SizedBox(width: 10),
+          */
           Container(
             width: 35,
             height: 35,
