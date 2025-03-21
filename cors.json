@@ -1,14 +1,6 @@
 [
   {
-    "origin": [
-      
-      "https://flourish-web-fa343.firebaseapp.com",
-      "https://flourish-web-fa343.web.app",
-      "https://marketing-1acbc.web.app",
-      "https://marketing-1acbc.firebaseapp.com",
-      "https://studybeats.co",
-      "https://app.studybeats.co"
-    ],
+    "origin": ["*"],
     "method": ["GET"],
     "maxAgeSeconds": 3600
   }
