@@ -8,7 +8,6 @@ import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/router.dart';
 
@@ -32,25 +31,29 @@ class SceneSelector extends StatefulWidget {
   State<SceneSelector> createState() => _SceneSelectorState();
 }
 
+/// Private class to pair SceneData with its thumbnail URL.
+class _SceneItem {
+  final SceneData scene;
+  final String backgroundUrl;
+  _SceneItem(this.scene, this.backgroundUrl);
+}
+
 class _SceneSelectorState extends State<SceneSelector> {
   final SceneService _sceneService = SceneService();
-  final _authService = AuthService();
-  List<SceneData> _freeScenes = [];
-  List<SceneData> _proScenes = [];
-  List<String> _sceneBackgroundUrls = [];
+  final AuthService _authService = AuthService();
 
+  List<_SceneItem> _sceneItems = [];
   bool _isPro = false;
 
   @override
   void initState() {
     super.initState();
-    getScenes();
+    _fetchScenes();
   }
 
-  void getScenes() async {
+  Future<void> _fetchScenes() async {
     try {
-      bool isUserLoggedIn = _authService.isUserLoggedIn();
-      if (isUserLoggedIn) {
+      if (_authService.isUserLoggedIn()) {
         final isPro = await StripeSubscriptionService().hasProMembership();
         setState(() {
           _isPro = isPro;
@@ -58,84 +61,80 @@ class _SceneSelectorState extends State<SceneSelector> {
       }
 
       final sceneList = await _sceneService.getSceneData();
-      final List<String> backgroundImageList = [];
-
-      for (final scene in sceneList) {
-        backgroundImageList
-            .add(await _sceneService.getThumbnailImageUrl(scene));
-      }
+      final items = await Future.wait(sceneList.map((scene) async {
+        final url = await _sceneService.getThumbnailImageUrl(scene);
+        return _SceneItem(scene, url);
+      }));
 
       setState(() {
-        _freeScenes = sceneList.where((scene) => !scene.isPro).toList();
-        _proScenes = sceneList.where((scene) => scene.isPro).toList();
-        _sceneBackgroundUrls = backgroundImageList;
+        _sceneItems = items;
       });
     } catch (e) {
-      _freeScenes.clear();
-      _proScenes.clear();
-      _sceneBackgroundUrls.clear();
+      setState(() {
+        _sceneItems = [];
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Separate scenes into free and pro.
+    final freeItems = _sceneItems.where((item) => !item.scene.isPro).toList();
+    final proItems = _sceneItems.where((item) => item.scene.isPro).toList();
+
+    // Filter out the current scene from the "Scenes" list.
+    List<_SceneItem> scenesForList;
+    if (_isPro) {
+      scenesForList = [
+        ...freeItems,
+        ...proItems,
+      ].where((item) => item.scene.id != widget.currentScene.id).toList();
+    } else {
+      scenesForList = freeItems
+          .where((item) => item.scene.id != widget.currentScene.id)
+          .toList();
+    }
+
     return SizedBox(
       width: 400,
       height: MediaQuery.of(context).size.height - 80,
       child: Column(
         children: [
-          buildTopBar(),
+          _buildTopBar(),
           Expanded(
-            child: ClipRRect(
-              child: Container(
-                width: 400,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Color(0xFFE0E7FF),
-                      Color(0xFFF7F8FC),
-                    ],
-                  ),
-                ),
-                padding: const EdgeInsets.all(15.0),
-                child: ListView(
-                  children: [
-                    buildSectionTitle("Current Scene"),
-                    SceneSelection(
-                      widget: widget,
-                      scene: widget.currentScene,
-                      backgroundImageUrl: widget.currentSceneBackgroundUrl,
-                      isUserPro: true,
-                    ),
-                    buildSectionTitle("Scenes"),
-                    ..._freeScenes
-                        .where((scene) => scene.id != widget.currentScene.id)
-                        .map((scene) {
-                      int index = _freeScenes.indexOf(scene);
-                      return SceneSelection(
-                        widget: widget,
-                        scene: scene,
-                        backgroundImageUrl: _sceneBackgroundUrls[index],
-                        isUserPro: _isPro,
-                      );
-                    }),
-                    if (_proScenes.isNotEmpty && !_isPro)
-                      buildProSceneStack()
-                    else if (_proScenes.isNotEmpty && _isPro)
-                      ..._proScenes.map((scene) {
-                        int index =
-                            _freeScenes.length + _proScenes.indexOf(scene);
-                        return SceneSelection(
-                          widget: widget,
-                          scene: scene,
-                          backgroundImageUrl: _sceneBackgroundUrls[index],
-                          isUserPro: _isPro,
-                        );
-                      }),
+            child: Container(
+              width: 400,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color(0xFFE0E7FF),
+                    Color(0xFFF7F8FC),
                   ],
                 ),
+              ),
+              padding: const EdgeInsets.all(15.0),
+              child: ListView(
+                children: [
+                  _buildSectionTitle("Current Scene"),
+                  SceneSelection(
+                    parent: widget,
+                    scene: widget.currentScene,
+                    backgroundImageUrl: widget.currentSceneBackgroundUrl,
+                    isUserPro: _isPro,
+                  ),
+                  _buildSectionTitle("Scenes"),
+                  ...scenesForList.map((item) => SceneSelection(
+                        parent: widget,
+                        scene: item.scene,
+                        backgroundImageUrl: item.backgroundUrl,
+                        isUserPro: _isPro,
+                      )),
+                  // For non-pro users, show a pro scene promotion if any pro scenes exist.
+                  if (!_isPro && proItems.isNotEmpty)
+                    _buildProSceneStack(proItems),
+                ],
               ),
             ),
           ),
@@ -144,7 +143,7 @@ class _SceneSelectorState extends State<SceneSelector> {
     );
   }
 
-  Widget buildTopBar() {
+  Widget _buildTopBar() {
     return Container(
       height: 40,
       color: Colors.white,
@@ -161,7 +160,7 @@ class _SceneSelectorState extends State<SceneSelector> {
     );
   }
 
-  Widget buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 10),
       child: Text(
@@ -174,7 +173,7 @@ class _SceneSelectorState extends State<SceneSelector> {
     );
   }
 
-  Widget buildProSceneStack() {
+  Widget _buildProSceneStack(List<_SceneItem> proItems) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -188,17 +187,16 @@ class _SceneSelectorState extends State<SceneSelector> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              if (_proScenes.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20.0),
-                  child: CachedNetworkImage(
-                    imageUrl: _sceneBackgroundUrls[
-                        _freeScenes.length], // First Pro Scene Image
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 180,
-                  ),
+              // Display the thumbnail from the first pro scene.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20.0),
+                child: CachedNetworkImage(
+                  imageUrl: proItems.first.backgroundUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 180,
                 ),
+              ),
               Container(
                 width: double.infinity,
                 height: 180,
@@ -218,7 +216,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Unlock ${_proScenes.length} more scenes",
+                    "Unlock ${proItems.length} more scenes",
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -233,9 +231,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    onPressed: () {
-                      widget.onProSceneSelected();
-                    },
+                    onPressed: widget.onProSceneSelected,
                     child: const Text(
                       "Upgrade now",
                       style: TextStyle(
@@ -257,13 +253,13 @@ class _SceneSelectorState extends State<SceneSelector> {
 class SceneSelection extends StatefulWidget {
   const SceneSelection({
     super.key,
-    required this.widget,
+    required this.parent,
     required this.scene,
     required this.backgroundImageUrl,
     required this.isUserPro,
   });
 
-  final SceneSelector widget;
+  final SceneSelector parent;
   final SceneData scene;
   final String backgroundImageUrl;
   final bool isUserPro;
@@ -277,6 +273,7 @@ class _SceneSelectionState extends State<SceneSelection> {
 
   @override
   void initState() {
+    // Preload the font for the scene title.
     pendingFonts = GoogleFonts.pendingFonts([
       GoogleFonts.getFont(widget.scene.fontTheme),
     ]);
@@ -293,17 +290,16 @@ class _SceneSelectionState extends State<SceneSelection> {
 
   @override
   Widget build(BuildContext context) {
-    int titleCharCount = widget.scene.name.length;
+    final titleCharCount = widget.scene.name.length;
     return Container(
       width: 200,
       height: 200,
       padding: const EdgeInsets.only(bottom: 10.0),
       decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(20.0))),
+        borderRadius: BorderRadius.all(Radius.circular(20.0)),
+      ),
       child: Stack(
         children: [
-          // Pro asset image in top right if scene is pro
-
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20.0),
@@ -329,7 +325,7 @@ class _SceneSelectionState extends State<SceneSelection> {
               ),
             ),
           ),
-          // Add small darkness if the scene is pro and user is not pro
+          // Dark overlay if the scene is pro and the user isn’t.
           if (widget.scene.isPro && !widget.isUserPro)
             Center(
               child: Container(
@@ -345,12 +341,11 @@ class _SceneSelectionState extends State<SceneSelection> {
             child: GestureDetector(
               onTap: () {
                 _sendAnalyticsEvent(widget.scene.id);
-
                 if (widget.scene.isPro && !widget.isUserPro) {
-                  widget.widget.onProSceneSelected();
+                  widget.parent.onProSceneSelected();
                   return;
                 }
-                widget.widget.onSceneSelected(widget.scene.id);
+                widget.parent.onSceneSelected(widget.scene.id);
               },
               child: Stack(
                 children: [
@@ -372,45 +367,42 @@ class _SceneSelectionState extends State<SceneSelection> {
                     ),
                   ),
                   FutureBuilder(
-                      future: pendingFonts,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState != ConnectionState.done) {
-                          return const Center(
-                            child: SizedBox(),
-                          );
-                        }
-                        return Center(
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (widget.scene.isPro && !widget.isUserPro)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 5.0, vertical: 2.0),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Image.asset(
-                                      'assets/icons/crown.png',
-                                      width: 20,
-                                      height: 20,
-                                    ),
-                                  ),
-                                Text(
-                                  widget.scene.name,
-                                  style: GoogleFonts.getFont(
-                                    widget.scene.fontTheme,
-                                    fontSize: 20,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                    future: pendingFonts,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: SizedBox());
+                      }
+                      return Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (widget.scene.isPro && !widget.isUserPro)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5.0, vertical: 2.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                              ],
+                                child: Image.asset(
+                                  'assets/icons/crown.png',
+                                  width: 20,
+                                  height: 20,
+                                ),
+                              ),
+                            Text(
+                              widget.scene.name,
+                              style: GoogleFonts.getFont(
+                                widget.scene.fontTheme,
+                                fontSize: 20,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

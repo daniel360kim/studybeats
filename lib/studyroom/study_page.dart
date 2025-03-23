@@ -265,6 +265,7 @@ class _StudyRoomState extends State<StudyRoom> {
                 loggedIn: appState.loggedIn,
                 onUpgradePressed: showInitialUpgradeDialog,
                 onLogout: () {
+                  changeScene(1);
                   setState(() {});
                 },
               );
