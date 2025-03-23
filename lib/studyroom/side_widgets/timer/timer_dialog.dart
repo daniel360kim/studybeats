@@ -39,13 +39,26 @@ class TimerDialog extends StatefulWidget {
 class _TimerDialogState extends State<TimerDialog> {
   late Timer _timer;
   late DateTime _startTime;
-  late Duration _initialTime;
+  late Duration _totalDuration;
 
-  Duration _currentTime = Duration.zero;
+  Duration _remainingTime = Duration.zero;
   bool _isOnFocus = true;
+  bool _isPaused = false;
 
   final _soundPlayer = TimerPlayer();
   final _analyticsService = AnalyticsService();
+
+  // Draggable state.
+  Offset _offset = Offset.zero;
+  // Theme color state.
+  Color _themeColor = Colors.black.withOpacity(0.5);
+  final List<Color> _themeColors = [
+    Colors.black.withOpacity(0.5),
+    Colors.blue.withOpacity(0.5),
+    Colors.red.withOpacity(0.5),
+    Colors.green.withOpacity(0.5),
+    Colors.purple.withOpacity(0.5),
+  ];
 
   @override
   void initState() {
@@ -61,51 +74,70 @@ class _TimerDialogState extends State<TimerDialog> {
   }
 
   void _startFocusTimer() {
-    _currentTime = widget.focusTimerDuration;
+    setState(() {
+      _remainingTime = widget.focusTimerDuration;
+      _isOnFocus = true;
+    });
     _startTimer();
   }
 
   void _startBreakTimer() {
-    _currentTime = widget.breakTimerDuration;
+    setState(() {
+      _remainingTime = widget.breakTimerDuration;
+      _isOnFocus = false;
+    });
     _startTimer();
   }
 
   void _startTimer() {
-    _initialTime = _currentTime;
+    _totalDuration = _remainingTime;
     _startTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+  }
+
+  void _pauseTimer() {
+    _timer.cancel();
+    setState(() {
+      _isPaused = true;
+    });
+  }
+
+  void _resumeTimer() {
+    setState(() {
+      _isPaused = false;
+      _startTime = DateTime.now();
+      _totalDuration = _remainingTime;
+    });
     _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
   }
 
   @override
   void dispose() {
-    _timer.cancel(); // Dispose the timer to prevent memory leaks
+    _timer.cancel();
     _soundPlayer.dispose();
     super.dispose();
   }
 
   void _updateTimer(Timer timer) {
     final elapsed = DateTime.now().difference(_startTime);
-    final remainingTime = _initialTime - elapsed;
-
+    final remaining = _totalDuration - elapsed;
     final report =
-        TabDescriptionReporter(isFocus: _isOnFocus, duration: remainingTime);
+        TabDescriptionReporter(isFocus: _isOnFocus, duration: remaining);
     widget.onTimerDurationChanged(report);
 
-    if (remainingTime.inSeconds <= 0) {
-      setState(() {
-        _isOnFocus = !_isOnFocus;
-        if (_isOnFocus) {
-          _startFocusTimer();
-        } else {
-          _startBreakTimer();
-        }
-        if (widget.timerSoundEnabled) {
-          _soundPlayer.playTimerSound(widget.timerFxData);
-        }
-      });
+    if (remaining.inSeconds <= 0) {
+      _timer.cancel();
+      if (widget.timerSoundEnabled) {
+        _soundPlayer.playTimerSound(widget.timerFxData);
+      }
+      if (_isOnFocus) {
+        _startBreakTimer();
+      } else {
+        _startFocusTimer();
+      }
     } else {
       setState(() {
-        _currentTime = remainingTime;
+        _remainingTime = remaining;
       });
     }
   }
@@ -121,70 +153,143 @@ class _TimerDialogState extends State<TimerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        height: 150,
-        width: _currentTime.inHours > 0 ? 300 : 250,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(50),
-          color: Colors.black.withOpacity(0.5),
-        ),
-        child: Stack(
-          children: [
-            ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              ),
-            ),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SizedBox(width: 25),
-                      IconButton(
-                        onPressed: () {
-                          PomodoroDurations resettedDurations =
-                              PomodoroDurations(Duration.zero, Duration.zero);
-                          widget.onExit(resettedDurations);
+    final double progressValue = _totalDuration.inSeconds > 0
+        ? _remainingTime.inSeconds / _totalDuration.inSeconds
+        : 0;
 
-                          _timer.cancel();
-                        },
-                        padding: EdgeInsets.zero,
-                        color: kFlourishLightBlackish,
-                        icon: const Icon(Icons.close),
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            _isOnFocus ? 'Focus' : 'Break',
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w900,
-                              color: kFlourishAliceBlue,
+    return GestureDetector(
+      onPanUpdate: (details) {
+        setState(() {
+          _offset += details.delta;
+        });
+      },
+      child: Transform.translate(
+        offset: _offset,
+        child: Center(
+          child: Container(
+            height: 300,
+            width: _remainingTime.inHours > 0 ? 300 : 250,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(50),
+              color: _themeColor,
+            ),
+            child: Stack(
+              children: [
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Top row: Close button and mode title.
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const SizedBox(width: 25),
+                          IconButton(
+                            onPressed: () {
+                              PomodoroDurations resetDurations =
+                                  PomodoroDurations(
+                                      Duration.zero, Duration.zero);
+                              widget.onExit(resetDurations);
+                              _timer.cancel();
+                            },
+                            padding: EdgeInsets.zero,
+                            color: kFlourishLightBlackish,
+                            icon: const Icon(Icons.close),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                _isOnFocus ? 'Focus' : 'Break',
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w900,
+                                  color: kFlourishAliceBlue,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 60),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Timer with progress indicator.
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: CircularProgressIndicator(
+                              value: progressValue,
+                              strokeWidth: 8,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              backgroundColor: Colors.white.withOpacity(0.35),
+                            ),
+                          ),
+                          Text(
+                            _formattedTime(_remainingTime),
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Pause/Resume button.
+                      IconButton(
+                        onPressed: () {
+                          if (_isPaused) {
+                            _resumeTimer();
+                          } else {
+                            _pauseTimer();
+                          }
+                        },
+                        icon: Icon(
+                          _isPaused ? Icons.play_arrow : Icons.pause,
+                          color: Colors.white,
+                          size: 40,
                         ),
                       ),
-                      const SizedBox(
-                        width: 60, // to match the width of the IconButton
+                      const SizedBox(height: 10),
+                      // Theme Color Palette.
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: _themeColors.map((color) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _themeColor = color;
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: color,
+                                border: _themeColor == color
+                                    ? Border.all(width: 2, color: Colors.white)
+                                    : null,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
-                  Text(
-                    _formattedTime(_currentTime),
-                    style: TextStyle(
-                      fontSize: 60,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
