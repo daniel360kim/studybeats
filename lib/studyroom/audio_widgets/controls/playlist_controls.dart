@@ -24,6 +24,8 @@ class IconControlsState extends State<IconControls> {
     setState(() {
       isEqualizerEnabled = false;
       isBackgroundSoundEnabled = false;
+      widget.onEqualizerPressed(false);
+      widget.onBackgroundSoundPressed(false);
     });
   }
 

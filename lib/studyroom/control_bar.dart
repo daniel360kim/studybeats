@@ -49,7 +49,8 @@ class PlayerWidgetState extends State<PlayerWidget>
   bool _audioPlayerError = false;
   bool _notifiedLoaded = false;
 
-  GlobalKey<IconControlsState> musicControlsKey = GlobalKey();
+  final GlobalKey<IconControlsState> _iconControlsKey =
+      GlobalKey<IconControlsState>();
 
   @override
   void initState() {
@@ -80,17 +81,6 @@ class PlayerWidgetState extends State<PlayerWidget>
     updateSong();
   }
 
-  @override
-  void didUpdateWidget(covariant PlayerWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.playlistId != widget.playlistId) {
-      // Playlist ID has changed
-      // Update your state or perform necessary actions here
-      _audio.reloadPlaylist(widget.playlistId);
-      updateSong();
-    }
-  }
-
   void _showError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,16 +88,6 @@ class PlayerWidgetState extends State<PlayerWidget>
           content: Text('Something went wrong. Please try again later'),
         ),
       );
-    });
-  }
-
-  /// Closes any open sub-widgets.
-  void closeAudioWidgets() {
-    musicControlsKey.currentState?.closeAll();
-    setState(() {
-      _showQueue = false;
-      _showEqualizer = false;
-      _showBackgroundSound = false;
     });
   }
 
@@ -193,9 +173,13 @@ class PlayerWidgetState extends State<PlayerWidget>
                             builder: (context, snapshot) {
                               final elapsedDuration =
                                   snapshot.data?.position ?? Duration.zero;
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {},
+                              return TapRegion(
+                                onTapOutside: (_) {
+                                  setState(() {
+                                    _showEqualizer = false;
+                                  });
+                                  _iconControlsKey.currentState!.closeAll();
+                                },
                                 child: EqualizerControls(
                                   song: currentSongInfo,
                                   elapsedDuration: elapsedDuration,
@@ -212,9 +196,13 @@ class PlayerWidgetState extends State<PlayerWidget>
                   child: StreamBuilder<PositionData>(
                       stream: _audio.positionDataStream,
                       builder: (context, snapshot) {
-                        return GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {},
+                        return TapRegion(
+                            onTapOutside: (_) {
+                              setState(() {
+                                _showBackgroundSound = false;
+                              });
+                              _iconControlsKey.currentState!.closeAll();
+                            },
                             child: const BackgroundSfxControls());
                       }),
                 )
@@ -341,7 +329,7 @@ class PlayerWidgetState extends State<PlayerWidget>
         volumeChanged: (volume) => _audio.setVolume(volume),
       ),
       IconControls(
-        key: musicControlsKey,
+        key: _iconControlsKey,
         onListPressed: (enabled) {
           setState(() {
             // Uncomment if list functionality is needed.

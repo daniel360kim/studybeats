@@ -43,8 +43,6 @@ class _StudyRoomState extends State<StudyRoom> {
   final GlobalKey<SideWidgetBarState> _sideWidgetKey =
       GlobalKey<SideWidgetBarState>();
 
-  final GlobalKey<PlayerWidgetState> _playerWidgetKey =
-      GlobalKey<PlayerWidgetState>();
 
   @override
   void initState() {
@@ -144,7 +142,6 @@ class _StudyRoomState extends State<StudyRoom> {
       onTap: () {
         // When tapping anywhere outside, close any open side widget.
         _sideWidgetKey.currentState?.closeAll();
-        _playerWidgetKey.currentState?.closeAudioWidgets();
       },
       child: Scaffold(
         body: Stack(
@@ -263,7 +260,7 @@ class _StudyRoomState extends State<StudyRoom> {
         ),
         if (_playlistId != null)
           PlayerWidget(
-            key: _playerWidgetKey,
+            key: ValueKey(_playlistId),
             playlistId: _playlistId!,
             onLoaded: () {
               setState(() {

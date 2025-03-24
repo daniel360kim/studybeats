@@ -40,66 +40,70 @@ class _BackgroundSfxControlsState extends State<BackgroundSfxControls> {
       topRight: Radius.circular(40.0),
     );
 
-    return SizedBox(
-      width: 400,
-      height: MediaQuery.of(context).size.height - 80 * 3,
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color.fromRGBO(170, 170, 170, 0.7),
-              borderRadius: borderRadius,
-            ),
-            padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 0.0),
-            child: _sfxPlaylists == null
-                ? Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
-                    child: Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {},
+      child: SizedBox(
+        width: 400,
+        height: MediaQuery.of(context).size.height - 80 * 3,
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(170, 170, 170, 0.7),
+                borderRadius: borderRadius,
+              ),
+              padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 0.0),
+              child: _sfxPlaylists == null
+                  ? Shimmer.fromColors(
+                      baseColor: Colors.grey[300]!,
+                      highlightColor: Colors.grey[100]!,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: borderRadius,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                        width: 500,
+                      ),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.fromLTRB(20.0, 30.0, 20.0, 0.0),
                       decoration: BoxDecoration(
                         borderRadius: borderRadius,
                         color: Colors.white.withOpacity(0.7),
                       ),
-                      width: 500,
-                    ),
-                  )
-                : Container(
-                    padding: const EdgeInsets.fromLTRB(20.0, 30.0, 20.0, 0.0),
-                    decoration: BoxDecoration(
-                      borderRadius: borderRadius,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
-                    child: Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            'Sounds',
-                            style: GoogleFonts.inter(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              color: kFlourishBlackish,
+                      child: Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              'Sounds',
+                              style: GoogleFonts.inter(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                color: kFlourishBlackish,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 15),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height - 80 * 5,
-                          child: ListView.builder(
-                            scrollDirection: Axis.vertical,
-                            itemCount: _sfxPlaylists!.length,
-                            itemBuilder: (context, index) {
-                              final playlist = _sfxPlaylists![index];
-                              return SfxPlaylistList(
-                                  selectedPlaylist: playlist);
-                            },
+                          const SizedBox(height: 15),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height - 80 * 5,
+                            child: ListView.builder(
+                              scrollDirection: Axis.vertical,
+                              itemCount: _sfxPlaylists!.length,
+                              itemBuilder: (context, index) {
+                                final playlist = _sfxPlaylists![index];
+                                return SfxPlaylistList(
+                                    selectedPlaylist: playlist);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+            ),
           ),
         ),
       ),
@@ -176,7 +180,8 @@ class _SfxPlaylistListState extends State<SfxPlaylistList>
                     onError: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Something went wrong loading background sounds'),
+                          content: Text(
+                              'Something went wrong loading background sounds'),
                         ),
                       );
                     },

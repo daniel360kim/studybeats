@@ -10,11 +10,12 @@ import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/volumebar.dart';
 
 class BackgroundSoundControl extends StatefulWidget {
-  const BackgroundSoundControl(
-      {required this.backgroundSound,
-      required this.onError,
-      required this.themeColor,
-      super.key});
+  const BackgroundSoundControl({
+    required this.backgroundSound,
+    required this.onError,
+    required this.themeColor,
+    super.key,
+  });
 
   final BackgroundSound backgroundSound;
   final Color themeColor;
@@ -33,9 +34,12 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   final _player = AudioPlayer();
   final _sfxService = SfxService();
 
+  // Use a ValueNotifier to track the current volume (range: 0.0 - 1.0)
+  final ValueNotifier<double> volumeNotifier = ValueNotifier<double>(0.5);
+
   void _loadSoundControl() async {
     try {
-      // Setup the audio controller
+      // Setup the audio session.
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.speech());
 
@@ -52,13 +56,13 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
 
       final source = ClippingAudioSource(
         child: AudioSource.uri(Uri.parse(audioUrl)),
-        // Optionally adjust the start and end times if necessary
       );
 
-      await _player
-          .setAudioSource(ConcatenatingAudioSource(children: [source]));
+      await _player.setAudioSource(
+        ConcatenatingAudioSource(children: [source]),
+      );
 
-      _player.setLoopMode(LoopMode.all); // Repeat the sources
+      _player.setLoopMode(LoopMode.all);
 
       if (mounted) {
         setState(() => _loading = false);
@@ -75,11 +79,15 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   }
 
   Future<void> play() async {
+    // When enabling, update the notifier and set the volume to default (0.5).
+    volumeNotifier.value = 0.5;
     await _player.setVolume(0.5);
     await _player.play();
   }
 
   Future<void> setVolume(double volume) async {
+    // Update the notifier and the player's volume.
+    volumeNotifier.value = volume;
     await _player.setVolume(volume);
   }
 
@@ -92,6 +100,7 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   @override
   void dispose() {
     _player.dispose();
+    volumeNotifier.dispose();
     super.dispose();
   }
 
@@ -131,15 +140,23 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
                     });
                   },
                 ),
-                VolumeBar(
-                  themeColor: widget.themeColor,
-                  icon: IconData(
-                    widget.backgroundSound.iconId,
-                    fontFamily: widget.backgroundSound.fontFamily,
-                  ),
-                  initialVolume: 50,
-                  onChanged: (volume) {
-                    setVolume(volume / 100);
+                // Wrap VolumeBar in a ValueListenableBuilder to update UI when volume changes.
+                ValueListenableBuilder<double>(
+                  valueListenable: volumeNotifier,
+                  builder: (context, volume, child) {
+                    return VolumeBar(
+                      themeColor: widget.themeColor,
+                      icon: IconData(
+                        widget.backgroundSound.iconId,
+                        fontFamily: widget.backgroundSound.fontFamily,
+                      ),
+                      // Display volume as a percentage.
+                      initialVolume: (volume * 100).roundToDouble(),
+                      onChanged: (vol) {
+                        // Update the volume when the user moves the slider.
+                        setVolume(vol / 100);
+                      },
+                    );
                   },
                 ),
                 Text(
@@ -204,7 +221,7 @@ class _BulletCheckboxState extends State<BulletCheckbox> {
           child: Center(
             child: Icon(
               widget.value ? Icons.check : Icons.circle,
-              color: widget.value ? Colors.white : Colors.white,
+              color: Colors.white,
               size: 16,
             ),
           ),

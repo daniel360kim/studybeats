@@ -42,33 +42,37 @@ class _EqualizerControlsState extends State<EqualizerControls> {
       topRight: Radius.circular(40.0),
     );
 
-    return SizedBox(
-      width: 500,
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color.fromRGBO(170, 170, 170, 0.7),
-              borderRadius: borderRadius,
-            ),
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              children: [
-                buildHeader(),
-                const SizedBox(height: 10),
-                widget.song == null
-                    ? _buildShimmerWaveformPlaceholder()
-                    : Waveform(
-                        key: ValueKey(widget.song!.waveformPath),
-                        waveformPath: widget.song!.waveformPath,
-                        trackTime: widget.song!.trackTime,
-                        elapsedDuration: widget.elapsedDuration,
-                      ),
-                const SizedBox(height: 10),
-                buildSpeedControls(),
-              ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {},
+      child: SizedBox(
+        width: 500,
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(170, 170, 170, 0.7),
+                borderRadius: borderRadius,
+              ),
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                children: [
+                  buildHeader(),
+                  const SizedBox(height: 10),
+                  widget.song == null
+                      ? _buildShimmerWaveformPlaceholder()
+                      : Waveform(
+                          key: ValueKey(widget.song!.waveformPath),
+                          waveformPath: widget.song!.waveformPath,
+                          trackTime: widget.song!.trackTime,
+                          elapsedDuration: widget.elapsedDuration,
+                        ),
+                  const SizedBox(height: 10),
+                  buildSpeedControls(),
+                ],
+              ),
             ),
           ),
         ),
