@@ -40,6 +40,12 @@ class _StudyRoomState extends State<StudyRoom> {
   int? _playlistId;
   final _logger = getLogger('StudyRoom Page Widget');
 
+  final GlobalKey<SideWidgetBarState> _sideWidgetKey =
+      GlobalKey<SideWidgetBarState>();
+
+  final GlobalKey<PlayerWidgetState> _playerWidgetKey =
+      GlobalKey<PlayerWidgetState>();
+
   @override
   void initState() {
     super.initState();
@@ -133,40 +139,48 @@ class _StudyRoomState extends State<StudyRoom> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          buildBackgroundImage(),
-          _showTimer
-              ? TimerDialog(
-                  focusTimerDuration: timerDurations.studyTime,
-                  breakTimerDuration: timerDurations.breakTime,
-                  timerSoundEnabled: _timerSoundEnabled,
-                  timerFxData: _timerFxData!,
-                  onTimerDurationChanged: (value) {
-                    final timeDescription = formatDuration(value);
-                    SystemChrome.setApplicationSwitcherDescription(
-                      ApplicationSwitcherDescription(
-                        label: timeDescription,
-                        primaryColor: Theme.of(context).primaryColor.value,
-                      ),
-                    );
-                  },
-                  onExit: (value) {
-                    setState(() {
-                      _showTimer = false;
-                      timerDurations = value;
-                    });
-                    SystemChrome.setApplicationSwitcherDescription(
-                      ApplicationSwitcherDescription(
-                        label: 'Study Room',
-                        primaryColor: Theme.of(context).primaryColor.value,
-                      ),
-                    );
-                  },
-                )
-              : const SizedBox.shrink(),
-        ],
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        // When tapping anywhere outside, close any open side widget.
+        _sideWidgetKey.currentState?.closeAll();
+        _playerWidgetKey.currentState?.closeAudioWidgets();
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            buildBackgroundImage(),
+            _showTimer
+                ? TimerDialog(
+                    focusTimerDuration: timerDurations.studyTime,
+                    breakTimerDuration: timerDurations.breakTime,
+                    timerSoundEnabled: _timerSoundEnabled,
+                    timerFxData: _timerFxData!,
+                    onTimerDurationChanged: (value) {
+                      final timeDescription = formatDuration(value);
+                      SystemChrome.setApplicationSwitcherDescription(
+                        ApplicationSwitcherDescription(
+                          label: timeDescription,
+                          primaryColor: Theme.of(context).primaryColor.value,
+                        ),
+                      );
+                    },
+                    onExit: (value) {
+                      setState(() {
+                        _showTimer = false;
+                        timerDurations = value;
+                      });
+                      SystemChrome.setApplicationSwitcherDescription(
+                        ApplicationSwitcherDescription(
+                          label: 'Study Room',
+                          primaryColor: Theme.of(context).primaryColor.value,
+                        ),
+                      );
+                    },
+                  )
+                : const SizedBox.shrink(),
+          ],
+        ),
       ),
     );
   }
@@ -188,6 +202,7 @@ class _StudyRoomState extends State<StudyRoom> {
           left: 0,
           child: _currentScene != null
               ? SideWidgetBar(
+                  key: _sideWidgetKey,
                   onTimerSoundEnabled: (value) => setState(() {
                     _timerSoundEnabled = value;
                   }),
@@ -247,8 +262,8 @@ class _StudyRoomState extends State<StudyRoom> {
               : const SizedBox.shrink(),
         ),
         if (_playlistId != null)
-          Player(
-            key: ValueKey(_playlistId),
+          PlayerWidget(
+            key: _playerWidgetKey,
             playlistId: _playlistId!,
             onLoaded: () {
               setState(() {

@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
@@ -12,15 +11,14 @@ import 'package:studybeats/studyroom/audio_widgets/controls/volume.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/background_sounds.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/equalizer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
-
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'audio_widgets/controls/music_controls.dart';
 
-class Player extends StatefulWidget {
-  const Player({
+class PlayerWidget extends StatefulWidget {
+  const PlayerWidget({
     required this.playlistId,
     required this.onLoaded,
     super.key,
@@ -30,17 +28,16 @@ class Player extends StatefulWidget {
   final VoidCallback onLoaded;
 
   @override
-  State<Player> createState() => _PlayerState();
+  State<PlayerWidget> createState() => PlayerWidgetState();
 }
 
-class _PlayerState extends State<Player> with WidgetsBindingObserver {
+class PlayerWidgetState extends State<PlayerWidget>
+    with WidgetsBindingObserver {
   late final Audio _audio;
-
   SongMetadata? currentSongInfo;
   List<SongMetadata> songQueue = [];
   List<SongMetadata> songOrder = [];
-  final SongCloudInfoService _songCloudInfoService =
-      SongCloudInfoService(); // if song is favorite
+  final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
 
   bool verticalLayout = false;
   bool _showQueue = false;
@@ -48,15 +45,15 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   bool _showBackgroundSound = false;
 
   bool _isCurrentSongFavorite = false;
-
   final _authService = AuthService();
   bool _audioPlayerError = false;
   bool _notifiedLoaded = false;
 
+  GlobalKey<IconControlsState> musicControlsKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
-
     _audio = Audio(
       playlistId: widget.playlistId,
       onError: _showError,
@@ -75,14 +72,23 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
       await _audio.initPlayer();
       await _songCloudInfoService.init();
     } catch (e) {
-      if (mounted) {
-        _showError();
-      }
+      if (mounted) _showError();
       setState(() {
         _audioPlayerError = true;
       });
     }
     updateSong();
+  }
+
+  @override
+  void didUpdateWidget(covariant PlayerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.playlistId != widget.playlistId) {
+      // Playlist ID has changed
+      // Update your state or perform necessary actions here
+      _audio.reloadPlaylist(widget.playlistId);
+      updateSong();
+    }
   }
 
   void _showError() {
@@ -95,16 +101,27 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     });
   }
 
+  /// Closes any open sub-widgets.
+  void closeAudioWidgets() {
+    musicControlsKey.currentState?.closeAll();
+    setState(() {
+      _showQueue = false;
+      _showEqualizer = false;
+      _showBackgroundSound = false;
+    });
+  }
+
   @override
   void dispose() {
     _audio.dispose();
     super.dispose();
   }
 
-  void updateSong() async {
+  Future<void> updateSong() async {
     final songInfo = _audio.getCurrentSongInfo();
-    final isCurrentSongFavorite = await _songCloudInfoService.isSongFavorite(
-        widget.playlistId, songInfo!);
+    if (songInfo == null) return;
+    final isCurrentSongFavorite =
+        await _songCloudInfoService.isSongFavorite(widget.playlistId, songInfo);
     setState(() {
       currentSongInfo = songInfo;
       _isCurrentSongFavorite = isCurrentSongFavorite;
@@ -129,96 +146,99 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         ),
       );
     }
-    return StreamBuilder<SequenceState?>(
-        stream: _audio.audioPlayer.sequenceStateStream,
-        builder: (context, snapshot) {
-          final sequenceState = snapshot.data;
-          if (sequenceState != null && !_notifiedLoaded && snapshot.hasData) {
-            // Notify that everything is loaded
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              widget.onLoaded();
-              _notifiedLoaded = true; // Ensure callback is called only once
-            });
-          }
-
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.start,
+    return Stack(
+      children: [
+        // PlayerWidget content is placed above the barrier.
+        Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // Top row for sub-widgets.
+            // Wrap in a detector to absorb taps.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                if (_showQueue || _showEqualizer || _showBackgroundSound)
+                  const Spacer(),
+                _showQueue
+                    ? Align(
+                        alignment: Alignment.bottomRight,
+                        child: SongQueue(
+                          songOrder: _audio.audioPlayer.sequence!
+                                  .map((audioSource) =>
+                                      audioSource.tag as SongMetadata)
+                                  .toList()
+                                  .isEmpty
+                              ? null
+                              : _audio.audioPlayer.sequence!
+                                  .map((audioSource) =>
+                                      audioSource.tag as SongMetadata)
+                                  .toList(),
+                          currentSong: currentSongInfo,
+                          queue: songQueue.isEmpty ? null : songQueue,
+                          onSongSelected: (index) async {
+                            await _audio.play();
+                            _audio.seekToIndex(index).then((_) {
+                              updateSong();
+                            });
+                          },
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+                _showEqualizer
+                    ? Align(
+                        alignment: Alignment.bottomRight,
+                        child: StreamBuilder<PositionData>(
+                            stream: _audio.positionDataStream,
+                            builder: (context, snapshot) {
+                              final elapsedDuration =
+                                  snapshot.data?.position ?? Duration.zero;
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {},
+                                child: EqualizerControls(
+                                  song: currentSongInfo,
+                                  elapsedDuration: elapsedDuration,
+                                  onSpeedChange: (value) =>
+                                      _audio.setSpeed(value),
+                                ),
+                              );
+                            }),
+                      )
+                    : const SizedBox.shrink(),
+                Visibility(
+                  visible: _showBackgroundSound,
+                  maintainState: true,
+                  child: StreamBuilder<PositionData>(
+                      stream: _audio.positionDataStream,
+                      builder: (context, snapshot) {
+                        return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {},
+                            child: const BackgroundSfxControls());
+                      }),
+                )
+              ],
+            ),
+            // Main controls area.
+            // Wrap with detector to absorb taps inside controls.
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: verticalLayout ? 300 : 80,
+                child: Stack(
                   children: [
-                    if (_showQueue || _showEqualizer || _showBackgroundSound)
-                      const Spacer(),
-                    _showQueue
-                        ? Align(
-                            alignment: Alignment.bottomRight,
-                            child: SongQueue(
-                              songOrder: _audio.audioPlayer.sequence!
-                                      .map((audioSource) {
-                                        return audioSource.tag as SongMetadata;
-                                      })
-                                      .toList()
-                                      .isEmpty
-                                  ? null
-                                  : _audio.audioPlayer.sequence!
-                                      .map((audioSource) {
-                                      return audioSource.tag as SongMetadata;
-                                    }).toList(),
-                              currentSong: currentSongInfo,
-                              queue: songQueue.isEmpty ? null : songQueue,
-                              onSongSelected: (index) async {
-                                await _audio.play();
-                                _audio.seekToIndex(index).then((value) {
-                                  updateSong();
-                                });
-                              },
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                    _showEqualizer
-                        ? Align(
-                            alignment: Alignment.bottomRight,
-                            child: StreamBuilder<PositionData>(
-                                stream: _audio.positionDataStream,
-                                builder: (context, snapshot) {
-                                  final elapsedDuration =
-                                      snapshot.data?.position ?? Duration.zero;
-                                  return EqualizerControls(
-                                    song: currentSongInfo,
-                                    elapsedDuration: elapsedDuration,
-                                    onSpeedChange: (value) =>
-                                        _audio.setSpeed(value),
-                                  );
-                                }),
-                          )
-                        : const SizedBox.shrink(),
-                    Visibility(
-                      visible: _showBackgroundSound,
-                      maintainState: true,
-                      child: StreamBuilder<PositionData>(
-                          stream: _audio.positionDataStream,
-                          builder: (context, snapshot) {
-                            return const BackgroundSfxControls();
-                          }),
-                    )
-                  ]),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  height: verticalLayout ? 300 : 80,
-                  child: Stack(
-                    children: [
-                      buildBackdrop(),
-                      buildControls(),
-                    ],
-                  ),
+                    buildBackdrop(),
+                    buildControls(),
+                  ],
                 ),
               ),
-            ],
-          );
-        });
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget buildBackdrop() {
@@ -294,9 +314,7 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
           final playing = playerState?.playing;
           if (playing != null) {
             return Controls(
-              onShuffle: () {
-                _audio.shuffle();
-              },
+              onShuffle: () => _audio.shuffle(),
               onPrevious: _previousSong,
               onPlay: _audio.play,
               onPause: _audio.pause,
@@ -323,9 +341,11 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
         volumeChanged: (volume) => _audio.setVolume(volume),
       ),
       IconControls(
+        key: musicControlsKey,
         onListPressed: (enabled) {
           setState(() {
-            _showQueue = enabled;
+            // Uncomment if list functionality is needed.
+            //_showQueue = enabled;
           });
         },
         onEqualizerPressed: (enabled) {
@@ -343,18 +363,12 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
   }
 
   void _toggleFavorite(bool isFavorite) async {
-    if (!_authService.isUserLoggedIn()) {
-      return;
-    }
-
+    if (!_authService.isUserLoggedIn()) return;
     setState(() => _isCurrentSongFavorite = isFavorite);
-
     try {
       await _songCloudInfoService.markSongFavorite(
           widget.playlistId, currentSongInfo!, isFavorite);
     } catch (e) {
-      // TODO implement proper ui error handling
-      // Revert the optimistic update if the backend operation fails
       setState(() => _isCurrentSongFavorite = !isFavorite);
     }
   }
@@ -363,17 +377,10 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     setState(() {
       currentSongInfo = _audio.getNextSongInfo();
     });
-
     try {
       await _audio.nextSong();
     } catch (e) {
-      // TODO implement proper error handling within the ui
-      // TODO detect if the exception was caused by the songcloudinfo API call
-      // or if it from the nextSong api call
-
-      // if it is from the nextSong method, no need to do anything because
-      // the index w/in the _audio class will have alr been updated
-      // but if the cloudSong api call fails we need to figure out what to do then
+      // Handle error as needed.
     }
   }
 
@@ -381,17 +388,10 @@ class _PlayerState extends State<Player> with WidgetsBindingObserver {
     setState(() {
       currentSongInfo = _audio.getPreviousSongInfo();
     });
-
     try {
       await _audio.previousSong();
     } catch (e) {
-      // TODO implement proper error handling within the ui
-      // TODO detect if the exception was caused by the songcloudinfo API call
-      // or if it from the previousSong api call
-
-      // if it is from the previousSong method, no need to do anything because
-      // the index w/in the _audio class will have alr been updated
-      // but if the cloudSong api call fails we need to figure out what to do then
+      // Handle error as needed.
     }
   }
 }

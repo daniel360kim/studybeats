@@ -101,6 +101,23 @@ class Audio {
     }
   }
 
+  Future<void> reloadPlaylist(int playlistId) async {
+    try {
+      playlistId = playlistId;
+      final service = AudioService();
+      final playlist = await service.getPlaylistInfo(playlistId);
+      final audioSources = await service.getAudioSources(playlist);
+
+      await _playlist.clear();
+      await _playlist.addAll(audioSources);
+
+      await audioPlayer.setAudioSource(_playlist);
+    } catch (e) {
+      _logger.e('Error reloading playlist: $e');
+      onError();
+    }
+  }
+
   void dispose() async {
     audioPlayer.pause();
     audioPlayer.dispose();
