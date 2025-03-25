@@ -7,6 +7,7 @@ import 'package:studybeats/app_state.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
+import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/timer.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/timer_dialog.dart';
@@ -42,8 +43,8 @@ class _StudyRoomState extends State<StudyRoom> {
 
   final GlobalKey<SideWidgetBarState> _sideWidgetKey =
       GlobalKey<SideWidgetBarState>();
-
-
+  GlobalKey<PlayerWidgetState> _playerWidgetKey =
+      GlobalKey<PlayerWidgetState>();
   @override
   void initState() {
     super.initState();
@@ -83,6 +84,10 @@ class _StudyRoomState extends State<StudyRoom> {
           _playlistId = _currentScene?.playlistId;
           _loadingScene = false;
         });
+
+        // Update the notifier with the new playlistId
+        Provider.of<PlaylistNotifier>(context, listen: false)
+            .updatePlaylistId(_playlistId);
       });
     } catch (e) {
       _logger.e('Error while initializing scenes $e');
@@ -109,15 +114,23 @@ class _StudyRoomState extends State<StudyRoom> {
       final url = await _sceneService.getBackgroundImageUrl(_currentScene!);
       setState(() {
         _backgroundImageUrl = url;
-        _playlistId = _currentScene?.playlistId;
       });
+
+      // Update the notifier with the new playlistId
+      final newPlaylistId = _currentScene?.playlistId;
+      setState(() {
+        _playerWidgetKey = GlobalKey<PlayerWidgetState>();
+      });
+      Provider.of<PlaylistNotifier>(context, listen: false)
+          .updatePlaylistId(newPlaylistId);
     } catch (e) {
       _logger.e('Error while changing scene $e');
       setState(() {
         _currentScene = null;
         _backgroundImageUrl = null;
-        _playlistId = null;
       });
+      Provider.of<PlaylistNotifier>(context, listen: false)
+          .updatePlaylistId(null);
     }
   }
 
@@ -142,6 +155,8 @@ class _StudyRoomState extends State<StudyRoom> {
       onTap: () {
         // When tapping anywhere outside, close any open side widget.
         _sideWidgetKey.currentState?.closeAll();
+
+        _playerWidgetKey.currentState?.closeAllWidgets();
       },
       child: Scaffold(
         body: Stack(
@@ -259,15 +274,30 @@ class _StudyRoomState extends State<StudyRoom> {
               : const SizedBox.shrink(),
         ),
         if (_playlistId != null)
-          PlayerWidget(
-            key: ValueKey(_playlistId),
-            playlistId: _playlistId!,
-            onLoaded: () {
-              setState(() {
-                _loadingControlBar = false;
-              });
-            },
-          ),
+          if (_playlistId != null)
+            Positioned(
+              // Adjust position as needed...
+              child: Consumer<PlaylistNotifier>(
+                builder: (context, playlistNotifier, child) {
+                  return playlistNotifier.playlistId != null
+                      ? Container(
+                          // Use a ValueKey on the container to force rebuild when playlistId changes.
+                          key: ValueKey(playlistNotifier.playlistId),
+                          child: PlayerWidget(
+                            key:
+                                _playerWidgetKey, // Your persistent GlobalKey stays here.
+                            playlistId: playlistNotifier.playlistId!,
+                            onLoaded: () {
+                              setState(() {
+                                _loadingControlBar = false;
+                              });
+                            },
+                          ),
+                        )
+                      : SizedBox.shrink();
+                },
+              ),
+            ),
         Positioned(
           top: 20,
           right: 20,

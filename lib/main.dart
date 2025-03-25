@@ -9,6 +9,7 @@ import 'package:studybeats/secrets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:url_strategy/url_strategy.dart';
 
 Future<void> main() async {
@@ -31,10 +32,15 @@ Future<void> main() async {
       // Setting to 1.0 will profile 100% of sampled transactions:
       options.profilesSampleRate = 1.0;
     });
-    runApp(ChangeNotifierProvider(
-      create: (context) => ApplicationState(),
-      builder: ((context, child) => const Studybeats()),
-    ));
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => ApplicationState()),
+          ChangeNotifierProvider(create: (context) => PlaylistNotifier()),
+        ],
+        child: const Studybeats(),
+      ),
+    );
   }, (Object exception, StackTrace stackTrace) async {
     await Sentry.captureException(exception, stackTrace: stackTrace);
   });

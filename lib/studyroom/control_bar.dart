@@ -81,6 +81,15 @@ class PlayerWidgetState extends State<PlayerWidget>
     updateSong();
   }
 
+  void closeAllWidgets() {
+    setState(() {
+      _showQueue = false;
+      _showEqualizer = false;
+      _showBackgroundSound = false;
+    });
+    _iconControlsKey.currentState!.closeAll();
+  }
+
   void _showError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,25 +152,29 @@ class PlayerWidgetState extends State<PlayerWidget>
                 _showQueue
                     ? Align(
                         alignment: Alignment.bottomRight,
-                        child: SongQueue(
-                          songOrder: _audio.audioPlayer.sequence!
-                                  .map((audioSource) =>
-                                      audioSource.tag as SongMetadata)
-                                  .toList()
-                                  .isEmpty
-                              ? null
-                              : _audio.audioPlayer.sequence!
-                                  .map((audioSource) =>
-                                      audioSource.tag as SongMetadata)
-                                  .toList(),
-                          currentSong: currentSongInfo,
-                          queue: songQueue.isEmpty ? null : songQueue,
-                          onSongSelected: (index) async {
-                            await _audio.play();
-                            _audio.seekToIndex(index).then((_) {
-                              updateSong();
-                            });
-                          },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {},
+                          child: SongQueue(
+                            songOrder: _audio.audioPlayer.sequence!
+                                    .map((audioSource) =>
+                                        audioSource.tag as SongMetadata)
+                                    .toList()
+                                    .isEmpty
+                                ? null
+                                : _audio.audioPlayer.sequence!
+                                    .map((audioSource) =>
+                                        audioSource.tag as SongMetadata)
+                                    .toList(),
+                            currentSong: currentSongInfo,
+                            queue: songQueue.isEmpty ? null : songQueue,
+                            onSongSelected: (index) async {
+                              await _audio.play();
+                              _audio.seekToIndex(index).then((_) {
+                                updateSong();
+                              });
+                            },
+                          ),
                         ),
                       )
                     : const SizedBox.shrink(),
@@ -173,13 +186,9 @@ class PlayerWidgetState extends State<PlayerWidget>
                             builder: (context, snapshot) {
                               final elapsedDuration =
                                   snapshot.data?.position ?? Duration.zero;
-                              return TapRegion(
-                                onTapOutside: (_) {
-                                  setState(() {
-                                    _showEqualizer = false;
-                                  });
-                                  _iconControlsKey.currentState!.closeAll();
-                                },
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {},
                                 child: EqualizerControls(
                                   song: currentSongInfo,
                                   elapsedDuration: elapsedDuration,
@@ -196,14 +205,11 @@ class PlayerWidgetState extends State<PlayerWidget>
                   child: StreamBuilder<PositionData>(
                       stream: _audio.positionDataStream,
                       builder: (context, snapshot) {
-                        return TapRegion(
-                            onTapOutside: (_) {
-                              setState(() {
-                                _showBackgroundSound = false;
-                              });
-                              _iconControlsKey.currentState!.closeAll();
-                            },
-                            child: const BackgroundSfxControls());
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {},
+                          child: const BackgroundSfxControls(),
+                        );
                       }),
                 )
               ],
@@ -241,26 +247,30 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   Widget buildControls() {
-    return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth > 1050) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: buildControlWidgets(),
-        );
-      } else if (constraints.maxWidth < 1050 && constraints.maxWidth > 850) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: buildControlWidgets().sublist(0, 3),
-        );
-      } else if (constraints.maxWidth < 850 && constraints.maxWidth > 700) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: buildControlWidgets().sublist(0, 2),
-        );
-      } else {
-        return buildMiniControlWidgets();
-      }
-    });
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {},
+      child: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth > 1050) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: buildControlWidgets(),
+          );
+        } else if (constraints.maxWidth < 1050 && constraints.maxWidth > 850) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: buildControlWidgets().sublist(0, 3),
+          );
+        } else if (constraints.maxWidth < 850 && constraints.maxWidth > 700) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: buildControlWidgets().sublist(0, 2),
+          );
+        } else {
+          return buildMiniControlWidgets();
+        }
+      }),
+    );
   }
 
   Widget buildMiniControlWidgets() {
