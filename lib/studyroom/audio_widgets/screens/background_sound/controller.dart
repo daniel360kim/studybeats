@@ -7,6 +7,7 @@ import 'package:studybeats/api/audio/background_sfx/objects.dart';
 import 'package:studybeats/api/audio/background_sfx/sfx_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/switch.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/volumebar.dart';
 
 class BackgroundSoundControl extends StatefulWidget {
@@ -39,7 +40,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
 
   void _loadSoundControl() async {
     try {
-      // Setup the audio session.
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.speech());
 
@@ -79,14 +79,12 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   }
 
   Future<void> play() async {
-    // When enabling, update the notifier and set the volume to default (0.5).
     volumeNotifier.value = 0.5;
     await _player.setVolume(0.5);
     await _player.play();
   }
 
   Future<void> setVolume(double volume) async {
-    // Update the notifier and the player's volume.
     volumeNotifier.value = volume;
     await _player.setVolume(volume);
   }
@@ -106,10 +104,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
 
   @override
   Widget build(BuildContext context) {
-    return buildIcon();
-  }
-
-  Widget buildIcon() {
     return _loading
         ? Shimmer.fromColors(
             baseColor: Colors.grey[300]!,
@@ -126,9 +120,10 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
         : Align(
             child: Row(
               children: [
-                BulletCheckbox(
-                  activeColor: widget.themeColor,
+                // Use the custom switch widget instead of the default Switch.
+                CustomSwitch(
                   value: _selected,
+                  activeColor: widget.themeColor,
                   onChanged: (value) {
                     setState(() {
                       _selected = value;
@@ -140,6 +135,7 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
                     });
                   },
                 ),
+                const SizedBox(width: 8),
                 // Wrap VolumeBar in a ValueListenableBuilder to update UI when volume changes.
                 ValueListenableBuilder<double>(
                   valueListenable: volumeNotifier,
@@ -150,83 +146,28 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
                         widget.backgroundSound.iconId,
                         fontFamily: widget.backgroundSound.fontFamily,
                       ),
-                      // Display volume as a percentage.
                       initialVolume: (volume * 100).roundToDouble(),
-                      onChanged: (vol) {
-                        // Update the volume when the user moves the slider.
-                        setVolume(vol / 100);
-                      },
+                      onChanged: _selected
+                          ? (vol) {
+                              setVolume(vol / 100);
+                            }
+                          : null,
                     );
                   },
                 ),
-                Text(
-                  widget.backgroundSound.name,
-                  style: GoogleFonts.inter(
-                    color: kFlourishBlackish,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.backgroundSound.name,
+                    style: GoogleFonts.inter(
+                      color: kFlourishBlackish,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ],
             ),
           );
-  }
-}
-
-class BulletCheckbox extends StatefulWidget {
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final Color activeColor;
-  final Color inactiveColor;
-
-  const BulletCheckbox({
-    required this.value,
-    required this.onChanged,
-    required this.activeColor,
-    this.inactiveColor = Colors.grey,
-    super.key,
-  });
-
-  @override
-  _BulletCheckboxState createState() => _BulletCheckboxState();
-}
-
-class _BulletCheckboxState extends State<BulletCheckbox> {
-  bool _isHovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() {
-          _isHovering = true;
-        });
-      },
-      onExit: (_) {
-        setState(() {
-          _isHovering = false;
-        });
-      },
-      child: GestureDetector(
-        onTap: () {
-          widget.onChanged(!widget.value);
-        },
-        child: Container(
-          height: 20,
-          width: 20,
-          decoration: BoxDecoration(
-            color: widget.value ? widget.activeColor : widget.inactiveColor,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: Icon(
-              widget.value ? Icons.check : Icons.circle,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

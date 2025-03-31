@@ -8,9 +8,7 @@ import 'dart:ui';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/controller.dart';
 
 class BackgroundSfxControls extends StatefulWidget {
-  const BackgroundSfxControls({
-    super.key,
-  });
+  const BackgroundSfxControls({super.key});
 
   @override
   State<BackgroundSfxControls> createState() => _BackgroundSfxControlsState();
@@ -96,7 +94,8 @@ class _BackgroundSfxControlsState extends State<BackgroundSfxControls> {
                               itemBuilder: (context, index) {
                                 final playlist = _sfxPlaylists![index];
                                 return SfxPlaylistList(
-                                    selectedPlaylist: playlist);
+                                  selectedPlaylist: playlist,
+                                );
                               },
                             ),
                           ),
@@ -139,12 +138,11 @@ class _SfxPlaylistListState extends State<SfxPlaylistList>
   }
 
   @override
-  bool get wantKeepAlive => true; // This keeps the state alive
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Important to call this method
-
+    super.build(context);
     return _sounds == null
         ? Shimmer.fromColors(
             baseColor: Colors.grey[300]!,
@@ -160,10 +158,8 @@ class _SfxPlaylistListState extends State<SfxPlaylistList>
           )
         : SizedBox(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start, // Align children to the start
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Add static Text widget
                 Text(
                   widget.selectedPlaylist.name,
                   style: GoogleFonts.inter(
@@ -172,7 +168,6 @@ class _SfxPlaylistListState extends State<SfxPlaylistList>
                     color: widget.selectedPlaylist.themeColor,
                   ),
                 ),
-                // Dynamically add BackgroundSoundControl widgets
                 ..._sounds!.map((sound) {
                   return BackgroundSoundControl(
                     backgroundSound: sound,
@@ -187,7 +182,6 @@ class _SfxPlaylistListState extends State<SfxPlaylistList>
                     },
                   );
                 }),
-                // Add another widget, like a button, below the list
               ],
             ),
           );

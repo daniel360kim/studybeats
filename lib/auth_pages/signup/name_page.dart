@@ -227,6 +227,10 @@ class _EnterNamePageState extends State<EnterNamePage> {
       final username = await storage.read(key: 'username');
       final password = await storage.read(key: 'password');
 
+      if (username == null || password == null) {
+        throw Exception('Username or password not found');
+      }
+
       await _authService.signUp(username!, password!, _textController.text);
 
       if (mounted) {

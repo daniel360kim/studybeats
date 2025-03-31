@@ -51,13 +51,13 @@ class _TimerDialogState extends State<TimerDialog> {
   // Draggable state.
   Offset _offset = Offset.zero;
   // Theme color state.
-  Color _themeColor = Colors.black.withOpacity(0.5);
+  Color _themeColor = Colors.black.withOpacity(0.8);
   final List<Color> _themeColors = [
-    Colors.black.withOpacity(0.5),
-    Colors.blue.withOpacity(0.5),
-    Colors.red.withOpacity(0.5),
-    Colors.green.withOpacity(0.5),
-    Colors.purple.withOpacity(0.5),
+    Colors.black.withOpacity(0.8),
+    Colors.blue.withOpacity(0.8),
+    Colors.red.withOpacity(0.8),
+    Colors.green.withOpacity(0.8),
+    Colors.purple.withOpacity(0.8),
   ];
 
   @override
@@ -198,7 +198,7 @@ class _TimerDialogState extends State<TimerDialog> {
                               _timer.cancel();
                             },
                             padding: EdgeInsets.zero,
-                            color: kFlourishLightBlackish,
+                            color: kFlourishAliceBlue,
                             icon: const Icon(Icons.close),
                           ),
                           Expanded(

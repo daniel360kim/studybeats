@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:studybeats/colors.dart';
 
 class VolumeBar extends StatefulWidget {
-  const VolumeBar(
-      {required this.initialVolume,
-      required this.onChanged,
-      required this.icon,
-      required this.themeColor,
-      super.key});
+  const VolumeBar({
+    required this.initialVolume,
+    required this.onChanged,
+    required this.icon,
+    required this.themeColor,
+    super.key,
+  });
 
   final double initialVolume;
   final ValueChanged<double>? onChanged;
@@ -29,16 +30,20 @@ class _VolumeBarState extends State<VolumeBar> {
 
   @override
   Widget build(BuildContext context) {
-    return IconSlider(
-      icon: widget.icon,
-      themeColor: widget.themeColor,
-      value: _value,
-      onChanged: (value) {
-        setState(() {
-          _value = value;
-        });
-        widget.onChanged?.call(value);
-      },
+    // Wrap in an Opacity widget to visually dim when disabled.
+    return Opacity(
+      opacity: widget.onChanged != null ? 1.0 : 0.5,
+      child: IconSlider(
+        icon: widget.icon,
+        themeColor: widget.themeColor,
+        value: _value,
+        onChanged: (value) {
+          setState(() {
+            _value = value;
+          });
+          widget.onChanged?.call(value);
+        },
+      ),
     );
   }
 }
@@ -89,7 +94,7 @@ class CustomIconSliderThumb extends SliderComponentShape {
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) {
-    return const Size(30, 30); // Size of the icon
+    return const Size(30, 30);
   }
 
   @override
@@ -108,13 +113,12 @@ class CustomIconSliderThumb extends SliderComponentShape {
     required Size sizeWithOverflow,
   }) {
     final canvas = context.canvas;
-
     final paint = Paint()
       ..color = sliderTheme.thumbColor ?? Colors.blue
       ..style = PaintingStyle.fill;
 
-    // Draw the icon
-    canvas.drawCircle(center, 15, paint); // Background circle
+    // Draw a background circle.
+    canvas.drawCircle(center, 15, paint);
     TextPainter iconPainter = TextPainter(
       text: TextSpan(
         text: String.fromCharCode(icon.codePoint),
@@ -129,6 +133,8 @@ class CustomIconSliderThumb extends SliderComponentShape {
 
     iconPainter.layout();
     iconPainter.paint(
-        canvas, center - Offset(iconPainter.width / 2, iconPainter.height / 2));
+      canvas,
+      center - Offset(iconPainter.width / 2, iconPainter.height / 2),
+    );
   }
 }
