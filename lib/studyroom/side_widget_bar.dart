@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
-import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
 import 'package:studybeats/studyroom/side_widgets/notes/notes.dart';
@@ -28,8 +28,8 @@ class SideWidgetBar extends StatefulWidget {
     required this.currentScene,
     required this.currentSceneBackgroundUrl,
     required this.onUpgradeSelected,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   final ValueChanged<PomodoroDurations> onShowTimer;
   final ValueChanged<TimerFxData> timerFxData;
@@ -251,8 +251,8 @@ class NavigationItem extends StatefulWidget {
     required this.option,
     required this.imagePath,
     required this.onItemTapped,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   final NavigationOption? selectedOption;
   final String toolTip;

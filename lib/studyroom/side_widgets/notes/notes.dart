@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
@@ -7,7 +6,6 @@ import 'package:studybeats/api/notes/notes_service.dart';
 import 'package:studybeats/api/notes/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/router.dart';
 import 'package:uuid/uuid.dart';
 import 'draggable_note.dart';
 

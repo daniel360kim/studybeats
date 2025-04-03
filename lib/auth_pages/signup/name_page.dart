@@ -231,7 +231,7 @@ class _EnterNamePageState extends State<EnterNamePage> {
         throw Exception('Username or password not found');
       }
 
-      await _authService.signUp(username!, password!, _textController.text);
+      await _authService.signUp(username, password, _textController.text);
 
       if (mounted) {
         context.goNamed(AppRoute.studyRoom.name);

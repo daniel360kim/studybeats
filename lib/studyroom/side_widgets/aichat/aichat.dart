@@ -4,7 +4,6 @@ import 'package:flutter/gestures.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aimessage.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,7 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:uuid/uuid.dart';
-import 'package:go_router/go_router.dart';
 
 class ConversationMessage {
   final String message;

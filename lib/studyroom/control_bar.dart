@@ -47,7 +47,6 @@ class PlayerWidgetState extends State<PlayerWidget>
   bool _isCurrentSongFavorite = false;
   final _authService = AuthService();
   bool _audioPlayerError = false;
-  bool _notifiedLoaded = false;
 
   final GlobalKey<IconControlsState> _iconControlsKey =
       GlobalKey<IconControlsState>();

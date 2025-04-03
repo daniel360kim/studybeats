@@ -1,6 +1,6 @@
 import 'package:audio_session/audio_session.dart';
-import 'package:studybeats/api/timer_fx/objects.dart';
-import 'package:studybeats/api/timer_fx/timer_fx_service.dart';
+import 'package:studybeats/api/study/timer_fx/objects.dart';
+import 'package:studybeats/api/study/timer_fx/timer_fx_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:just_audio/just_audio.dart';
 

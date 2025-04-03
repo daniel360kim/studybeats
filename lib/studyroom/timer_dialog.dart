@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:studybeats/api/analytics/analytics_service.dart';
-import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/timer_player.dart';
 import 'package:flutter/material.dart';
-import 'timer.dart';
+import 'side_widgets/timer/timer.dart';
 
 class TabDescriptionReporter {
   bool isFocus;

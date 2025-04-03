@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
-import 'package:studybeats/api/timer_fx/objects.dart';
+import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/app_state.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
@@ -10,7 +10,7 @@ import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/timer.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/timer_dialog.dart';
+import 'package:studybeats/studyroom/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -341,7 +341,7 @@ class _StudyRoomState extends State<StudyRoom> {
 /// A dialog that shows upgrade details and provides buttons for different upgrade options.
 /// Each button returns a different [NavigationOption] value.
 class UpgradeDialog extends StatelessWidget {
-  const UpgradeDialog({Key? key}) : super(key: key);
+  const UpgradeDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
