@@ -1,39 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:studybeats/api/study/study_service.dart';
+import 'package:studybeats/log_printer.dart';
 import 'objects.dart';
 
-
 class StudySessionModel extends ChangeNotifier {
-  final StudySessionService _service;
   StudySession? _currentSession;
 
-  StudySessionModel(this._service);
+  StudySessionModel();
 
   StudySession? get currentSession => _currentSession;
   bool get isActive => _currentSession != null;
 
+  final _logger = getLogger('Study Session Model');
+
   // Start a new session, ensuring only one session is active.
-  Future<void> startSession(StudySession session) async {
+  Future<void> startSession(
+      StudySession session, StudySessionService service) async {
     if (_currentSession != null) {
-      throw Exception('A session is already active.');
+      _logger.w(
+          'A session is already active. End the current session before starting a new one.');
+      return;
     }
-    await _service.createSession(session);
+    await service.createSession(session);
     _currentSession = session;
     notifyListeners();
   }
 
   // Update the current session.
-  Future<void> updateSession(StudySession updatedSession) async {
+  Future<void> updateSession(
+      StudySession updatedSession, StudySessionService service) async {
     if (_currentSession == null) {
       throw Exception('No active session.');
     }
     _currentSession = updatedSession;
-    await _service.updateSession(updatedSession);
+    await service.updateSession(updatedSession);
     notifyListeners();
   }
 
   // End the current session.
-  Future<void> endSession() async {
+  Future<void> endSession(StudySessionService service) async {
     if (_currentSession == null) {
       throw Exception('No active session to end.');
     }
@@ -51,7 +56,7 @@ class StudySessionModel extends ChangeNotifier {
         todoIds: _currentSession!.todoIds,
       );
     }
-    await _service.endSession(_currentSession!);
+    await service.endSession(_currentSession!);
     _currentSession = null;
     notifyListeners();
   }

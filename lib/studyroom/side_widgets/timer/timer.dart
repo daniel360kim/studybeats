@@ -67,16 +67,14 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
               Color(0xFFE0E7FF),
               Color(0xFFF7F8FC),
             ])),
-        child: Column(
+        child: ListView(
           children: [
             buildTopBar(),
-            Expanded(
-              child: buildSwiper(),
-            ),
-            const SizedBox(height: 10),
-            // Instead of immediately calling onStartPressed, we now navigate to the new session page.
-            buildStartButton(),
-            const SizedBox(height: 10),
+            CreateStudySessionPage(
+                onSessionCreated: (_) {},
+                onCancel: () {
+                  _swiperController.previous();
+                })
           ],
         ),
       ),
@@ -91,10 +89,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.add),
-          ),
           const Spacer(),
           IconButton(
             onPressed: widget.onClose,
@@ -102,32 +96,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
           ),
         ],
       ),
-    );
-  }
-
-  /// Builds the swiper with two pages: the home page and the new session page.
-  Widget buildSwiper() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Swiper(
-          itemCount: 2,
-          loop: false,
-          physics: const NeverScrollableScrollPhysics(),
-          controller: _swiperController,
-          itemBuilder: (BuildContext context, int index) {
-            switch (index) {
-              case 0:
-                return SingleChildScrollView(child: buildHomePage());
-              case 1:
-                return CreateStudySessionPage(
-                    onSessionCreated: (_) {},
-                    onCancel: () {
-                      _swiperController.previous();
-                    });
-              default:
-                return const SizedBox();
-            }
-          }),
     );
   }
 

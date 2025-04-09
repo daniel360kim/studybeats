@@ -111,24 +111,22 @@ class TodoService {
   Future<void> init() async {
     try {
       final email = await _getUserEmail();
+      if (email == null) {
+        _logger.w('User email is null, skipping initialization');
+        return;
+      }
       final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
       _todoCollection = userDoc.collection('todoLists');
-
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
       rethrow;
     }
   }
 
-  Future<String> _getUserEmail() async {
+  Future<String>? _getUserEmail() async {
     try {
       final email = await _authService.getCurrentUserEmail();
-      if (email != null) {
-        return email;
-      } else {
-        _logger.e('User email is null');
-        throw Exception('User email is null');
-      }
+      return email;
     } catch (e, s) {
       _logger.e('Failed to get user email: $e $s');
       rethrow;

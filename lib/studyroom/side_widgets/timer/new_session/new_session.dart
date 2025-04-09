@@ -1,11 +1,15 @@
-import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/api/study/objects.dart';
+import 'package:studybeats/api/study/session_model.dart';
+import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_inputs.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
+import 'package:uuid/uuid.dart';
 
 class NewStudySessionData {
   final String sessionName;
@@ -37,12 +41,10 @@ class CreateStudySessionPage extends StatefulWidget {
 
 class _CreateStudySessionPageState extends State<CreateStudySessionPage>
     with SingleTickerProviderStateMixin {
-  final SwiperController _swiperController = SwiperController();
-
   // Fields to store user inputs.
   String _sessionName = "";
-  int _studyMinutes = 25;
-  int _breakMinutes = 5;
+  final int _studyMinutes = 25;
+  final int _breakMinutes = 5;
   List<String> _selectedTodoIds = [];
 
   // Keep track of which step (0 to 4) the user is on.
@@ -52,16 +54,21 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
 
+  final StudySessionService _studySessionService = StudySessionService();
+
+  List<TodoItem> _selectedTodoItems = [];
+
   @override
   void initState() {
     super.initState();
+    initService();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeInOut,
+      curve: Curves.fastLinearToSlowEaseIn,
     );
   }
 
@@ -69,6 +76,10 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  void initService() async {
+    await _studySessionService.init();
   }
 
   void _fade(bool isFading) {
@@ -81,118 +92,84 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Give the background a dark color to mimic Duolingo's style
-
-      body: SafeArea(
-        child: Column(
+    return Column(
+      children: [
+        // Top row with Back button and progress bar
+        Stack(
           children: [
-            // Top row with Back button and progress bar
-            Stack(
-              children: [
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: GestureDetector(
-                    child: Container(
-                      height: 50,
-                      color: Colors.black.withOpacity(0.5),
-                    ),
-                  ),
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: GestureDetector(
+                child: Container(
+                  height: 50,
+                  color: Colors.black.withOpacity(0.5),
                 ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: kFlourishBlackish),
-                      onPressed: () {
-                        if (_currentStep == 0) {
-                          // If at the first step, close/cancel
-                          widget.onCancel();
-                        } else {
-                          // Otherwise, go back to the previous step
-                          setState(() {
-                            _currentStep--;
-                            _swiperController.previous();
-                          });
-                        }
-                      },
-                    ),
-                    Expanded(
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          begin: (_currentStep) / _totalSteps,
-                          end: (_currentStep + 1) / _totalSteps,
-                        ),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        builder: (context, value, child) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  kFlourishAdobe),
-                              backgroundColor: Colors.grey.shade200,
-                              value: value,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+              ),
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
+                  onPressed: () {
+                    if (_currentStep == 0) {
+                      // If at the first step, close/cancel
+                      widget.onCancel();
+                    } else {
+                      // Otherwise, go back to the previous step
+                      setState(() {
+                        _currentStep--;
+                      });
+                    }
+                  },
                 ),
               ],
             ),
-
-            // The main content (the swiper pages)
-            Expanded(
-              child: Swiper(
-                physics: const NeverScrollableScrollPhysics(),
-                controller: _swiperController,
-                itemCount: _totalSteps,
-                loop: false,
-                onIndexChanged: (index) {
-                  setState(() {
-                    _currentStep = index;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  switch (index) {
-                    case 0:
-                      return SessionInputs(
-                        showTimerEditor: (value) {
-                          _fade(value);
-                        },
-                        onSessionInputsChanged: (value) {
-                          setState(() {
-                            _sessionName = value;
-                          });
-                        },
-                        onContinue: () {
-                          _handleNextPressed();
-                        },
-                      );
-                    
-                    case 1:
-                      return _buildTodoSelectionStep();
-                    case 2:
-                      return _buildReviewStep();
-                    default:
-                      return const SizedBox.shrink();
-                  }
-                },
-              ),
-            ),
           ],
         ),
-      ),
+
+        // The main content (the swiper pages)
+        SessionInputs(
+          showTimerEditor: (value) {
+            _fade(value);
+          },
+          onSessionInputsChanged: (value) {
+            setState(() {
+              _sessionName = value;
+            });
+          },
+          onSelectedTodosChanged: (items) {
+            setState(() {
+              _selectedTodoItems = items;
+              _selectedTodoIds =
+                  items.map((t) => t.id).toList(); // if you still need the IDs
+            });
+          },
+          onContinuePressed: () => startNewSession(),
+        ),
+      ],
     );
+  }
+
+  void startNewSession() {
+    final studySessionModel = context.read<StudySessionModel>();
+    StudySession newStudySession = StudySession(
+      id: Uuid().v4(),
+      title: _sessionName,
+      startTime: DateTime.now(),
+      updatedTime: DateTime.now(),
+      endTime: null,
+      studyDuration: Duration(minutes: _studyMinutes),
+      breakDuration: Duration(minutes: _breakMinutes),
+      todoIds: _selectedTodoIds,
+    );
+
+    studySessionModel.startSession(newStudySession, _studySessionService);
   }
 
   void _handleNextPressed() {
     if (_currentStep < _totalSteps - 1) {
       setState(() {
         _currentStep++;
-        _swiperController.next();
       });
     } else {
       // Final step: create the session

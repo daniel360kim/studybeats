@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/app.dart';
 import 'package:studybeats/app_state.dart';
 import 'package:studybeats/firebase_options.dart';
@@ -37,6 +38,7 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider(create: (context) => ApplicationState()),
           ChangeNotifierProvider(create: (context) => PlaylistNotifier()),
+          ChangeNotifierProvider(create: (context) => StudySessionModel()),
         ],
         child: const Studybeats(),
       ),
