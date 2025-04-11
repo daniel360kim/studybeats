@@ -67,7 +67,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
               Color(0xFFE0E7FF),
               Color(0xFFF7F8FC),
             ])),
-        child: ListView(
+        child: Column(
           children: [
             buildTopBar(),
             CreateStudySessionPage(

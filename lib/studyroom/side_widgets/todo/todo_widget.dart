@@ -222,7 +222,6 @@ class _TodoState extends State<Todo> {
                                 }
                               },
                             ),
-                            // Show snack bar on completed with undo option
                           )
                       ],
                     ),

@@ -13,7 +13,8 @@ class StudyStatistics {
     required this.totalTodosCompleted,
   });
 
-  factory StudyStatistics.fromJson(Map<String, dynamic> json) => StudyStatistics(
+  factory StudyStatistics.fromJson(Map<String, dynamic> json) =>
+      StudyStatistics(
         totalStudyTime: json['totalStudyTime'] as int,
         totalBreakTime: json['totalBreakTime'] as int,
         totalSessions: json['totalSessions'] as int,
@@ -32,14 +33,19 @@ class StudyStatistics {
 class StudySession {
   String id;
   String title;
-
   DateTime startTime;
   DateTime updatedTime;
   DateTime? endTime;
-  Duration studyDuration;
-  Duration breakDuration;
+  Duration studyDuration; // Planned study duration
+  Duration breakDuration; // Planned break duration
   List<String> todoIds;
   int? sessionRating;
+  int? soundFxId;
+  bool soundEnabled;
+  bool isLoopSession;
+
+  Duration actualStudyDuration;
+  Duration actualBreakDuration;
 
   StudySession({
     required this.id,
@@ -51,10 +57,14 @@ class StudySession {
     required this.breakDuration,
     required this.todoIds,
     this.sessionRating,
+    this.soundFxId,
+    required this.soundEnabled,
+    required this.isLoopSession,
+    required this.actualStudyDuration,
+    required this.actualBreakDuration,
   });
 
   factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
-
         id: json['id'] as String,
         title: json['title'] as String,
         startTime: DateTime.parse(json['startTime'] as String),
@@ -66,6 +76,15 @@ class StudySession {
         breakDuration: Duration(minutes: json['breakDuration'] as int),
         todoIds: List<String>.from(json['todoIds'] as List),
         sessionRating: json['sessionRating'] as int?,
+        soundFxId: json['soundFxId'] as int?,
+        soundEnabled: json['soundEnabled'] as bool? ?? true,
+        isLoopSession: json['isLoopSession'] as bool? ?? true,
+        actualStudyDuration: json.containsKey('actualStudyDuration')
+            ? Duration(minutes: json['actualStudyDuration'] as int)
+            : Duration.zero,
+        actualBreakDuration: json.containsKey('actualBreakDuration')
+            ? Duration(minutes: json['actualBreakDuration'] as int)
+            : Duration.zero,
       );
 
   Map<String, dynamic> toJson() => {
@@ -78,5 +97,10 @@ class StudySession {
         'breakDuration': breakDuration.inMinutes,
         'todoIds': todoIds,
         'sessionRating': sessionRating,
+        'soundFxId': soundFxId,
+        'soundEnabled': soundEnabled,
+        'isLoopSession': isLoopSession,
+        'actualStudyDuration': actualStudyDuration.inMinutes,
+        'actualBreakDuration': actualBreakDuration.inMinutes,
       };
 }

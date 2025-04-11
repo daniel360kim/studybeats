@@ -9,7 +9,7 @@ import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/timer.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/study_sessions.dart';
 import 'package:studybeats/studyroom/timer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

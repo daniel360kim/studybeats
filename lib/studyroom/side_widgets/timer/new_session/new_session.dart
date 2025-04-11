@@ -8,9 +8,11 @@ import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_inputs.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/new_session/todo_adder.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
 import 'package:uuid/uuid.dart';
 
+// Data object for session creation.
 class NewStudySessionData {
   final String sessionName;
   final Duration studyDuration;
@@ -42,39 +44,34 @@ class CreateStudySessionPage extends StatefulWidget {
 class _CreateStudySessionPageState extends State<CreateStudySessionPage>
     with SingleTickerProviderStateMixin {
   // Fields to store user inputs.
-  String _sessionName = "";
+  String _sessionName = "Untitled Session";
   final int _studyMinutes = 25;
   final int _breakMinutes = 5;
   List<String> _selectedTodoIds = [];
+  bool _timerSoundEnabled = true;
+  int? _selectedTimerFxId;
+  bool isLoopSession = true;
 
-  // Keep track of which step (0 to 4) the user is on.
-  int _currentStep = 0;
-  final int _totalSteps = 3;
+  int _currentPage = 0;
 
-  late final AnimationController _animationController;
-  late final Animation<double> _fadeAnimation;
+  final PageController _pageController = PageController();
 
   final StudySessionService _studySessionService = StudySessionService();
-
-  List<TodoItem> _selectedTodoItems = [];
 
   @override
   void initState() {
     super.initState();
     initService();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.fastLinearToSlowEaseIn,
-    );
+    _pageController.addListener(() {
+      setState(() {
+        _currentPage = _pageController.page?.round() ?? 0;
+      });
+    });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -82,78 +79,10 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
     await _studySessionService.init();
   }
 
-  void _fade(bool isFading) {
-    if (isFading) {
-      _animationController.forward();
-    } else {
-      _animationController.reverse();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Top row with Back button and progress bar
-        Stack(
-          children: [
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: GestureDetector(
-                child: Container(
-                  height: 50,
-                  color: Colors.black.withOpacity(0.5),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
-                  onPressed: () {
-                    if (_currentStep == 0) {
-                      // If at the first step, close/cancel
-                      widget.onCancel();
-                    } else {
-                      // Otherwise, go back to the previous step
-                      setState(() {
-                        _currentStep--;
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // The main content (the swiper pages)
-        SessionInputs(
-          showTimerEditor: (value) {
-            _fade(value);
-          },
-          onSessionInputsChanged: (value) {
-            setState(() {
-              _sessionName = value;
-            });
-          },
-          onSelectedTodosChanged: (items) {
-            setState(() {
-              _selectedTodoItems = items;
-              _selectedTodoIds =
-                  items.map((t) => t.id).toList(); // if you still need the IDs
-            });
-          },
-          onContinuePressed: () => startNewSession(),
-        ),
-      ],
-    );
-  }
-
   void startNewSession() {
     final studySessionModel = context.read<StudySessionModel>();
     StudySession newStudySession = StudySession(
-      id: Uuid().v4(),
+      id: const Uuid().v4(),
       title: _sessionName,
       startTime: DateTime.now(),
       updatedTime: DateTime.now(),
@@ -161,93 +90,128 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
       studyDuration: Duration(minutes: _studyMinutes),
       breakDuration: Duration(minutes: _breakMinutes),
       todoIds: _selectedTodoIds,
+      soundEnabled: _timerSoundEnabled,
+      soundFxId: _selectedTimerFxId,
+      isLoopSession: isLoopSession,
+      actualStudyDuration: Duration.zero,
+      actualBreakDuration: Duration.zero,
     );
 
     studySessionModel.startSession(newStudySession, _studySessionService);
   }
 
-  void _handleNextPressed() {
-    if (_currentStep < _totalSteps - 1) {
-      setState(() {
-        _currentStep++;
-      });
-    } else {
-      // Final step: create the session
-      final newSession = NewStudySessionData(
-        sessionName: _sessionName,
-        studyDuration: Duration(minutes: _studyMinutes),
-        breakDuration: Duration(minutes: _breakMinutes),
-        todoIds: _selectedTodoIds,
-      );
-      widget.onSessionCreated(newSession);
-    }
-  }
-
-  Widget _buildTodoSelectionStep() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: StudySessionTodoSelector(
-        onSelectionChanged: (selectedIds) {
-          setState(() {
-            _selectedTodoIds = selectedIds;
-          });
-        },
-      ),
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        if (_currentPage != 0)
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
+            onPressed: () {
+              _pageController.previousPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+          ),
+      ],
     );
   }
 
-  Widget _buildReviewStep() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Step 5: Review",
-              style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildHeader(),
+        SizedBox(
+          height: MediaQuery.of(context).size.height - 180,
+          child: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              // Page 1: Session Inputs
+              Center(
+                child: SessionInputs(
+                  showTimerEditor: (value) {},
+                  onSessionInputsChanged: (value) {
+                    setState(() {
+                      _sessionName = value;
+                    });
+                  },
+                  onContinuePressed: () {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                  onTimerSoundEnabled: (value) {
+                    setState(() {
+                      _timerSoundEnabled = value;
+                    });
+                  },
+                  onTimerSoundSelected: (value) {
+                    setState(() {
+                      _selectedTimerFxId = value.id;
+                    });
+                  },
+                  onLoopSessionChanged: (value) {
+                    setState(() {
+                      isLoopSession = value;
+                    });
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Session Name: $_sessionName",
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "Study Duration: $_studyMinutes minutes",
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "Break Duration: $_breakMinutes minutes",
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "Selected Todo IDs: ${_selectedTodoIds.join(', ')}",
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.white),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Press 'Create Session' to confirm.",
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.white70),
-            ),
-          ],
+              // Page 2: Task Selection
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    TodoAdder(
+                      onTodoItemToggled: (todoItem, isAdded) {
+                        setState(() {
+                          if (isAdded) {
+                            _selectedTodoIds.add(todoItem.id);
+                          } else {
+                            _selectedTodoIds.remove(todoItem.id);
+                          }
+                        });
+                      },
+                      selectedTodoItemIds: _selectedTodoIds,
+                      scrollController: ScrollController(),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 14),
+                          backgroundColor: kFlourishAdobe,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: startNewSession,
+                        child: Text(
+                          'Finish',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-/// You can keep your SessionStepPage and StudySessionTodoSelector classes
-/// unchanged if you want, or merge them into the new layout above.
-/// For brevity, they are omitted here except for StudySessionTodoSelector.
-/// Just make sure they match your current definitions.
-
+// The StudySessionTodoSelector is included here (it can remain largely unchanged).
 class StudySessionTodoSelector extends StatefulWidget {
   final ValueChanged<List<String>> onSelectionChanged;
 
