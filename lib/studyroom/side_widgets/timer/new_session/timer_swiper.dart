@@ -131,7 +131,7 @@ class TimeSlider extends StatefulWidget {
       {required this.lowerValue,
       required this.upperValue,
       required this.onTimeSelected,
-      this.initialTimeValue = 0,
+      this.initialTimeValue = 1,
       super.key});
 
   final int lowerValue;

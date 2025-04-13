@@ -187,6 +187,41 @@ class TodoService {
     }
   }
 
+  Future<void> markTodoItemAsUndone({
+    required String listId,
+    required String todoItemId,
+  }) async {
+    try {
+      _logger.i('Marking todo item as undone');
+
+      // Get the list document reference
+      final listDoc = _todoCollection.doc(listId);
+
+      // Fetch the document to get the current state
+      final todoListSnapshot = await listDoc.get();
+      final todoList = TodoList.fromJson(todoListSnapshot.data()!);
+
+      // Find the item to mark as undone
+      final todoItem = todoList.categories.completed.firstWhere(
+        (item) => item.id == todoItemId,
+        orElse: () {
+          throw Exception('Todo item not found in completed list');
+        },
+      );
+
+      // Update Firestore: Remove from 'completed' and add to 'uncompleted'
+      await listDoc.update({
+        'categories.completed': FieldValue.arrayRemove([todoItem.toJson()]),
+        'categories.uncompleted': FieldValue.arrayUnion([todoItem.toJson()]),
+      });
+
+      _logger.i('Todo item marked as undone successfully');
+    } catch (e, s) {
+      _logger.e('Failed to mark todo item as undone: $e $s');
+      rethrow;
+    }
+  }
+
   Future<void> updateIncompleteTodoItem(
       {required String listId, required TodoItem updatedItem}) async {
     try {
@@ -306,6 +341,22 @@ class TodoService {
       });
     } catch (e, s) {
       _logger.e('Failed to stream uncompleted todo items: $e $s');
+      rethrow;
+    }
+  }
+
+  Future<TodoItem> getTodoItem(String listId, String itemId) async {
+    try {
+      final todoListDoc = _todoCollection.doc(listId);
+      final todoListSnapshot = await todoListDoc.get();
+      final todoList = TodoList.fromJson(todoListSnapshot.data()!);
+
+      return todoList.categories.uncompleted.firstWhere(
+        (item) => item.id == itemId,
+        orElse: () => throw Exception('Todo item not found'),
+      );
+    } catch (e, s) {
+      _logger.e('Failed to get todo item: $e $s');
       rethrow;
     }
   }

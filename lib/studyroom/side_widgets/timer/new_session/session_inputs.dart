@@ -8,20 +8,24 @@ import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_sett
 
 class SessionInputs extends StatefulWidget {
   const SessionInputs({
-    required this.onSessionInputsChanged,
+    required this.onSessionNameChangeed,
     required this.showTimerEditor,
     required this.onContinuePressed,
     required this.onTimerSoundSelected,
     required this.onTimerSoundEnabled,
     required this.onLoopSessionChanged,
+    required this.onStudyTimeChanged,
+    required this.onBreakTimeChanged,
     super.key,
   });
-  final ValueChanged<String> onSessionInputsChanged;
+  final ValueChanged<String> onSessionNameChangeed;
   final ValueChanged<bool> showTimerEditor;
   final ValueChanged<TimerFxData> onTimerSoundSelected;
   final ValueChanged<bool> onTimerSoundEnabled;
   final VoidCallback onContinuePressed;
   final ValueChanged<bool> onLoopSessionChanged;
+  final ValueChanged<Duration> onStudyTimeChanged;
+  final ValueChanged<Duration> onBreakTimeChanged;
 
   @override
   State<SessionInputs> createState() => _SessionInputsState();
@@ -114,7 +118,7 @@ class _SessionInputsState extends State<SessionInputs>
       ),
       cursorColor: kFlourishBlackish,
       onChanged: (value) {
-        widget.onSessionInputsChanged(value);
+        widget.onSessionNameChangeed(value);
       },
     );
   }
@@ -126,11 +130,23 @@ class _SessionInputsState extends State<SessionInputs>
         _buildTimeItem(
           title: 'Focus',
           initialTimeMinutes: studyTime.inMinutes,
+          onTimeChanged: (newTime) {
+            widget.onStudyTimeChanged(newTime);
+            setState(() {
+              studyTime = newTime;
+            });
+          },
         ),
         const SizedBox(width: 20),
         _buildTimeItem(
           title: 'Break',
           initialTimeMinutes: breakTime.inMinutes,
+          onTimeChanged: (newTime) {
+            widget.onBreakTimeChanged(newTime);
+            setState(() {
+              breakTime = newTime;
+            });
+          },
         ),
       ],
     );
@@ -139,6 +155,7 @@ class _SessionInputsState extends State<SessionInputs>
   Widget _buildTimeItem({
     required String title,
     required int initialTimeMinutes,
+    required ValueChanged<Duration> onTimeChanged,
   }) {
     final GlobalKey timeKey = GlobalKey();
 
@@ -161,19 +178,20 @@ class _SessionInputsState extends State<SessionInputs>
             minutes: initialTimeMinutes,
             onTap: () {
               _showTimerPickerMenu(
-                key: timeKey,
-                pickerTitle: title,
-                initialTime: initialTimeMinutes,
-                onTimeChanged: (newMinutes) {
-                  setState(() {
-                    if (title == 'Focus') {
-                      studyTime = Duration(minutes: newMinutes);
-                    } else if (title == 'Break') {
-                      breakTime = Duration(minutes: newMinutes);
+                  key: timeKey,
+                  pickerTitle: title,
+                  initialTime: initialTimeMinutes,
+                  onTimeChanged: (newTime) {
+                    Duration duration;
+                    if (newTime == 0) {
+                      duration = const Duration(milliseconds: 1);
+                    } else {
+                      duration = Duration(minutes: newTime);
                     }
+                    onTimeChanged(
+                      duration,
+                    );
                   });
-                },
-              );
             },
           ),
         ),

@@ -8,20 +8,21 @@ class StudySessionService {
   final _logger = getLogger('Study Session Service');
 
   late final CollectionReference<Map<String, dynamic>> _studySessionCollection;
-  late final CollectionReference<Map<String, dynamic>> _studyStatisticsCollection;
+  late final CollectionReference<Map<String, dynamic>>
+      _studyStatisticsCollection;
+
+  bool _initialized = false;
 
   /// Initializes the service by retrieving the user's email and setting up
   /// the appropriate Firestore collections.
   Future<void> init() async {
-    try {
-      final email = await _getUserEmail();
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
-      _studySessionCollection = userDoc.collection('studySessions');
-      _studyStatisticsCollection = userDoc.collection('studyStatistics');
-    } catch (e, s) {
-      _logger.e('Failed to initialize study session service: $e $s');
-      rethrow;
-    }
+    if (_initialized) return;
+
+    final email = await _getUserEmail();
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+    _studySessionCollection = userDoc.collection('studySessions');
+    _studyStatisticsCollection = userDoc.collection('studyStatistics');
+    _initialized = true;
   }
 
   /// Retrieves the current user's email.
@@ -94,16 +95,16 @@ class StudySessionService {
     }
   }
 
-  /// Updates the overall statistics document in Firestore with the session information.
-  /// This uses the actual durations instead of the planned ones.
+// Locate the _updateTotalStatistics method in study_service.dart and update it as follows:
+
   Future<void> _updateTotalStatistics(StudySession session) async {
     final statsDocRef = _studyStatisticsCollection.doc('totalStats');
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final statsSnapshot = await transaction.get(statsDocRef);
       if (!statsSnapshot.exists) {
         final newStats = StudyStatistics(
-          totalStudyTime: session.actualStudyDuration.inMinutes,
-          totalBreakTime: session.actualBreakDuration.inMinutes,
+          totalStudyTime: session.actualStudyDuration, // Updated: use seconds.
+          totalBreakTime: session.actualBreakDuration, // Updated: use seconds.
           totalSessions: 1,
           totalTodosCompleted: session.todoIds.length,
         );
@@ -112,10 +113,13 @@ class StudySessionService {
         final currentData = statsSnapshot.data()!;
         final currentStats = StudyStatistics.fromJson(currentData);
         final updatedStats = StudyStatistics(
-          totalStudyTime: currentStats.totalStudyTime + session.actualStudyDuration.inMinutes,
-          totalBreakTime: currentStats.totalBreakTime + session.actualBreakDuration.inMinutes,
+          totalStudyTime: currentStats.totalStudyTime +
+              session.actualStudyDuration, // Updated
+          totalBreakTime: currentStats.totalBreakTime +
+              session.actualBreakDuration, // Updated
           totalSessions: currentStats.totalSessions + 1,
-          totalTodosCompleted: currentStats.totalTodosCompleted + session.todoIds.length,
+          totalTodosCompleted:
+              currentStats.totalTodosCompleted + session.todoIds.length,
         );
         transaction.update(statsDocRef, updatedStats.toJson());
       }
@@ -143,30 +147,29 @@ class StudySessionService {
     return _getAggregatedStatistics(startOfMonth, endOfMonth);
   }
 
-  /// Helper method that aggregates statistics for sessions within a given date range.
-  Future<StudyStatistics> _getAggregatedStatistics(DateTime start, DateTime end) async {
+  Future<StudyStatistics> _getAggregatedStatistics(
+      DateTime start, DateTime end) async {
     QuerySnapshot<Map<String, dynamic>> snapshot = await _studySessionCollection
         .where('startTime', isGreaterThanOrEqualTo: start.toIso8601String())
         .where('startTime', isLessThan: end.toIso8601String())
         .get();
 
-    int totalStudyTime = 0;
-    int totalBreakTime = 0;
+    int totalStudyTimeSeconds = 0;
+    int totalBreakTimeSeconds = 0;
     int totalSessions = snapshot.docs.length;
     int totalTodosCompleted = 0;
 
     for (var doc in snapshot.docs) {
       final data = doc.data();
-      // Here we assume the stored values for studyDuration and breakDuration now represent
-      // the actual durations, otherwise adjust accordingly.
-      totalStudyTime += data['actualStudyDuration'] as int;
-      totalBreakTime += data['actualBreakDuration'] as int;
+      // The stored values are in seconds.
+      totalStudyTimeSeconds += data['actualStudyDuration'] as int;
+      totalBreakTimeSeconds += data['actualBreakDuration'] as int;
       totalTodosCompleted += (data['todoIds'] as List).length;
     }
 
     return StudyStatistics(
-      totalStudyTime: totalStudyTime,
-      totalBreakTime: totalBreakTime,
+      totalStudyTime: Duration(seconds: totalStudyTimeSeconds),
+      totalBreakTime: Duration(seconds: totalBreakTimeSeconds),
       totalSessions: totalSessions,
       totalTodosCompleted: totalTodosCompleted,
     );

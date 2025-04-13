@@ -27,11 +27,11 @@ class NewStudySessionData {
   });
 }
 
-class CreateStudySessionPage extends StatefulWidget {
+class SessionPageController extends StatefulWidget {
   final ValueChanged<NewStudySessionData> onSessionCreated;
   final VoidCallback onCancel;
 
-  const CreateStudySessionPage({
+  const SessionPageController({
     super.key,
     required this.onSessionCreated,
     required this.onCancel,
@@ -41,12 +41,12 @@ class CreateStudySessionPage extends StatefulWidget {
   _CreateStudySessionPageState createState() => _CreateStudySessionPageState();
 }
 
-class _CreateStudySessionPageState extends State<CreateStudySessionPage>
+class _CreateStudySessionPageState extends State<SessionPageController>
     with SingleTickerProviderStateMixin {
   // Fields to store user inputs.
   String _sessionName = "Untitled Session";
-  final int _studyMinutes = 25;
-  final int _breakMinutes = 5;
+  Duration _studyDuration = const Duration(minutes: 25);
+  Duration _breakDuration = const Duration(minutes: 5);
   List<String> _selectedTodoIds = [];
   bool _timerSoundEnabled = true;
   int? _selectedTimerFxId;
@@ -87,8 +87,8 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
       startTime: DateTime.now(),
       updatedTime: DateTime.now(),
       endTime: null,
-      studyDuration: Duration(minutes: _studyMinutes),
-      breakDuration: Duration(minutes: _breakMinutes),
+      studyDuration: _studyDuration,
+      breakDuration: _breakDuration,
       todoIds: _selectedTodoIds,
       soundEnabled: _timerSoundEnabled,
       soundFxId: _selectedTimerFxId,
@@ -101,19 +101,22 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        if (_currentPage != 0)
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
-            onPressed: () {
-              _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            },
-          ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+      child: Row(
+        children: [
+          if (_currentPage != 0)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
+              onPressed: () {
+                _pageController.previousPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -129,84 +132,102 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage>
             physics: const NeverScrollableScrollPhysics(),
             children: [
               // Page 1: Session Inputs
-              Center(
-                child: SessionInputs(
-                  showTimerEditor: (value) {},
-                  onSessionInputsChanged: (value) {
-                    setState(() {
-                      _sessionName = value;
-                    });
-                  },
-                  onContinuePressed: () {
-                    _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  onTimerSoundEnabled: (value) {
-                    setState(() {
-                      _timerSoundEnabled = value;
-                    });
-                  },
-                  onTimerSoundSelected: (value) {
-                    setState(() {
-                      _selectedTimerFxId = value.id;
-                    });
-                  },
-                  onLoopSessionChanged: (value) {
-                    setState(() {
-                      isLoopSession = value;
-                    });
-                  },
-                ),
-              ),
+              buildSessionNameTimeInputPage(),
               // Page 2: Task Selection
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    TodoAdder(
-                      onTodoItemToggled: (todoItem, isAdded) {
-                        setState(() {
-                          if (isAdded) {
-                            _selectedTodoIds.add(todoItem.id);
-                          } else {
-                            _selectedTodoIds.remove(todoItem.id);
-                          }
-                        });
-                      },
-                      selectedTodoItemIds: _selectedTodoIds,
-                      scrollController: ScrollController(),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 14),
-                          backgroundColor: kFlourishAdobe,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: startNewSession,
-                        child: Text(
-                          'Finish',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              buildTaskSelectionPage(),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget buildSessionNameTimeInputPage() {
+    return Center(
+      child: SessionInputs(
+        showTimerEditor: (value) {},
+        onSessionNameChangeed: (value) {
+          setState(() {
+            _sessionName = value;
+          });
+        },
+        onContinuePressed: () {
+          _pageController.nextPage(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        },
+        onTimerSoundEnabled: (value) {
+          setState(() {
+            _timerSoundEnabled = value;
+          });
+        },
+        onTimerSoundSelected: (value) {
+          setState(() {
+            _selectedTimerFxId = value.id;
+          });
+        },
+        onLoopSessionChanged: (value) {
+          setState(() {
+            isLoopSession = value;
+          });
+        },
+        onBreakTimeChanged: (value) {
+          setState(() {
+            _breakDuration = value;
+          });
+        },
+        onStudyTimeChanged: (value) {
+          setState(() {
+            _studyDuration = value;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget buildTaskSelectionPage() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          TodoAdder(
+            onTodoItemToggled: (todoItem, isAdded) {
+              setState(() {
+                if (isAdded) {
+                  _selectedTodoIds.add(todoItem.id);
+                } else {
+                  _selectedTodoIds.remove(todoItem.id);
+                }
+              });
+            },
+            selectedTodoItemIds: _selectedTodoIds,
+            scrollController: ScrollController(),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                backgroundColor: kFlourishAdobe,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: startNewSession,
+              child: Text(
+                'Finish',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

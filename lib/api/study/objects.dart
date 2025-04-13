@@ -1,9 +1,16 @@
 import 'package:json_annotation/json_annotation.dart';
 
 class StudyStatistics {
-  final int totalStudyTime;
-  final int totalBreakTime;
+  /// Total study time as a Duration.
+  final Duration totalStudyTime;
+  
+  /// Total break time as a Duration.
+  final Duration totalBreakTime;
+  
+  /// Total number of sessions.
   final int totalSessions;
+  
+  /// Total number of todos completed.
   final int totalTodosCompleted;
 
   StudyStatistics({
@@ -13,17 +20,19 @@ class StudyStatistics {
     required this.totalTodosCompleted,
   });
 
+  /// Constructs an instance from JSON by reading durations stored in seconds.
   factory StudyStatistics.fromJson(Map<String, dynamic> json) =>
       StudyStatistics(
-        totalStudyTime: json['totalStudyTime'] as int,
-        totalBreakTime: json['totalBreakTime'] as int,
+        totalStudyTime: Duration(seconds: json['totalStudyTime'] as int),
+        totalBreakTime: Duration(seconds: json['totalBreakTime'] as int),
         totalSessions: json['totalSessions'] as int,
         totalTodosCompleted: json['totalTodosCompleted'] as int,
       );
 
+  /// Converts this instance to JSON by writing durations in seconds.
   Map<String, dynamic> toJson() => {
-        'totalStudyTime': totalStudyTime,
-        'totalBreakTime': totalBreakTime,
+        'totalStudyTime': totalStudyTime.inSeconds,
+        'totalBreakTime': totalBreakTime.inSeconds,
         'totalSessions': totalSessions,
         'totalTodosCompleted': totalTodosCompleted,
       };
@@ -43,8 +52,11 @@ class StudySession {
   int? soundFxId;
   bool soundEnabled;
   bool isLoopSession;
-
+  
+  /// Actual study duration accumulated during the session.
   Duration actualStudyDuration;
+  
+  /// Actual break duration accumulated during the session.
   Duration actualBreakDuration;
 
   StudySession({
@@ -64,28 +76,7 @@ class StudySession {
     required this.actualBreakDuration,
   });
 
-  factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        startTime: DateTime.parse(json['startTime'] as String),
-        updatedTime: DateTime.parse(json['updatedTime'] as String),
-        endTime: json['endTime'] != null
-            ? DateTime.parse(json['endTime'] as String)
-            : null,
-        studyDuration: Duration(minutes: json['studyDuration'] as int),
-        breakDuration: Duration(minutes: json['breakDuration'] as int),
-        todoIds: List<String>.from(json['todoIds'] as List),
-        sessionRating: json['sessionRating'] as int?,
-        soundFxId: json['soundFxId'] as int?,
-        soundEnabled: json['soundEnabled'] as bool? ?? true,
-        isLoopSession: json['isLoopSession'] as bool? ?? true,
-        actualStudyDuration: json.containsKey('actualStudyDuration')
-            ? Duration(minutes: json['actualStudyDuration'] as int)
-            : Duration.zero,
-        actualBreakDuration: json.containsKey('actualBreakDuration')
-            ? Duration(minutes: json['actualBreakDuration'] as int)
-            : Duration.zero,
-      );
+
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -100,7 +91,42 @@ class StudySession {
         'soundFxId': soundFxId,
         'soundEnabled': soundEnabled,
         'isLoopSession': isLoopSession,
-        'actualStudyDuration': actualStudyDuration.inMinutes,
-        'actualBreakDuration': actualBreakDuration.inMinutes,
+        // Store actual durations as seconds so we capture full precision.
+        'actualStudyDuration': actualStudyDuration.inSeconds,
+        'actualBreakDuration': actualBreakDuration.inSeconds,
       };
+        /// Creates a copy of this StudySession with the given fields replaced by new values.
+  StudySession copyWith({
+    String? id,
+    String? title,
+    DateTime? startTime,
+    DateTime? updatedTime,
+    DateTime? endTime,
+    Duration? studyDuration,
+    Duration? breakDuration,
+    List<String>? todoIds,
+    int? sessionRating,
+    int? soundFxId,
+    bool? soundEnabled,
+    bool? isLoopSession,
+    Duration? actualStudyDuration,
+    Duration? actualBreakDuration,
+  }) {
+    return StudySession(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      startTime: startTime ?? this.startTime,
+      updatedTime: updatedTime ?? this.updatedTime,
+      endTime: endTime ?? this.endTime,
+      studyDuration: studyDuration ?? this.studyDuration,
+      breakDuration: breakDuration ?? this.breakDuration,
+      todoIds: todoIds ?? this.todoIds,
+      sessionRating: sessionRating ?? this.sessionRating,
+      soundFxId: soundFxId ?? this.soundFxId,
+      soundEnabled: soundEnabled ?? this.soundEnabled,
+      isLoopSession: isLoopSession ?? this.isLoopSession,
+      actualStudyDuration: actualStudyDuration ?? this.actualStudyDuration,
+      actualBreakDuration: actualBreakDuration ?? this.actualBreakDuration,
+    );
+  }
 }

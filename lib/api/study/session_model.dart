@@ -1,89 +1,68 @@
 // File: /Users/danielkim/Documents/Documents - DK's MacBook Pro/Projects/Study Beats/app/lib/api/study/session_model.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'objects.dart';
 
-/// The [StudySessionModel] manages the lifecycle of a study session,
-/// including explicit control over break and study pause periods.
-/// 
-/// The model tracks:
-/// - Break periods: using [startBreak] and [endBreak].
-/// - Study pauses: using [pauseStudy] and [resumeStudy].
-/// 
-/// The actual study time is computed as:
-///   total elapsed time - (accumulated break time + accumulated pause time)
-/// 
-/// Methods are guarded to ensure valid transitions. For instance:
-/// - [pauseStudy] cannot be called if no session is active or if already paused.
-/// - [pauseStudy] will also refuse to run if a break is in progress.
-/// 
-/// Usage:
-///   - Call [startSession] to begin a session.
-///   - Use [startBreak] and [endBreak] for break events.
-///   - Use [pauseStudy] and [resumeStudy] to control explicit study pausing.
-///   - Access [actualStudyDuration] and [actualBreakDuration] for precise metrics.
-///   - Call [endSession] to finalize and record the session.
+enum SessionPhase {
+  studyTime,
+  breakTime,
+}
+
+/// The [StudySessionModel] manages the lifecycle of a study session, including basic countdown
+/// functionality and phase transitions (study & break). It now also accumulates the total
+/// study duration and break duration over the entire session. When a phase completes (or when
+/// the session ends), the elapsed time for that phase is added to the respective accumulator.
+///
+/// Example Usage:
+///   studySessionModel.startSession(session, studySessionService);
+///   // As time passes, transitions occur automatically.
+///   // When ending the session, call:
+///   studySessionModel.endSession(studySessionService);
+///   // The updated StudySession will include actualStudyDuration and actualBreakDuration.
 class StudySessionModel extends ChangeNotifier {
-  StudySession? _currentSession;
+  StudySession? _currentSession; // The currently active study session.
+  SessionPhase _currentPhase = SessionPhase.studyTime;
+  SessionPhase get currentPhase => _currentPhase;
 
-  // Private fields for break tracking.
-  DateTime? _currentBreakStart;
+  // Async callbacks for external listeners.
+  Future<void> Function(SessionPhase newPhase)? onPhaseTransition;
+  Future<void> Function()? onSessionEnd;
+  Future<void> Function()? onTimerTick;
+
+  late Timer _timer;
+  late DateTime _startTime;
+  late Duration _totalDuration;
+
+  // This variable holds the current remaining time of the active phase.
+  Duration _remainingTime = const Duration();
+  Duration get remainingTime => _remainingTime;
+
+  // New fields to accumulate the actual time spent in study and break phases.
+  Duration _accumulatedStudyDuration = Duration.zero;
   Duration _accumulatedBreakDuration = Duration.zero;
-
-  // Private fields for study pause tracking.
-  bool _isStudyPaused = false;
-  DateTime? _currentPauseStart;
-  Duration _accumulatedPauseDuration = Duration.zero;
-
-  StudySessionModel();
-
-  /// Returns the currently active session.
-  StudySession? get currentSession => _currentSession;
-
-  /// Returns true if a session is active.
-  bool get isActive => _currentSession != null;
-
-  /// Returns true if the user is currently on a break.
-  bool get isOnBreak => _currentBreakStart != null;
-
-  /// Returns true if the user has paused the study.
-  bool get isStudyPaused => _isStudyPaused;
-
-  /// Calculates the total accumulated break duration,
-  /// including any in-progress break.
-  Duration get actualBreakDuration {
-    if (_currentBreakStart != null) {
-      return _accumulatedBreakDuration +
-          DateTime.now().difference(_currentBreakStart!);
-    }
-    return _accumulatedBreakDuration;
-  }
-
-  /// Calculates the total accumulated pause duration,
-  /// including any in-progress pause.
-  Duration get actualPauseDuration {
-    if (_currentPauseStart != null) {
-      return _accumulatedPauseDuration +
-          DateTime.now().difference(_currentPauseStart!);
-    }
-    return _accumulatedPauseDuration;
-  }
-
-  /// Computes the actual study duration as the total elapsed time
-  /// minus both the actual break duration and the actual pause duration.
-  Duration get actualStudyDuration {
-    if (_currentSession == null) return Duration.zero;
-    final totalElapsed = DateTime.now().difference(_currentSession!.startTime);
-    return totalElapsed - actualBreakDuration - actualPauseDuration;
-  }
 
   final _logger = getLogger('Study Session Model');
 
+  StudySessionModel();
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  /// Returns the currently active study session.
+  StudySession? get currentSession => _currentSession;
+
+  /// Returns true if a study session is currently active.
+  bool get isActive => _currentSession != null;
+
   /// Starts a new study session.
-  /// Resets break and pause tracking.
-  /// Throws a warning if a session is already active.
+  ///
+  /// Resets all phase tracking and accumulators.
   Future<void> startSession(
       StudySession session, StudySessionService service) async {
     if (_currentSession != null) {
@@ -93,15 +72,20 @@ class StudySessionModel extends ChangeNotifier {
     }
     await service.createSession(session);
     _currentSession = session;
-    _currentBreakStart = null;
+    _currentPhase = SessionPhase.studyTime;
+    _remainingTime = session.studyDuration;
+    _startTime = DateTime.now();
+
+    // Reset accumulators.
+    _accumulatedStudyDuration = Duration.zero;
     _accumulatedBreakDuration = Duration.zero;
-    _isStudyPaused = false;
-    _currentPauseStart = null;
-    _accumulatedPauseDuration = Duration.zero;
+
+    _logger.i('Session started: ${session.title}');
+    _startFocusTimer();
     notifyListeners();
   }
 
-  /// Updates the current session.
+  /// Updates the current session document.
   Future<void> updateSession(
       StudySession updatedSession, StudySessionService service) async {
     if (_currentSession == null) {
@@ -112,103 +96,123 @@ class StudySessionModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Marks the start of a break.
-  /// Does nothing if there's no active session or if already on break.
-  void startBreak() {
-    if (_currentSession == null) {
-      _logger.w('No active session to start a break.');
-      return;
-    }
-    if (!isOnBreak) {
-      _currentBreakStart = DateTime.now();
-      _logger.i('Break started at $_currentBreakStart');
-      notifyListeners();
-    }
+  /// Starts the timer for the study phase.
+  void _startFocusTimer() {
+    _remainingTime = _currentSession!.studyDuration;
+    _currentPhase = SessionPhase.studyTime;
+    _startTimer();
   }
 
-  /// Ends the current break, accumulating its duration.
-  /// Does nothing if no break is active.
-  void endBreak() {
-    if (isOnBreak) {
-      final breakInterval = DateTime.now().difference(_currentBreakStart!);
-      _accumulatedBreakDuration += breakInterval;
-      _logger.i('Break ended; interval: $breakInterval, total accumulated: $_accumulatedBreakDuration');
-      _currentBreakStart = null;
-      notifyListeners();
-    }
+  /// Starts the timer for the break phase.
+  void _startBreakTimer() {
+    _remainingTime = _currentSession!.breakDuration;
+    _currentPhase = SessionPhase.breakTime;
+    _startTimer();
   }
 
-  /// Convenience method to toggle between break and study state.
-  void toggleBreak() {
-    if (isOnBreak) {
-      endBreak();
-    } else {
-      startBreak();
-    }
+  /// Common helper to start the periodic timer.
+  void _startTimer() {
+    _totalDuration = _remainingTime;
+    _startTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
   }
 
-  /// Pauses the study session.
-  /// Cannot be called if no session is active or if already paused or if a break is ongoing.
-  void pauseStudy() {
-    if (_currentSession == null) {
-      _logger.w("No active session to pause study.");
-      return;
-    }
-    if (_isStudyPaused) {
-      _logger.w("Study is already paused.");
-      return;
-    }
-    if (isOnBreak) {
-      _logger.w("Cannot pause study while on a break.");
-      return;
-    }
-    _isStudyPaused = true;
-    _currentPauseStart = DateTime.now();
-    _logger.i("Study paused at $_currentPauseStart");
+  /// Pauses the countdown timer.
+  void pauseTimer() {
+    _timer.cancel();
     notifyListeners();
   }
 
-  /// Resumes the study session from a paused state.
-  /// Adds the pause interval to the accumulated pause duration.
-  void resumeStudy() {
-    if (_currentSession == null) {
-      _logger.w("No active session to resume study.");
-      return;
+  /// Resumes the countdown timer using the current remaining time.
+  /// (Resets the _startTime to now so that the timer continues from the paused remainder.)
+  void resumeTimer() {
+    _startTime = DateTime.now();
+    _totalDuration = _remainingTime;
+    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+    notifyListeners();
+  }
+
+  /// Updates the timer on each tick.
+  /// If the remaining time reaches zero, cancels the timer,
+  /// updates the accumulated time for the current phase,
+  /// switches to the next phase, and starts the timer for that phase.
+  void _updateTimer(Timer timer) {
+    final elapsed = DateTime.now().difference(_startTime);
+    final remaining = _totalDuration - elapsed;
+
+    if (remaining.inSeconds <= 0) {
+      // Phase is complete.
+      _timer.cancel();
+      final phaseElapsed = DateTime.now().difference(_startTime);
+
+      if (_currentPhase == SessionPhase.studyTime) {
+        _accumulatedStudyDuration += phaseElapsed;
+        _logger.i(
+            'Study phase completed. Accumulated study duration: $_accumulatedStudyDuration');
+        _startBreakTimer();
+        if (onPhaseTransition != null) {
+          onPhaseTransition!(SessionPhase.breakTime);
+        }
+      } else {
+        _accumulatedBreakDuration += phaseElapsed;
+        _logger.i(
+            'Break phase completed. Accumulated break duration: $_accumulatedBreakDuration');
+        _startFocusTimer();
+        if (onPhaseTransition != null) {
+          onPhaseTransition!(SessionPhase.studyTime);
+        }
+      }
+    } else {
+      _remainingTime = remaining;
     }
-    if (!_isStudyPaused) {
-      _logger.w("Study is not paused.");
-      return;
+    notifyListeners();
+  }
+
+  /// Skips the current phase (study or break) and immediately transitions to the next phase.
+  ///
+  /// If in study mode, skips to break.
+  /// If in break mode, skips to study.
+  void skipCurrentPhase() {
+    _timer.cancel();
+    final now = DateTime.now();
+    final elapsed = now.difference(_startTime);
+    if (_currentPhase == SessionPhase.studyTime) {
+      _accumulatedStudyDuration += elapsed;
+      _logger.i('Skipping study phase. Study time added: $elapsed');
+      _startBreakTimer();
+      if (onPhaseTransition != null) onPhaseTransition!(SessionPhase.breakTime);
+    } else {
+      _accumulatedBreakDuration += elapsed;
+      _logger.i('Skipping break phase. Break time added: $elapsed');
+      _startFocusTimer();
+      if (onPhaseTransition != null) onPhaseTransition!(SessionPhase.studyTime);
     }
-    final pauseInterval = DateTime.now().difference(_currentPauseStart!);
-    _accumulatedPauseDuration += pauseInterval;
-    _logger.i("Study resumed; interval: $pauseInterval, total pause: $_accumulatedPauseDuration");
-    _currentPauseStart = null;
-    _isStudyPaused = false;
     notifyListeners();
   }
 
   /// Ends the current session.
-  /// If a break or pause is active, ends them first.
-  /// Computes actual study duration as total elapsed time minus actual break and pause durations.
-  /// Updates the session document via [service] and resets internal state.
+  ///
+  /// If a timer is still running, cancels it and adds the current phase’s elapsed time
+  /// to the corresponding accumulator.
+  /// Then creates an updated StudySession with the total accumulated study
+  /// and break durations, calls the service to save the session,
+  /// and resets the model’s state.
   Future<void> endSession(StudySessionService service) async {
     if (_currentSession == null) {
       throw Exception('No active session to end.');
     }
 
-    // If a break is active, end it.
-    if (isOnBreak) {
-      endBreak();
+    if (onSessionEnd != null) {
+      await onSessionEnd!();
     }
-    // If the study is paused, resume it (to include paused time).
-    if (_isStudyPaused) {
-      resumeStudy();
+    _timer.cancel();
+    final phaseElapsed = DateTime.now().difference(_startTime);
+    if (_currentPhase == SessionPhase.studyTime) {
+      _accumulatedStudyDuration += phaseElapsed;
+    } else {
+      _accumulatedBreakDuration += phaseElapsed;
     }
-    final totalElapsed = DateTime.now().difference(_currentSession!.startTime);
-    final actualStudy = totalElapsed - _accumulatedBreakDuration - _accumulatedPauseDuration;
-
-    // Create an updated session with actual durations.
-    _currentSession = StudySession(
+    final updatedSession = StudySession(
       id: _currentSession!.id,
       title: _currentSession!.title,
       startTime: _currentSession!.startTime,
@@ -221,19 +225,25 @@ class StudySessionModel extends ChangeNotifier {
       soundFxId: _currentSession!.soundFxId,
       soundEnabled: _currentSession!.soundEnabled,
       isLoopSession: _currentSession!.isLoopSession,
-      actualStudyDuration: actualStudy,
+      actualStudyDuration: _accumulatedStudyDuration,
       actualBreakDuration: _accumulatedBreakDuration,
     );
-    await service.endSession(_currentSession!);
+    await service.endSession(updatedSession);
     _logger.i(
-        'Session ended. Total elapsed: $totalElapsed, Actual Study: $actualStudy, Actual Break: $_accumulatedBreakDuration, Actual Pause: $_accumulatedPauseDuration');
+        'Session ended. Total accumulated study: $_accumulatedStudyDuration, break: $_accumulatedBreakDuration');
     _currentSession = null;
-    // Reset break and pause tracking.
-    _currentBreakStart = null;
-    _accumulatedBreakDuration = Duration.zero;
-    _currentPauseStart = null;
-    _accumulatedPauseDuration = Duration.zero;
-    _isStudyPaused = false;
     notifyListeners();
+  }
+
+  /// Returns the progress of the current phase as a value between 0.0 and 1.0.
+  double getProgress() {
+    if (_currentSession == null) return 0.0;
+    int plannedSeconds = _currentPhase == SessionPhase.studyTime
+        ? _currentSession!.studyDuration.inSeconds
+        : _currentSession!.breakDuration.inSeconds;
+    if (plannedSeconds == 0) {
+      return 0.0;
+    }
+    return _remainingTime.inSeconds / plannedSeconds;
   }
 }

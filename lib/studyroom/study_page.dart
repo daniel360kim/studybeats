@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
+import 'package:studybeats/api/study/session_model.dart';
+import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/app_state.dart';
 import 'package:studybeats/log_printer.dart';
@@ -10,7 +12,7 @@ import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/study_sessions.dart';
-import 'package:studybeats/studyroom/timer_dialog.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/current_session/study_session_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -26,14 +28,9 @@ class StudyRoom extends StatefulWidget {
 }
 
 class _StudyRoomState extends State<StudyRoom> {
-  bool _showTimer = false;
   bool _loadingScene = true;
   bool _loadingControlBar = true;
   final bool _splashFinished = false;
-  PomodoroDurations timerDurations =
-      PomodoroDurations(Duration.zero, Duration.zero);
-  TimerFxData? _timerFxData;
-  bool _timerSoundEnabled = false;
   SceneData? _currentScene;
   List<SceneData> _sceneList = [];
   final SceneService _sceneService = SceneService();
@@ -45,6 +42,10 @@ class _StudyRoomState extends State<StudyRoom> {
       GlobalKey<SideWidgetBarState>();
   GlobalKey<PlayerWidgetState> _playerWidgetKey =
       GlobalKey<PlayerWidgetState>();
+
+  final StudySessionService _studySessionService =
+      StudySessionService(); // Assuming this is the correct service
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +54,15 @@ class _StudyRoomState extends State<StudyRoom> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showInitialUpgradeDialog();
       });
+    }
+  }
+
+  void initStudySession() async {
+    try {
+      await _studySessionService.init();
+    } catch (e) {
+      // TODO implement proper error handling
+      _logger.e('Error while initializing study session $e');
     }
   }
 
@@ -150,6 +160,18 @@ class _StudyRoomState extends State<StudyRoom> {
 
   @override
   Widget build(BuildContext context) {
+    final sessionModel = context.watch<StudySessionModel>();
+
+    // Switch the tab description based on the session state.
+    sessionModel.onSessionEnd = () async {
+      SystemChrome.setApplicationSwitcherDescription(
+        const ApplicationSwitcherDescription(
+          label: 'StudyBeats',
+        ),
+      );
+      return;
+    };
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -162,35 +184,7 @@ class _StudyRoomState extends State<StudyRoom> {
         body: Stack(
           children: [
             buildBackgroundImage(),
-            _showTimer
-                ? TimerDialog(
-                    focusTimerDuration: timerDurations.studyTime,
-                    breakTimerDuration: timerDurations.breakTime,
-                    timerSoundEnabled: _timerSoundEnabled,
-                    timerFxData: _timerFxData!,
-                    onTimerDurationChanged: (value) {
-                      final timeDescription = formatDuration(value);
-                      SystemChrome.setApplicationSwitcherDescription(
-                        ApplicationSwitcherDescription(
-                          label: timeDescription,
-                          primaryColor: Theme.of(context).primaryColor.value,
-                        ),
-                      );
-                    },
-                    onExit: (value) {
-                      setState(() {
-                        _showTimer = false;
-                        timerDurations = value;
-                      });
-                      SystemChrome.setApplicationSwitcherDescription(
-                        ApplicationSwitcherDescription(
-                          label: 'Study Room',
-                          primaryColor: Theme.of(context).primaryColor.value,
-                        ),
-                      );
-                    },
-                  )
-                : const SizedBox.shrink(),
+            if (sessionModel.isActive) StudySessionDialog(),
           ],
         ),
       ),
@@ -215,18 +209,6 @@ class _StudyRoomState extends State<StudyRoom> {
           child: _currentScene != null
               ? SideWidgetBar(
                   key: _sideWidgetKey,
-                  onTimerSoundEnabled: (value) => setState(() {
-                    _timerSoundEnabled = value;
-                  }),
-                  timerFxData: (value) => setState(() {
-                    _timerFxData = value;
-                  }),
-                  onShowTimer: (value) {
-                    setState(() {
-                      timerDurations = value;
-                      _showTimer = true;
-                    });
-                  },
                   onSceneChanged: (id) {
                     changeScene(id);
                   },
@@ -316,25 +298,6 @@ class _StudyRoomState extends State<StudyRoom> {
         ),
       ],
     );
-  }
-
-  String formatDuration(TabDescriptionReporter report) {
-    // Determine the type description
-    late String typeDescription = 'Break:';
-    if (report.isFocus) {
-      typeDescription = 'Focus:';
-    }
-
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(report.duration.inHours);
-    final minutes = twoDigits(report.duration.inMinutes.remainder(60));
-    final seconds = twoDigits(report.duration.inSeconds.remainder(60));
-
-    if (report.duration.inHours > 0) {
-      return '$typeDescription $hours:$minutes:$seconds';
-    } else {
-      return '$typeDescription $minutes:$seconds';
-    }
   }
 }
 

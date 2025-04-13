@@ -4,38 +4,26 @@ import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/new_session.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/page_controller.dart';
 
-/// Data class to hold Pomodoro durations.
-class PomodoroDurations {
-  Duration studyTime;
-  Duration breakTime;
 
-  PomodoroDurations(this.studyTime, this.breakTime);
-}
 
 /// A Pomodoro Timer widget that displays aggregated statistics and opens a
 /// page for creating new study sessions when the start button is pressed.
-class PomodoroTimer extends StatefulWidget {
-  const PomodoroTimer({
+class StudySessionSideWidget extends StatefulWidget {
+  const StudySessionSideWidget({
     required this.onClose,
-    required this.onStartPressed,
-    required this.onTimerSoundEnabled,
-    required this.onTimerSoundSelected,
     super.key,
   });
 
-  /// Called when a new session is started.
-  final ValueChanged<PomodoroDurations> onStartPressed;
-  final ValueChanged<bool> onTimerSoundEnabled;
-  final ValueChanged<TimerFxData> onTimerSoundSelected;
+
   final VoidCallback onClose;
 
   @override
-  State<PomodoroTimer> createState() => _PomodoroTimerState();
+  State<StudySessionSideWidget> createState() => _PomodoroTimerState();
 }
 
-class _PomodoroTimerState extends State<PomodoroTimer> {
+class _PomodoroTimerState extends State<StudySessionSideWidget> {
   final SwiperController _swiperController = SwiperController();
 
   Duration studyTime = const Duration(minutes: 25);
@@ -70,7 +58,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
         child: Column(
           children: [
             buildTopBar(),
-            CreateStudySessionPage(
+            SessionPageController(
                 onSessionCreated: (_) {},
                 onCancel: () {
                   _swiperController.previous();

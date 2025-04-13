@@ -21,19 +21,13 @@ enum NavigationOption {
 
 class SideWidgetBar extends StatefulWidget {
   const SideWidgetBar({
-    required this.onShowTimer,
     required this.onSceneChanged,
-    required this.timerFxData,
-    required this.onTimerSoundEnabled,
     required this.currentScene,
     required this.currentSceneBackgroundUrl,
     required this.onUpgradeSelected,
     super.key,
   });
 
-  final ValueChanged<PomodoroDurations> onShowTimer;
-  final ValueChanged<TimerFxData> timerFxData;
-  final ValueChanged<bool> onTimerSoundEnabled;
   final ValueChanged<int> onSceneChanged;
   final SceneData currentScene;
   final String currentSceneBackgroundUrl;
@@ -201,13 +195,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
           Visibility(
             maintainState: false,
             visible: _selectedOption == NavigationOption.timer,
-            child: PomodoroTimer(
-              onTimerSoundEnabled: widget.onTimerSoundEnabled,
-              onTimerSoundSelected: widget.timerFxData,
-              onStartPressed: (value) {
-                widget.onShowTimer(value);
-                setState(() => _selectedOption = null);
-              },
+            child: StudySessionSideWidget(
               onClose: () => setState(() => _selectedOption = null),
             ),
           ),
