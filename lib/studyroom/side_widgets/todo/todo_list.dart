@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:studybeats/api/todo/todo_item.dart'; // Your TodoItem model.
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/item_tile.dart'; // Your tile widget.
+import 'package:studybeats/api/todo/todo_service.dart'; // Import TodoService
 
 // Sorting and filtering enums.
 enum SortBy { dueDate, createdAt }
@@ -14,6 +15,8 @@ class TodoListWidget extends StatefulWidget {
     required this.uncompletedStream,
     required this.sortBy,
     required this.filter,
+    required this.listId,
+    required this.todoService,
     required this.onItemMarkedAsDone,
     required this.onItemDetailsChanged,
     required this.onItemDelete,
@@ -26,6 +29,8 @@ class TodoListWidget extends StatefulWidget {
   final ValueChanged<String> onItemMarkedAsDone;
   final ValueChanged<TodoItem> onItemDetailsChanged;
   final ValueChanged<String> onItemDelete;
+  final String listId;
+  final TodoService todoService;
 
   @override
   State<TodoListWidget> createState() => _TodoListWidgetState();
@@ -141,20 +146,26 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   }
 
   /// Optimistically marks an item as done with undo support.
-  void _handleMarkAsDone(int index) {
-    // Capture the removed item.
+  void _handleMarkAsDone(int index) async {
     final removedItem = _items[index];
 
-    // Remove the item immediately from the UI.
+    // Immediately remove from UI
     _removeItem(index);
+    widget.todoService.markTodoItemAsDone(
+      listId: widget.listId,
+      todoItemId: removedItem.id,
+    );
 
-    // Show a SnackBar with an UNDO option.
+    // Dismiss any existing SnackBar before showing a new one
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     final snackBar = SnackBar(
       content: Text('Item completed', style: TextStyle(color: Colors.white)),
       action: SnackBarAction(
         label: 'Undo',
-        onPressed: () {
-          // If undo is pressed, reinsert the item.
+        onPressed: () async {
+          // Temporarily suspend automatic updates
+          _subscription?.pause();
           setState(() {
             final undoneRemovedItem = removedItem.copyWith(isDone: false);
             _items.insert(index, undoneRemovedItem);
@@ -163,22 +174,34 @@ class _TodoListWidgetState extends State<TodoListWidget> {
               duration: const Duration(milliseconds: 300),
             );
           });
+          await widget.todoService.markTodoItemAsUndone(
+            listId: widget.listId,
+            todoItemId: removedItem.id,
+          );
+          // Resume automatic updates
+          await Future.delayed(const Duration(milliseconds: 500));
+          _subscription?.resume();
         },
         textColor: kFlourishAdobe,
       ),
       duration: const Duration(seconds: 3),
-      behavior: SnackBarBehavior.floating, // Makes it smaller in width
+      behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12), // Rounded edges
+        borderRadius: BorderRadius.circular(12),
       ),
-      margin: const EdgeInsets.symmetric(
-          horizontal: 50, vertical: 10), // Reduce width
-      backgroundColor: kFlourishBlackish, // Customize background
+      margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+      backgroundColor: kFlourishBlackish,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(snackBar).closed.then((reason) {
-      // If the SnackBar was dismissed without undo, perform the final deletion.
+    ScaffoldMessenger.of(context)
+        .showSnackBar(snackBar)
+        .closed
+        .then((reason) async {
       if (reason != SnackBarClosedReason.action) {
+        await widget.todoService.markTodoItemAsDone(
+          listId: widget.listId,
+          todoItemId: removedItem.id,
+        );
         widget.onItemMarkedAsDone(removedItem.id);
       }
     });

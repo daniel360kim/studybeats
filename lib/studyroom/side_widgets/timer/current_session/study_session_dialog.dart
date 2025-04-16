@@ -8,9 +8,9 @@ import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/api/study/timer_fx/timer_fx_service.dart';
+import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/current_session/session_task_list.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/timer_player.dart';
 
 /// A dialog overlay that displays the countdown timer for the current phase (study or break)
@@ -20,7 +20,7 @@ import 'package:studybeats/studyroom/side_widgets/timer/timer_player.dart';
 /// it displays a compact view showing only the remaining time as text and a linear progress indicator.
 /// Tapping the expand button returns to the full view.
 class StudySessionDialog extends StatefulWidget {
-  const StudySessionDialog({Key? key}) : super(key: key);
+  const StudySessionDialog({super.key});
 
   @override
   _StudySessionDialogState createState() => _StudySessionDialogState();
@@ -29,7 +29,6 @@ class StudySessionDialog extends StatefulWidget {
 class _StudySessionDialogState extends State<StudySessionDialog> {
   final _soundPlayer = TimerPlayer();
   final _studySessionService = StudySessionService();
-  TimerFxData? _currentFxData;
   bool _isPaused = false;
   bool _isMinimized = false; // New state for minimize/expand
   bool _isEditingTitle = false;
@@ -41,13 +40,15 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
   // Timer for updating the dialog's countdown.
   Timer? _timer;
 
+  final _todoService = TodoService();
+
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController();
-    _initSoundPlayer();
+
     _initStudySessionService();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (mounted) setState(() {});
     });
   }
@@ -63,31 +64,10 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
   void _initStudySessionService() async {
     try {
       await _studySessionService.init();
+      await _todoService.init();
     } catch (e) {
       // Handle any errors that occur during initialization.
       _logger.e('Error initializing study session service: ${e.toString()}');
-    }
-  }
-
-  void _initSoundPlayer() async {
-    final sessionModel = Provider.of<StudySessionModel>(context, listen: false);
-    if (sessionModel.currentSession == null) return;
-    if (!sessionModel.currentSession!.soundEnabled) return;
-    try {
-      final TimerFxService timerFxService = TimerFxService();
-      final fxDataList = await timerFxService.getTimerFxData();
-
-      int? currentSessionFxId = sessionModel.currentSession!.soundFxId;
-      TimerFxData? currentFxData = fxDataList
-          .firstWhere((fx) => fx.id == currentSessionFxId, orElse: () {
-        throw Exception(
-            "No sound effect found for current session ID: $currentSessionFxId");
-      });
-      setState(() {
-        _currentFxData = currentFxData;
-      });
-    } catch (e) {
-      _logger.e('Error initializing sound player: ${e.toString()}');
     }
   }
 
@@ -106,8 +86,16 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
 
     // Setup a callback to play sound on phase transition.
     sessionModel.onPhaseTransition = (newPhase) async {
-      if (sessionModel.currentSession!.soundEnabled && _currentFxData != null) {
-        _soundPlayer.playTimerSound(_currentFxData!);
+      if (sessionModel.currentSession!.soundEnabled) {
+        final TimerFxService timerFxService = TimerFxService();
+        final fxDataList = await timerFxService.getTimerFxData();
+        int? currentSessionFxId = sessionModel.currentSession!.soundFxId;
+        TimerFxData? currentFxData = fxDataList
+            .firstWhere((fx) => fx.id == currentSessionFxId, orElse: () {
+          throw Exception(
+              "No sound effect found for current session ID: $currentSessionFxId");
+        });
+        _soundPlayer.playTimerSound(currentFxData);
       }
     };
 
@@ -254,9 +242,6 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
         const SizedBox(height: 16),
         buildControlButtons(sessionModel),
         const SizedBox(height: 16),
-        if (sessionModel.currentSession!.todoIds.isNotEmpty)
-          buildTaskElement(sessionModel),
-
       ],
     );
 
@@ -321,8 +306,8 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
               value: sessionModel.getProgress(),
               minHeight: 8,
               backgroundColor: Colors.grey[300],
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  sessionModel.currentSession!.themeColor),
             ),
           ),
         ),
@@ -343,7 +328,10 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
             padding: const EdgeInsets.all(16),
             width: _isMinimized ? 250 : 300,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color.alphaBlend(
+                sessionModel.currentSession!.themeColor.withOpacity(0.15),
+                Colors.white,
+              ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Stack(
@@ -355,28 +343,6 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget buildTaskElement(StudySessionModel sessionModel) {
-    return Column(
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Tasks (${sessionModel.currentSession!.todoIds.length})',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: kFlourishBlackish,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SessionTaskList(
-          todoIds: sessionModel.currentSession!.todoIds,
-        ),
-      ],
     );
   }
 
@@ -392,7 +358,9 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
             value: sessionModel.getProgress(),
             strokeWidth: 8,
             backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              sessionModel.currentSession!.themeColor,
+            ),
           ),
         ),
         Text(

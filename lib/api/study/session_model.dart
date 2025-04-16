@@ -1,8 +1,8 @@
-// File: /Users/danielkim/Documents/Documents - DK's MacBook Pro/Projects/Study Beats/app/lib/api/study/session_model.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:studybeats/api/study/study_service.dart';
+import 'package:studybeats/api/todo/todo_item.dart';
+import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'objects.dart';
 
@@ -29,7 +29,6 @@ class StudySessionModel extends ChangeNotifier {
 
   // Async callbacks for external listeners.
   Future<void> Function(SessionPhase newPhase)? onPhaseTransition;
-  Future<void> Function()? onSessionEnd;
   Future<void> Function()? onTimerTick;
 
   late Timer _timer;
@@ -44,7 +43,22 @@ class StudySessionModel extends ChangeNotifier {
   Duration _accumulatedStudyDuration = Duration.zero;
   Duration _accumulatedBreakDuration = Duration.zero;
 
+  Duration get accumulatedStudyDuration => _accumulatedStudyDuration;
+  Duration get accumulatedBreakDuration => _accumulatedBreakDuration;
+
+  DateTime get startTime => _startTime;
+
   final _logger = getLogger('Study Session Model');
+  final List<Future<void> Function()> _onSessionEndCallbacks = [];
+
+  void addOnSessionEndCallback(
+      Future<void> Function() callback) {
+    _onSessionEndCallbacks.add(callback);
+  }
+  void removeOnSessionEndCallback(
+      Future<void> Function() callback) {
+    _onSessionEndCallbacks.remove(callback);
+  }
 
   StudySessionModel();
 
@@ -92,8 +106,8 @@ class StudySessionModel extends ChangeNotifier {
       throw Exception('No active session.');
     }
     _currentSession = updatedSession;
-    await service.updateSession(updatedSession);
     notifyListeners();
+    await service.updateSession(updatedSession);
   }
 
   /// Starts the timer for the study phase.
@@ -147,6 +161,7 @@ class StudySessionModel extends ChangeNotifier {
 
       if (_currentPhase == SessionPhase.studyTime) {
         _accumulatedStudyDuration += phaseElapsed;
+        notifyListeners();
         _logger.i(
             'Study phase completed. Accumulated study duration: $_accumulatedStudyDuration');
         _startBreakTimer();
@@ -155,6 +170,7 @@ class StudySessionModel extends ChangeNotifier {
         }
       } else {
         _accumulatedBreakDuration += phaseElapsed;
+        notifyListeners();
         _logger.i(
             'Break phase completed. Accumulated break duration: $_accumulatedBreakDuration');
         _startFocusTimer();
@@ -197,41 +213,58 @@ class StudySessionModel extends ChangeNotifier {
   /// Then creates an updated StudySession with the total accumulated study
   /// and break durations, calls the service to save the session,
   /// and resets the model’s state.
-  Future<void> endSession(StudySessionService service) async {
+  Future<void> endSession(StudySessionService sessionService) async {
     if (_currentSession == null) {
       throw Exception('No active session to end.');
     }
 
-    if (onSessionEnd != null) {
-      await onSessionEnd!();
+    for (var callback in _onSessionEndCallbacks) {
+      await callback();
     }
-    _timer.cancel();
-    final phaseElapsed = DateTime.now().difference(_startTime);
-    if (_currentPhase == SessionPhase.studyTime) {
-      _accumulatedStudyDuration += phaseElapsed;
-    } else {
-      _accumulatedBreakDuration += phaseElapsed;
+    try {
+      int numCompletedTodos = 0;
+      final todoService = TodoService();
+      await todoService.init();
+      for (var todoReference in _currentSession!.todos) {
+        TodoItem todoItem = await todoService.getTodoItem(
+            todoReference.todoListId, todoReference.todoId);
+        if (todoItem.isDone) {
+          await todoService.markTodoItemAsDone(
+              listId: todoReference.todoListId,
+              todoItemId: todoReference.todoId);
+          numCompletedTodos++;
+        }
+      }
+      _timer.cancel();
+      final phaseElapsed = DateTime.now().difference(_startTime);
+      if (_currentPhase == SessionPhase.studyTime) {
+        _accumulatedStudyDuration += phaseElapsed;
+      } else {
+        _accumulatedBreakDuration += phaseElapsed;
+      }
+      final updatedSession = StudySession(
+        id: _currentSession!.id,
+        title: _currentSession!.title,
+        startTime: _currentSession!.startTime,
+        updatedTime: DateTime.now(),
+        endTime: DateTime.now(),
+        studyDuration: _currentSession!.studyDuration,
+        breakDuration: _currentSession!.breakDuration,
+        todos: _currentSession!.todos,
+        sessionRating: _currentSession!.sessionRating,
+        soundFxId: _currentSession!.soundFxId,
+        soundEnabled: _currentSession!.soundEnabled,
+        actualStudyDuration: _accumulatedStudyDuration,
+        actualBreakDuration: _accumulatedBreakDuration,
+      );
+      await sessionService.endSession(updatedSession, numCompletedTodos);
+      _logger.i(
+          'Session ended. Total accumulated study: $_accumulatedStudyDuration, break: $_accumulatedBreakDuration');
+      _currentSession = null;
+    } catch (e) {
+      _logger.e('Error ending session: $e');
+      rethrow;
     }
-    final updatedSession = StudySession(
-      id: _currentSession!.id,
-      title: _currentSession!.title,
-      startTime: _currentSession!.startTime,
-      updatedTime: DateTime.now(),
-      endTime: DateTime.now(),
-      studyDuration: _currentSession!.studyDuration,
-      breakDuration: _currentSession!.breakDuration,
-      todoIds: _currentSession!.todoIds,
-      sessionRating: _currentSession!.sessionRating,
-      soundFxId: _currentSession!.soundFxId,
-      soundEnabled: _currentSession!.soundEnabled,
-      isLoopSession: _currentSession!.isLoopSession,
-      actualStudyDuration: _accumulatedStudyDuration,
-      actualBreakDuration: _accumulatedBreakDuration,
-    );
-    await service.endSession(updatedSession);
-    _logger.i(
-        'Session ended. Total accumulated study: $_accumulatedStudyDuration, break: $_accumulatedBreakDuration');
-    _currentSession = null;
     notifyListeners();
   }
 
@@ -245,5 +278,35 @@ class StudySessionModel extends ChangeNotifier {
       return 0.0;
     }
     return _remainingTime.inSeconds / plannedSeconds;
+  }
+
+  void addTodoItemToSession(SessionTodoReference todo) {
+    if (_currentSession == null) {
+      throw Exception('No active session to add todo item.');
+    }
+    if (_currentSession!.todos.any((item) => item.todoId == todo.todoId)) {
+      return;
+    }
+    _currentSession!.todos.add(todo);
+    notifyListeners();
+  }
+
+  void removeTodoItemFromSession(SessionTodoReference todo) {
+    if (_currentSession == null) {
+      throw Exception('No active session to remove todo item.');
+    }
+    if (!_currentSession!.todos.any((item) => item.todoId == todo.todoId)) {
+      return;
+    }
+    _currentSession!.todos.removeWhere((item) => item.todoId == todo.todoId);
+    notifyListeners();
+  }
+
+  void setSelectedTodos(Set<SessionTodoReference> selectedTodos) {
+    if (_currentSession == null) {
+      throw Exception('No active session to set selected todos.');
+    }
+    _currentSession!.todos = selectedTodos;
+    notifyListeners();
   }
 }

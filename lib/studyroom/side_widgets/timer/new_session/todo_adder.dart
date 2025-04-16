@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
 
 class TodoAdder extends StatefulWidget {
-  final void Function(TodoItem todoItem, bool isChecked) onTodoItemToggled;
-  final List<String> selectedTodoItemIds;
-  final ScrollController scrollController;
+  final ValueChanged<Set<SessionTodoReference>> onTodoItemToggled;
+  final Set<SessionTodoReference>? initialSelectedTodoItems;
 
   const TodoAdder({
     super.key,
     required this.onTodoItemToggled,
-    required this.selectedTodoItemIds,
-    required this.scrollController,
+    this.initialSelectedTodoItems,
   });
 
   @override
@@ -29,6 +28,8 @@ class _TodoAdderState extends State<TodoAdder> {
   List<dynamic>?
       _todoLists; // For later implementation when multiple lists are supported
   List<TodoItem>? _uncompletedTodoItems;
+
+  Set<SessionTodoReference> _selectedTodoItems = {};
 
   String?
       _selectedListId; // For later implementation when multiple lists are supported
@@ -44,6 +45,7 @@ class _TodoAdderState extends State<TodoAdder> {
   void initState() {
     super.initState();
     _fetchTodoItems();
+    _selectedTodoItems = widget.initialSelectedTodoItems ?? {};
   }
 
   @override
@@ -241,8 +243,18 @@ class _TodoAdderState extends State<TodoAdder> {
                 newTask,
                 ..._uncompletedTodoItems!,
               ];
-              _creatingNewTask = false;
             }
+            final newTaskRef = SessionTodoReference(
+              todoId: newTask.id,
+              todoListId: _selectedListId!,
+            );
+
+            setState(() {
+              _selectedTodoItems.add(newTaskRef);
+              widget.onTodoItemToggled(_selectedTodoItems);
+            });
+
+            _creatingNewTask = false;
           });
           try {
             final listId = await _todoListService.getDefaultTodoListId();
@@ -290,8 +302,6 @@ class _TodoAdderState extends State<TodoAdder> {
         .toList();
   }
 
-// Replace the buildTaskAdderList() method in todo_adder.dart with the following:
-
   Widget buildTaskAdderList() {
     return _uncompletedTodoItems == null
         ? Column(
@@ -314,26 +324,52 @@ class _TodoAdderState extends State<TodoAdder> {
               ),
             ),
           )
-        : SizedBox(
-            height: _creatingNewTask
-                ? MediaQuery.of(context).size.height - 540
-                : MediaQuery.of(context).size.height - 360,
-            child: ListView(
-              controller: widget.scrollController,
-              shrinkWrap: true,
-              children: _filteredTodoItems.map((todoItem) {
-                final bool isItemAdded =
-                    widget.selectedTodoItemIds.contains(todoItem.id);
-                return TodoItemTile(
-                  todoItem: todoItem,
-                  isItemAdded: isItemAdded,
-                  onItemAdded: () {
-                    widget.onTodoItemToggled(todoItem, !isItemAdded);
-                  },
-                );
-              }).toList(),
-            ),
-          );
+        : _uncompletedTodoItems!.isEmpty
+            ? SizedBox(
+                height: _creatingNewTask
+                    ? MediaQuery.of(context).size.height - 540
+                    : MediaQuery.of(context).size.height - 360,
+                child: Center(
+                  child: Text(
+                    'No tasks yet',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: kFlourishBlackish.withOpacity(0.5),
+                    ),
+                  ),
+                ),
+              )
+            : SizedBox(
+                height: _creatingNewTask
+                    ? MediaQuery.of(context).size.height - 540
+                    : MediaQuery.of(context).size.height - 360,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (var todoItem in _filteredTodoItems)
+                      TodoItemTile(
+                        todoItem: todoItem,
+                        isItemAdded: _selectedTodoItems
+                            .any((item) => item.todoId == todoItem.id),
+                        isItemSelected: (isSelected) {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedTodoItems.add(SessionTodoReference(
+                                todoId: todoItem.id,
+                                todoListId: _selectedListId!,
+                              ));
+                            } else {
+                              _selectedTodoItems.removeWhere((item) =>
+                                  item.todoId == todoItem.id &&
+                                  item.todoListId == _selectedListId);
+                            }
+                            widget.onTodoItemToggled(_selectedTodoItems);
+                          });
+                        },
+                      ),
+                  ],
+                ),
+              );
   }
 }
 
@@ -341,13 +377,13 @@ class TodoItemTile extends StatefulWidget {
   const TodoItemTile({
     required this.todoItem,
     required this.isItemAdded,
-    required this.onItemAdded,
+    required this.isItemSelected,
     super.key,
   });
 
   final TodoItem todoItem;
   final bool isItemAdded;
-  final VoidCallback onItemAdded;
+  final ValueChanged<bool> isItemSelected;
 
   @override
   State<TodoItemTile> createState() => _TodoItemTileState();
@@ -355,6 +391,16 @@ class TodoItemTile extends StatefulWidget {
 
 class _TodoItemTileState extends State<TodoItemTile> {
   bool _isHovering = false;
+  bool _isSelected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      _isSelected = widget.isItemAdded;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -378,10 +424,15 @@ class _TodoItemTileState extends State<TodoItemTile> {
             horizontal: 0,
           ),
           leading: GestureDetector(
-            onTap: widget.onItemAdded,
+            onTap: () {
+              setState(() {
+                _isSelected = !_isSelected;
+                widget.isItemSelected(_isSelected);
+              });
+            },
             child: Icon(
-              widget.isItemAdded ? Icons.check_circle : Icons.circle_outlined,
-              color: widget.isItemAdded ? kFlourishAdobe : kFlourishBlackish,
+              _isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: _isSelected ? kFlourishAdobe : kFlourishBlackish,
             ),
           ),
           title: Row(

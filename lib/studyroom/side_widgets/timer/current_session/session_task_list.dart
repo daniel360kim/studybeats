@@ -7,9 +7,11 @@ import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 
 class SessionTaskList extends StatefulWidget {
-  const SessionTaskList({required this.todoIds, super.key});
+  const SessionTaskList(
+      {required this.todoIds, this.taskListVisibleLength = 3, super.key});
 
-  final List<String> todoIds;
+  final Set<SessionTodoReference> todoIds;
+  final int taskListVisibleLength;
 
   @override
   State<SessionTaskList> createState() => _SessionTaskListState();
@@ -17,10 +19,9 @@ class SessionTaskList extends StatefulWidget {
 
 class _SessionTaskListState extends State<SessionTaskList> {
   List<TodoItem> todoItems = [];
+  final List<SessionTodoReference> _todoRefs = [];
   final TodoService _todoService = TodoService();
   final TodoListService _todoListService = TodoListService();
-
-  String? _todoListId;
 
   final _logger = getLogger('Dialog Session Task List');
   static const double _tileHeight = 50.0;
@@ -35,13 +36,12 @@ class _SessionTaskListState extends State<SessionTaskList> {
     try {
       await _todoService.init();
       await _todoListService.init();
-      final todoLists = await _todoListService.fetchTodoLists();
-      final todoListId = todoLists.first.id;
-      for (var todoId in widget.todoIds) {
-        TodoItem todoItem = await _todoService.getTodoItem(todoListId, todoId);
+      for (var todoRef in widget.todoIds) {
+        TodoItem todoItem =
+            await _todoService.getTodoItem(todoRef.todoListId, todoRef.todoId);
         setState(() {
-          _todoListId = todoListId;
           todoItems.add(todoItem);
+          _todoRefs.add(todoRef);
         });
       }
     } catch (e) {
@@ -57,7 +57,7 @@ class _SessionTaskListState extends State<SessionTaskList> {
 
   @override
   Widget build(BuildContext context) {
-    if (todoItems.isEmpty || _todoListId == null) {
+    if (todoItems.isEmpty) {
       return Column(
         children: List.generate(
           3,
@@ -79,39 +79,35 @@ class _SessionTaskListState extends State<SessionTaskList> {
       );
     }
     return SizedBox(
-      height: _tileHeight *
-          (todoItems.length < 3
-              ? todoItems.length
-              : 3), // Adjust height based on item count
+      height: MediaQuery.of(context).size.height -
+          310, // Adjust height based on item count
       child: ListView.builder(
         itemCount: todoItems.length,
         itemBuilder: (context, index) {
           final todoItem = todoItems[index];
-          // Locate the onToggleDone callback in your ListView.builder:
+          final ref = _todoRefs[index];
           return SessionTaskTile(
             todoItem: todoItem,
             onToggleDone: (checked) async {
               try {
                 if (checked == true) {
-                  await _todoService.markTodoItemAsDone(
-                    listId: _todoListId!,
-                    todoItemId: todoItem.id,
+                  await _todoService.updateIncompleteTodoItem(
+                    listId: ref.todoListId,
+                    updatedItem: todoItem.copyWith(isDone: true),
                   );
                   // Optimistically mark as done.
                   setState(() {
                     todoItem.isDone = true;
                   });
-                  // Delay reordering to allow the user to see the state change.
-                  await Future.delayed(const Duration(milliseconds: 500));
+
                   setState(() {
                     todoItems.removeAt(index);
                     todoItems.add(todoItem);
                   });
                 } else {
-                  await _todoService.markTodoItemAsUndone(
-                    listId: _todoListId!,
-                    todoItemId: todoItem.id,
-                  );
+                  await _todoService.updateIncompleteTodoItem(
+                      listId: ref.todoListId,
+                      updatedItem: todoItem.copyWith(isDone: false));
                   setState(() {
                     todoItem.isDone = false;
                     todoItems.removeAt(index);
@@ -139,10 +135,10 @@ class SessionTaskTile extends StatefulWidget {
   final ValueChanged<bool?> onToggleDone;
 
   const SessionTaskTile({
-    Key? key,
+    super.key,
     required this.todoItem,
     required this.onToggleDone,
-  }) : super(key: key);
+  });
 
   @override
   State<SessionTaskTile> createState() => _SessionTaskTileState();

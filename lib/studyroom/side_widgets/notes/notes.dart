@@ -359,7 +359,6 @@ class _NotesState extends State<Notes> {
         } else if (snapshot.hasData) {
           final notes = snapshot.data!;
           _notePreviews = notes;
-          debugPrint('Rebuilding notes list with ${notes.length} notes');
           return ListView.builder(
             key: ValueKey<int>(notes.length),
             itemCount: notes.length,

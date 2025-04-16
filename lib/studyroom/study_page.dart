@@ -4,14 +4,12 @@ import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
-import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/app_state.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/study_sessions.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/current_session/study_session_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -163,14 +161,13 @@ class _StudyRoomState extends State<StudyRoom> {
     final sessionModel = context.watch<StudySessionModel>();
 
     // Switch the tab description based on the session state.
-    sessionModel.onSessionEnd = () async {
+    sessionModel.addOnSessionEndCallback(() async {
       SystemChrome.setApplicationSwitcherDescription(
         const ApplicationSwitcherDescription(
           label: 'StudyBeats',
         ),
       );
-      return;
-    };
+    });
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,

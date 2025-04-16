@@ -1,7 +1,9 @@
 // Replace the top of the file with the following (adding an internal state for loop sessions)
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/api/study/timer_fx/timer_fx_service.dart';
 import 'package:studybeats/colors.dart';
@@ -13,11 +15,13 @@ class SessionSettings extends StatefulWidget {
   final ValueChanged<TimerFxData> onTimerSoundSelected;
   // Optionally add a callback for loop session changes:
   final ValueChanged<bool>? onLoopSessionChanged;
+  final bool outlineEnabled;
 
   const SessionSettings({
     required this.onTimerSoundEnabled,
     required this.onTimerSoundSelected,
     this.onLoopSessionChanged,
+    this.outlineEnabled = true,
     super.key,
   });
 
@@ -53,11 +57,26 @@ class _SessionSettingsState extends State<SessionSettings> {
 
   void getTimerSoundFx() async {
     try {
+      final sessionModel =
+          Provider.of<StudySessionModel>(context, listen: false);
       final timerFxList = await _timerFxService.getTimerFxData();
+
       if (timerFxList.isNotEmpty) {
         setState(() {
           _timerFxList = timerFxList;
-          _selectedTimerFx = timerFxList.first;
+
+          if (sessionModel.currentSession == null ||
+              sessionModel.currentSession!.soundFxId == null) {
+            _selectedTimerFx = timerFxList.first;
+            _enableTimerSound = true;
+          } else {
+            _selectedTimerFx = timerFxList.firstWhere(
+              (fx) => fx.id == sessionModel.currentSession!.soundFxId,
+              orElse: () => timerFxList.first,
+            );
+            _enableTimerSound = sessionModel.currentSession!.soundEnabled;
+          }
+
           widget.onTimerSoundEnabled(_enableTimerSound);
           widget.onTimerSoundSelected(_selectedTimerFx!);
         });
@@ -84,7 +103,9 @@ class _SessionSettingsState extends State<SessionSettings> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: kFlourishBlackish.withOpacity(0.1),
+          color: widget.outlineEnabled
+              ? kFlourishBlackish.withOpacity(0.1)
+              : Colors.transparent,
         ),
       ),
       child: Padding(
@@ -142,49 +163,6 @@ class _SessionSettingsState extends State<SessionSettings> {
                       child: _buildSoundFxSelectionUI(),
                     )
                   : const SizedBox(key: ValueKey('empty')),
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 16),
-            // SECOND SETTING: Loop Session Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Loop Session',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: kFlourishBlackish,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Tooltip(
-                      message:
-                          'Automatically start the next session after study and break intervals end.',
-                      child: Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: kFlourishBlackish,
-                      ),
-                    ),
-                  ],
-                ),
-                Switch(
-                  value: _loopSession,
-                  activeColor: kFlourishAdobe,
-                  onChanged: (val) {
-                    setState(() {
-                      _loopSession = val;
-                    });
-                    if (widget.onLoopSessionChanged != null) {
-                      widget.onLoopSessionChanged!(val);
-                    }
-                  },
-                ),
-              ],
             ),
           ],
         ),

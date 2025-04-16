@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
-import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
 import 'package:studybeats/studyroom/side_widgets/notes/notes.dart';
@@ -193,7 +192,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
               ),
             ),
           Visibility(
-            maintainState: false,
+            maintainState: true,
             visible: _selectedOption == NavigationOption.timer,
             child: StudySessionSideWidget(
               onClose: () => setState(() => _selectedOption = null),

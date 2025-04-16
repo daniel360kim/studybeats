@@ -65,7 +65,7 @@ class StudySessionService {
 
   /// Ends a study session by ensuring the [endTime] is set and statistics are updated.
   /// If [session.endTime] is null, it uses the [updatedTime] as the end time.
-  Future<void> endSession(StudySession session) async {
+  Future<void> endSession(StudySession session, int numCompletedTodos) async {
     try {
       _logger.i('Ending study session');
       if (session.endTime == null) {
@@ -77,18 +77,17 @@ class StudySessionService {
           endTime: session.updatedTime,
           studyDuration: session.studyDuration,
           breakDuration: session.breakDuration,
-          todoIds: session.todoIds,
+          todos: session.todos,
           sessionRating: session.sessionRating,
           soundFxId: session.soundFxId,
           soundEnabled: session.soundEnabled,
-          isLoopSession: session.isLoopSession,
           // Use the actual durations computed from the session model.
           actualStudyDuration: session.actualStudyDuration,
           actualBreakDuration: session.actualBreakDuration,
         );
       }
       await updateSession(session);
-      await _updateTotalStatistics(session);
+      await _updateTotalStatistics(session, numCompletedTodos);
     } catch (e, s) {
       _logger.e('Failed to end study session: $e $s');
       rethrow;
@@ -97,8 +96,10 @@ class StudySessionService {
 
 // Locate the _updateTotalStatistics method in study_service.dart and update it as follows:
 
-  Future<void> _updateTotalStatistics(StudySession session) async {
+  Future<void> _updateTotalStatistics(StudySession session, int numCompletedTodos) async {
     final statsDocRef = _studyStatisticsCollection.doc('totalStats');
+
+    
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final statsSnapshot = await transaction.get(statsDocRef);
       if (!statsSnapshot.exists) {
@@ -106,7 +107,7 @@ class StudySessionService {
           totalStudyTime: session.actualStudyDuration, // Updated: use seconds.
           totalBreakTime: session.actualBreakDuration, // Updated: use seconds.
           totalSessions: 1,
-          totalTodosCompleted: session.todoIds.length,
+          totalTodosCompleted: numCompletedTodos,
         );
         transaction.set(statsDocRef, newStats.toJson());
       } else {
@@ -119,7 +120,7 @@ class StudySessionService {
               session.actualBreakDuration, // Updated
           totalSessions: currentStats.totalSessions + 1,
           totalTodosCompleted:
-              currentStats.totalTodosCompleted + session.todoIds.length,
+              currentStats.totalTodosCompleted + numCompletedTodos,
         );
         transaction.update(statsDocRef, updatedStats.toJson());
       }

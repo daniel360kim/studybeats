@@ -170,10 +170,11 @@ class _TodoState extends State<Todo> {
                                       _todoLists!.first.id),
                               sortBy: _selectedSortOption,
                               filter: _selectedFilterOption,
+                              listId: _selectedListId!,
+                              todoService: _todoService,
                               onItemMarkedAsDone: (id) async {
                                 try {
-                                  await _todoService.markTodoItemAsDone(
-                                      listId: _selectedListId!, todoItemId: id);
+                                
                                   setState(() {
                                     _uncompletedTodoItems =
                                         _uncompletedTodoItems!

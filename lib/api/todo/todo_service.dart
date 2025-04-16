@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:flutter/material.dart';
 
 class TodoListService {
   final _authService = AuthService();
@@ -108,8 +108,14 @@ class TodoService {
 
   late final CollectionReference<Map<String, dynamic>> _todoCollection;
 
+  bool _isInitialized = false;
+
   Future<void> init() async {
     try {
+      if (_isInitialized) {
+        _logger.i('Todo service is already initialized');
+        return;
+      }
       final email = await _getUserEmail();
       if (email == null) {
         _logger.w('User email is null, skipping initialization');
@@ -117,6 +123,7 @@ class TodoService {
       }
       final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
       _todoCollection = userDoc.collection('todoLists');
+      _isInitialized = true;
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
       rethrow;
@@ -159,25 +166,38 @@ class TodoService {
     try {
       _logger.i('Marking todo item as done');
 
-      // Get the list document reference
       final listDoc = _todoCollection.doc(listId);
-
-      // Fetch the document to get the current state
       final todoListSnapshot = await listDoc.get();
       final todoList = TodoList.fromJson(todoListSnapshot.data()!);
 
-      // Find the item to mark as done
-      final todoItem = todoList.categories.uncompleted.firstWhere(
-        (item) => item.id == todoItemId,
-        orElse: () {
-          throw Exception('Todo item not found in uncompleted list');
-        },
-      );
+      final uncompleted = todoList.categories.uncompleted;
+      final completed = todoList.categories.completed;
 
-      // Update Firestore: Remove from 'uncompleted' and add to 'completed'
+      final index = uncompleted.indexWhere((item) => item.id == todoItemId);
+      if (index == -1) {
+        // Check if already in completed list
+        final alreadyCompleted = completed.any((item) => item.id == todoItemId);
+        if (alreadyCompleted) {
+          _logger.w(
+              'Todo item $todoItemId is already marked as done. No action taken.');
+          return;
+        } else {
+          _logger.w(
+              'Todo item $todoItemId not found in uncompleted list. Cannot mark as done.');
+          return;
+        }
+      }
+
+      final todoItem = uncompleted[index];
+      uncompleted.removeAt(index);
+      completed.add(todoItem);
+
+      // Delete the idea from uncompleted in firestore
       await listDoc.update({
-        'categories.uncompleted': FieldValue.arrayRemove([todoItem.toJson()]),
-        'categories.completed': FieldValue.arrayUnion([todoItem.toJson()]),
+        'categories.uncompleted': FieldValue.arrayRemove(
+            [Map<String, dynamic>.from(todoItem.toJson())]),
+        'categories.completed': FieldValue.arrayUnion(
+            [Map<String, dynamic>.from(todoItem.toJson())]),
       });
 
       _logger.i('Todo item marked as done successfully');
@@ -211,8 +231,10 @@ class TodoService {
 
       // Update Firestore: Remove from 'completed' and add to 'uncompleted'
       await listDoc.update({
-        'categories.completed': FieldValue.arrayRemove([todoItem.toJson()]),
-        'categories.uncompleted': FieldValue.arrayUnion([todoItem.toJson()]),
+        'categories.completed': FieldValue.arrayRemove(
+            [Map<String, dynamic>.from(todoItem.toJson())]),
+        'categories.uncompleted': FieldValue.arrayUnion(
+            [Map<String, dynamic>.from(todoItem.toJson())]),
       });
 
       _logger.i('Todo item marked as undone successfully');

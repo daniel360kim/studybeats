@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
-import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/new_session/timer_swiper.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_settings.dart';
@@ -345,19 +344,19 @@ class _TimeDropdownButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       style: ButtonStyle(
-        overlayColor: MaterialStateProperty.resolveWith<Color?>(
+        overlayColor: WidgetStateProperty.resolveWith<Color?>(
           (states) {
-            if (states.contains(MaterialState.hovered) ||
-                states.contains(MaterialState.pressed)) {
+            if (states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.pressed)) {
               return Colors.black.withOpacity(0.1);
             }
             return null;
           },
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        padding: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(
             const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
       ),
       onPressed: onTap,

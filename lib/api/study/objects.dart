@@ -1,15 +1,34 @@
+import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
+
+class SessionTodoReference {
+  final String todoId;
+  final String todoListId;
+
+  SessionTodoReference({required this.todoId, required this.todoListId});
+
+  factory SessionTodoReference.fromJson(Map<String, dynamic> json) =>
+      SessionTodoReference(
+        todoId: json['todoId'] as String,
+        todoListId: json['todoListId'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'todoId': todoId,
+        'todoListId': todoListId,
+      };
+}
 
 class StudyStatistics {
   /// Total study time as a Duration.
   final Duration totalStudyTime;
-  
+
   /// Total break time as a Duration.
   final Duration totalBreakTime;
-  
+
   /// Total number of sessions.
   final int totalSessions;
-  
+
   /// Total number of todos completed.
   final int totalTodosCompleted;
 
@@ -38,6 +57,7 @@ class StudyStatistics {
       };
 }
 
+
 @JsonSerializable()
 class StudySession {
   String id;
@@ -47,15 +67,16 @@ class StudySession {
   DateTime? endTime;
   Duration studyDuration; // Planned study duration
   Duration breakDuration; // Planned break duration
-  List<String> todoIds;
+  Set<SessionTodoReference> todos;
   int? sessionRating;
   int? soundFxId;
   bool soundEnabled;
-  bool isLoopSession;
-  
+  Color themeColor;
+  String? todoListId;
+
   /// Actual study duration accumulated during the session.
   Duration actualStudyDuration;
-  
+
   /// Actual break duration accumulated during the session.
   Duration actualBreakDuration;
 
@@ -67,16 +88,35 @@ class StudySession {
     this.endTime,
     required this.studyDuration,
     required this.breakDuration,
-    required this.todoIds,
+    required this.todos,
     this.sessionRating,
     this.soundFxId,
     required this.soundEnabled,
-    required this.isLoopSession,
     required this.actualStudyDuration,
     required this.actualBreakDuration,
+    this.themeColor = Colors.blue,
+    this.todoListId,
   });
 
-
+  factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
+    id: json['id'],
+    title: json['title'],
+    startTime: DateTime.parse(json['startTime']),
+    updatedTime: DateTime.parse(json['updatedTime']),
+    endTime: json['endTime'] != null ? DateTime.parse(json['endTime']) : null,
+    studyDuration: Duration(minutes: json['studyDuration']),
+    breakDuration: Duration(minutes: json['breakDuration']),
+    todos: (json['todos'] as List<dynamic>)
+        .map((e) => SessionTodoReference.fromJson(e as Map<String, dynamic>))
+        .toSet(),
+    sessionRating: json['sessionRating'],
+    soundFxId: json['soundFxId'],
+    soundEnabled: json['soundEnabled'],
+    actualStudyDuration: Duration(seconds: json['actualStudyDuration']),
+    actualBreakDuration: Duration(seconds: json['actualBreakDuration']),
+    themeColor: Color(json['themeColor']),
+    todoListId: json['todoListId'],
+  );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -86,16 +126,19 @@ class StudySession {
         'endTime': endTime?.toIso8601String(),
         'studyDuration': studyDuration.inMinutes,
         'breakDuration': breakDuration.inMinutes,
-        'todoIds': todoIds,
+        'todos': todos.map((t) => t.toJson()).toList(),
         'sessionRating': sessionRating,
         'soundFxId': soundFxId,
         'soundEnabled': soundEnabled,
-        'isLoopSession': isLoopSession,
+
         // Store actual durations as seconds so we capture full precision.
         'actualStudyDuration': actualStudyDuration.inSeconds,
         'actualBreakDuration': actualBreakDuration.inSeconds,
+        'themeColor': themeColor.value,
+        'todoListId': todoListId,
       };
-        /// Creates a copy of this StudySession with the given fields replaced by new values.
+
+  /// Creates a copy of this StudySession with the given fields replaced by new values.
   StudySession copyWith({
     String? id,
     String? title,
@@ -104,13 +147,15 @@ class StudySession {
     DateTime? endTime,
     Duration? studyDuration,
     Duration? breakDuration,
-    List<String>? todoIds,
+    List<SessionTodoReference>? todos,
     int? sessionRating,
     int? soundFxId,
     bool? soundEnabled,
     bool? isLoopSession,
     Duration? actualStudyDuration,
     Duration? actualBreakDuration,
+    Color? themeColor,
+    String? todoListId,
   }) {
     return StudySession(
       id: id ?? this.id,
@@ -120,13 +165,30 @@ class StudySession {
       endTime: endTime ?? this.endTime,
       studyDuration: studyDuration ?? this.studyDuration,
       breakDuration: breakDuration ?? this.breakDuration,
-      todoIds: todoIds ?? this.todoIds,
+      todos: todos != null
+          ? Set<SessionTodoReference>.from(todos)
+          : this.todos,
       sessionRating: sessionRating ?? this.sessionRating,
       soundFxId: soundFxId ?? this.soundFxId,
       soundEnabled: soundEnabled ?? this.soundEnabled,
-      isLoopSession: isLoopSession ?? this.isLoopSession,
+
       actualStudyDuration: actualStudyDuration ?? this.actualStudyDuration,
       actualBreakDuration: actualBreakDuration ?? this.actualBreakDuration,
+      themeColor: themeColor ?? this.themeColor,
+      todoListId: todoListId ?? this.todoListId,
     );
+  }
+  
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '${hours}h ${minutes}m ${seconds}s';
+    } else if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    } else {
+      return '${seconds}s';
+    }
   }
 }

@@ -7,6 +7,7 @@ import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
+import 'package:studybeats/studyroom/side_widgets/timer/current_session/session_controls.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_inputs.dart';
 import 'package:studybeats/studyroom/side_widgets/timer/new_session/todo_adder.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
@@ -17,13 +18,13 @@ class NewStudySessionData {
   final String sessionName;
   final Duration studyDuration;
   final Duration breakDuration;
-  final List<String> todoIds;
+  final Set<SessionTodoReference> todoIds;
 
   NewStudySessionData({
     required this.sessionName,
     required this.studyDuration,
     required this.breakDuration,
-    this.todoIds = const [],
+    required this.todoIds,
   });
 }
 
@@ -47,7 +48,8 @@ class _CreateStudySessionPageState extends State<SessionPageController>
   String _sessionName = "Untitled Session";
   Duration _studyDuration = const Duration(minutes: 25);
   Duration _breakDuration = const Duration(minutes: 5);
-  List<String> _selectedTodoIds = [];
+  Set<SessionTodoReference> _selectedTodoIds = {};
+  String? _selectedTodoListId;
   bool _timerSoundEnabled = true;
   int? _selectedTimerFxId;
   bool isLoopSession = true;
@@ -62,6 +64,7 @@ class _CreateStudySessionPageState extends State<SessionPageController>
   void initState() {
     super.initState();
     initService();
+
     _pageController.addListener(() {
       setState(() {
         _currentPage = _pageController.page?.round() ?? 0;
@@ -89,15 +92,17 @@ class _CreateStudySessionPageState extends State<SessionPageController>
       endTime: null,
       studyDuration: _studyDuration,
       breakDuration: _breakDuration,
-      todoIds: _selectedTodoIds,
+      todos: _selectedTodoIds,
       soundEnabled: _timerSoundEnabled,
       soundFxId: _selectedTimerFxId,
-      isLoopSession: isLoopSession,
       actualStudyDuration: Duration.zero,
       actualBreakDuration: Duration.zero,
     );
 
     studySessionModel.startSession(newStudySession, _studySessionService);
+    studySessionModel.addOnSessionEndCallback(() async {
+      _pageController.jumpToPage(1); // go to main page after a session ends
+    });
   }
 
   Widget _buildHeader() {
@@ -105,7 +110,8 @@ class _CreateStudySessionPageState extends State<SessionPageController>
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
       child: Row(
         children: [
-          if (_currentPage != 0)
+          if (_currentPage != 0 &&
+              _currentPage != 2) // Hide back button on first and last page
             IconButton(
               icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
               onPressed: () {
@@ -126,15 +132,18 @@ class _CreateStudySessionPageState extends State<SessionPageController>
       children: [
         _buildHeader(),
         SizedBox(
-          height: MediaQuery.of(context).size.height - 180,
-          child: PageView(
+          height: _currentPage == 1
+              ? MediaQuery.of(context).size.height - 170
+              : MediaQuery.of(context).size.height - 130,
+          child: // Inside SessionPageController build method:
+              PageView(
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              // Page 1: Session Inputs
               buildSessionNameTimeInputPage(),
-              // Page 2: Task Selection
               buildTaskSelectionPage(),
+              // Wrap this with a Scaffold to allow BottomNavigationBar to anchor to bottom
+              CurrentSessionControls(),
             ],
           ),
         ),
@@ -192,17 +201,9 @@ class _CreateStudySessionPageState extends State<SessionPageController>
       child: Column(
         children: [
           TodoAdder(
-            onTodoItemToggled: (todoItem, isAdded) {
-              setState(() {
-                if (isAdded) {
-                  _selectedTodoIds.add(todoItem.id);
-                } else {
-                  _selectedTodoIds.remove(todoItem.id);
-                }
-              });
-            },
-            selectedTodoItemIds: _selectedTodoIds,
-            scrollController: ScrollController(),
+            onTodoItemToggled: (value) => setState(() {
+              _selectedTodoIds = value;
+            }),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -216,7 +217,13 @@ class _CreateStudySessionPageState extends State<SessionPageController>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: startNewSession,
+              onPressed: () {
+                startNewSession();
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
               child: Text(
                 'Finish',
                 style: GoogleFonts.inter(
