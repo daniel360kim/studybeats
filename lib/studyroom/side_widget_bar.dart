@@ -193,7 +193,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
             ),
           if (AuthService().isUserLoggedIn())
             Visibility(
-              maintainState: true,
+              maintainState: false,
               visible: _selectedOption == NavigationOption.timer,
               child: StudySessionSideWidget(
                 onClose: () => setState(() => _selectedOption = null),
@@ -201,7 +201,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
             ),
           if (AuthService().isUserLoggedIn())
             Visibility(
-              maintainState: true,
+              maintainState: false,
               visible: _selectedOption == NavigationOption.todo,
               child: Todo(
                 onClose: () => setState(() => _selectedOption = null),

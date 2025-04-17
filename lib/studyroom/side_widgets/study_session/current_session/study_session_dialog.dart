@@ -86,25 +86,31 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
           'Are you sure you want to end this study session? Your progress will be saved.',
           style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
         ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               backgroundColor: Colors.grey.shade200,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+              style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87),
             ),
           ),
           TextButton(
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               Navigator.of(context).pop(true);
@@ -115,7 +121,10 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
             },
             child: Text(
               'End Session',
-              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
             ),
           ),
         ],
@@ -124,9 +133,12 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
 
     if (confirm == true) {
       try {
-        await _studySessionService.init();
-        await sessionModel.endSession(_studySessionService);
-        if (mounted) setState(() {});
+        if (mounted) {
+          await _studySessionService.init();
+          await sessionModel.endSession(_studySessionService);
+        } else {
+          _logger.e('Session model is not mounted.');
+        }
       } catch (e) {
         _logger.e('Error ending session: ${e.toString()}');
       }

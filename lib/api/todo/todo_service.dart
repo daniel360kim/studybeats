@@ -375,7 +375,10 @@ class TodoService {
 
       return todoList.categories.uncompleted.firstWhere(
         (item) => item.id == itemId,
-        orElse: () => throw Exception('Todo item not found'),
+        orElse: (){
+          _logger.w('Todo item $itemId not found in uncompleted list');
+          throw Exception('Todo item $itemId not found in uncompleted list');
+        }
       );
     } catch (e, s) {
       _logger.e('Failed to get todo item: $e $s');

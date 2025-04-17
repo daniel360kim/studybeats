@@ -229,13 +229,18 @@ class StudySessionModel extends ChangeNotifier {
       final todoService = TodoService();
       await todoService.init();
       for (var todoReference in _currentSession!.todos) {
-        TodoItem todoItem = await todoService.getTodoItem(
-            todoReference.todoListId, todoReference.todoId);
-        if (todoItem.isDone) {
-          await todoService.markTodoItemAsDone(
-              listId: todoReference.todoListId,
-              todoItemId: todoReference.todoId);
-          numCompletedTodos++;
+        try {
+          TodoItem todoItem = await todoService.getTodoItem(
+              todoReference.todoListId, todoReference.todoId);
+          if (todoItem.isDone) {
+            await todoService.markTodoItemAsDone(
+                listId: todoReference.todoListId,
+                todoItemId: todoReference.todoId);
+            numCompletedTodos++;
+          }
+        } catch (e) {
+          _logger.w('Skipping todo due to error: $e');
+          continue;
         }
       }
       _timer.cancel();
@@ -246,21 +251,20 @@ class StudySessionModel extends ChangeNotifier {
         _accumulatedBreakDuration += phaseElapsed;
       }
       final updatedSession = StudySession(
-        id: _currentSession!.id,
-        title: _currentSession!.title,
-        startTime: _currentSession!.startTime,
-        updatedTime: DateTime.now(),
-        endTime: DateTime.now(),
-        studyDuration: _currentSession!.studyDuration,
-        breakDuration: _currentSession!.breakDuration,
-        todos: _currentSession!.todos,
-        sessionRating: _currentSession!.sessionRating,
-        soundFxId: _currentSession!.soundFxId,
-        soundEnabled: _currentSession!.soundEnabled,
-        actualStudyDuration: _accumulatedStudyDuration,
-        actualBreakDuration: _accumulatedBreakDuration,
-        numCompletedTasks: numCompletedTodos
-      );
+          id: _currentSession!.id,
+          title: _currentSession!.title,
+          startTime: _currentSession!.startTime,
+          updatedTime: DateTime.now(),
+          endTime: DateTime.now(),
+          studyDuration: _currentSession!.studyDuration,
+          breakDuration: _currentSession!.breakDuration,
+          todos: _currentSession!.todos,
+          sessionRating: _currentSession!.sessionRating,
+          soundFxId: _currentSession!.soundFxId,
+          soundEnabled: _currentSession!.soundEnabled,
+          actualStudyDuration: _accumulatedStudyDuration,
+          actualBreakDuration: _accumulatedBreakDuration,
+          numCompletedTasks: numCompletedTodos);
       await sessionService.endSession(updatedSession);
       _logger.i(
           'Session ended. Total accumulated study: $_accumulatedStudyDuration, break: $_accumulatedBreakDuration');
@@ -269,7 +273,6 @@ class StudySessionModel extends ChangeNotifier {
       _endedSession = updatedSession;
     } catch (e) {
       _logger.e('Error ending session: $e');
-      rethrow;
     }
     notifyListeners();
   }

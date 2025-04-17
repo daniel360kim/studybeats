@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/todo/todo_item.dart'; // Your TodoItem model.
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/item_tile.dart'; // Your tile widget.
@@ -147,64 +149,72 @@ class _TodoListWidgetState extends State<TodoListWidget> {
 
   /// Optimistically marks an item as done with undo support.
   void _handleMarkAsDone(int index) async {
+    final sessionModel = Provider.of<StudySessionModel>(context, listen: false);
     final removedItem = _items[index];
 
     // Immediately remove from UI
-    _removeItem(index);
-    widget.todoService.markTodoItemAsDone(
-      listId: widget.listId,
-      todoItemId: removedItem.id,
-    );
+    if (!sessionModel.isActive) {
+      _removeItem(index);
 
-    // Dismiss any existing SnackBar before showing a new one
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      widget.todoService.markTodoItemAsDone(
+        listId: widget.listId,
+        todoItemId: removedItem.id,
+      );
 
-    final snackBar = SnackBar(
-      content: Text('Item completed', style: TextStyle(color: Colors.white)),
-      action: SnackBarAction(
-        label: 'Undo',
-        onPressed: () async {
-          // Temporarily suspend automatic updates
-          _subscription?.pause();
-          setState(() {
-            final undoneRemovedItem = removedItem.copyWith(isDone: false);
-            _items.insert(index, undoneRemovedItem);
-            _listKey.currentState?.insertItem(
-              index,
-              duration: const Duration(milliseconds: 300),
+      // Dismiss any existing SnackBar before showing a new one
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final snackBar = SnackBar(
+        content: Text('Item completed', style: TextStyle(color: Colors.white)),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            // Temporarily suspend automatic updates
+            _subscription?.pause();
+            setState(() {
+              final undoneRemovedItem = removedItem.copyWith(isDone: false);
+              _items.insert(index, undoneRemovedItem);
+              _listKey.currentState?.insertItem(
+                index,
+                duration: const Duration(milliseconds: 300),
+              );
+            });
+            await widget.todoService.markTodoItemAsUndone(
+              listId: widget.listId,
+              todoItemId: removedItem.id,
             );
-          });
-          await widget.todoService.markTodoItemAsUndone(
+            // Resume automatic updates
+            await Future.delayed(const Duration(milliseconds: 500));
+            _subscription?.resume();
+          },
+          textColor: kFlourishAdobe,
+        ),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+        backgroundColor: kFlourishBlackish,
+      );
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(snackBar)
+          .closed
+          .then((reason) async {
+        if (reason != SnackBarClosedReason.action) {
+          await widget.todoService.markTodoItemAsDone(
             listId: widget.listId,
             todoItemId: removedItem.id,
           );
-          // Resume automatic updates
-          await Future.delayed(const Duration(milliseconds: 500));
-          _subscription?.resume();
-        },
-        textColor: kFlourishAdobe,
-      ),
-      duration: const Duration(seconds: 3),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
-      backgroundColor: kFlourishBlackish,
-    );
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(snackBar)
-        .closed
-        .then((reason) async {
-      if (reason != SnackBarClosedReason.action) {
-        await widget.todoService.markTodoItemAsDone(
+          widget.onItemMarkedAsDone(removedItem.id);
+        }
+      });
+    } else {
+      widget.todoService.updateIncompleteTodoItem(
           listId: widget.listId,
-          todoItemId: removedItem.id,
-        );
-        widget.onItemMarkedAsDone(removedItem.id);
-      }
-    });
+          updatedItem: removedItem.copyWith(isDone: true));
+    }
   }
 
   /// Remove an item by index and animate its removal.

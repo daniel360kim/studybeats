@@ -70,8 +70,15 @@ class _CreateStudySessionPageState extends State<SessionPageController>
   void initState() {
     super.initState();
     initService();
-
-    // Removed the _pageController.addListener block as onPageChanged will handle page updates.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sessionModel = context.read<StudySessionModel>();
+      if (sessionModel.currentSession != null) {
+        setState(() {
+          _currentPage = 3;
+          _pageController.jumpToPage(3);
+        });
+      }
+    });
   }
 
   @override
@@ -103,9 +110,11 @@ class _CreateStudySessionPageState extends State<SessionPageController>
 
     studySessionModel.startSession(newStudySession, _studySessionService);
     studySessionModel.addOnSessionEndCallback(() async {
-      setState(() {
-        _completedSession = studySessionModel.currentSession;
-      });
+      if (mounted) {
+        setState(() {
+          _completedSession = studySessionModel.currentSession;
+        });
+      }
 
       // Wait until the new frame builds with the new page
       WidgetsBinding.instance.addPostFrameCallback((_) {
