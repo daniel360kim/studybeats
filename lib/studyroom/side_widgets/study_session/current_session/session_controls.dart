@@ -343,7 +343,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
           Row(
             children: [
               Text(
-                'Tasks',
+                'Session Tasks',
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,

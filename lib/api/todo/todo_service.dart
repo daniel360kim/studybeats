@@ -108,14 +108,12 @@ class TodoService {
 
   late final CollectionReference<Map<String, dynamic>> _todoCollection;
 
-  bool _isInitialized = false;
+  late final Future<void> _initialization = _initialize();
 
-  Future<void> init() async {
+  Future<void> init() => _initialization;
+
+  Future<void> _initialize() async {
     try {
-      if (_isInitialized) {
-        _logger.i('Todo service is already initialized');
-        return;
-      }
       final email = await _getUserEmail();
       if (email == null) {
         _logger.w('User email is null, skipping initialization');
@@ -123,7 +121,6 @@ class TodoService {
       }
       final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
       _todoCollection = userDoc.collection('todoLists');
-      _isInitialized = true;
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
       rethrow;
@@ -262,7 +259,8 @@ class TodoService {
       );
 
       if (todoItemIndex == -1) {
-        throw Exception('Todo item not found in uncompleted list');
+        throw Exception(
+            'Failed to update incomplete item: Todo item not found in uncompleted list');
       }
 
       // Update Firestore: Replace the item in 'uncompleted'
@@ -336,7 +334,9 @@ class TodoService {
       );
 
       if (todoItemIndex == -1) {
-        throw Exception('Todo item not found in uncompleted list');
+        _logger.w(
+            'Todo item $itemId not found in uncompleted list. Cannot delete.');
+        return;
       }
 
       // Update Firestore: Remove the item from 'uncompleted'
@@ -349,8 +349,8 @@ class TodoService {
 
       _logger.i('Todo item deleted successfully');
     } catch (e, s) {
-      _logger.e('Failed to delete uncompleted todo item: $e $s');
-      rethrow;
+      _logger
+          .w('Failed to delete uncompleted todo item with id: $itemId $e $s');
     }
   }
 
