@@ -48,15 +48,17 @@ class StudySessionModel extends ChangeNotifier {
 
   DateTime get startTime => _startTime;
 
-  final _logger = getLogger('Study Session Model');
+  StudySession? _endedSession;
+  StudySession? get endedSession => _endedSession;
+
+  final _logger = getLogger('Focus Session Model');
   final List<Future<void> Function()> _onSessionEndCallbacks = [];
 
-  void addOnSessionEndCallback(
-      Future<void> Function() callback) {
+  void addOnSessionEndCallback(Future<void> Function() callback) {
     _onSessionEndCallbacks.add(callback);
   }
-  void removeOnSessionEndCallback(
-      Future<void> Function() callback) {
+
+  void removeOnSessionEndCallback(Future<void> Function() callback) {
     _onSessionEndCallbacks.remove(callback);
   }
 
@@ -84,6 +86,7 @@ class StudySessionModel extends ChangeNotifier {
           'A session is already active. End the current session before starting a new one.');
       return;
     }
+    _endedSession = null;
     await service.createSession(session);
     _currentSession = session;
     _currentPhase = SessionPhase.studyTime;
@@ -128,7 +131,7 @@ class StudySessionModel extends ChangeNotifier {
   void _startTimer() {
     _totalDuration = _remainingTime;
     _startTime = DateTime.now();
-    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+    _timer = Timer.periodic(const Duration(milliseconds: 500), _updateTimer);
   }
 
   /// Pauses the countdown timer.
@@ -142,7 +145,7 @@ class StudySessionModel extends ChangeNotifier {
   void resumeTimer() {
     _startTime = DateTime.now();
     _totalDuration = _remainingTime;
-    _timer = Timer.periodic(const Duration(seconds: 1), _updateTimer);
+    _timer = Timer.periodic(const Duration(milliseconds: 500), _updateTimer);
     notifyListeners();
   }
 
@@ -163,7 +166,7 @@ class StudySessionModel extends ChangeNotifier {
         _accumulatedStudyDuration += phaseElapsed;
         notifyListeners();
         _logger.i(
-            'Study phase completed. Accumulated study duration: $_accumulatedStudyDuration');
+            'Focus phase completed. Accumulated study duration: $_accumulatedStudyDuration');
         _startBreakTimer();
         if (onPhaseTransition != null) {
           onPhaseTransition!(SessionPhase.breakTime);
@@ -194,12 +197,12 @@ class StudySessionModel extends ChangeNotifier {
     final elapsed = now.difference(_startTime);
     if (_currentPhase == SessionPhase.studyTime) {
       _accumulatedStudyDuration += elapsed;
-      _logger.i('Skipping study phase. Study time added: $elapsed');
+      _logger.i('Skipping study phase. Focus time added: $elapsed');
       _startBreakTimer();
       if (onPhaseTransition != null) onPhaseTransition!(SessionPhase.breakTime);
     } else {
       _accumulatedBreakDuration += elapsed;
-      _logger.i('Skipping break phase. Break time added: $elapsed');
+      _logger.i('Skipping break phase. Focus time added: $elapsed');
       _startFocusTimer();
       if (onPhaseTransition != null) onPhaseTransition!(SessionPhase.studyTime);
     }
@@ -256,11 +259,14 @@ class StudySessionModel extends ChangeNotifier {
         soundEnabled: _currentSession!.soundEnabled,
         actualStudyDuration: _accumulatedStudyDuration,
         actualBreakDuration: _accumulatedBreakDuration,
+        numCompletedTasks: numCompletedTodos
       );
-      await sessionService.endSession(updatedSession, numCompletedTodos);
+      await sessionService.endSession(updatedSession);
       _logger.i(
           'Session ended. Total accumulated study: $_accumulatedStudyDuration, break: $_accumulatedBreakDuration');
+
       _currentSession = null;
+      _endedSession = updatedSession;
     } catch (e) {
       _logger.e('Error ending session: $e');
       rethrow;

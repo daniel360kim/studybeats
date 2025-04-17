@@ -71,9 +71,11 @@ dependencies:
   cloud_functions: ^5.3.4
   package_info_plus: ^8.3.0
   flutter_localization: any
-  fl_chart: ^0.70.2
+  fl_chart: ^0.71.0
   flutter_localizations:
     sdk: flutter
+  percent_indicator: ^4.2.5
+  test: ^1.25.15
 dev_dependencies:
   flutter_test:
     sdk: flutter

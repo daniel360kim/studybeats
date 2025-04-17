@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/current_session/session_task_list.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_settings.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/todo_adder.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_task_list.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/new_session/session_settings.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/new_session/todo_adder.dart';
 
 class CurrentSessionControls extends StatefulWidget {
   const CurrentSessionControls({super.key});
@@ -48,6 +48,77 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
     } catch (e) {
       print("Error initializing StudySessionService: $e");
     }
+  }
+
+  Future<void> _confirmAndEndSession(
+      BuildContext context, StudySessionModel sessionModel) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            const SizedBox(width: 8),
+            Text(
+              'End Session?',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to end this study session? Your progress will be saved.',
+          style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+        ),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: Colors.grey.shade200,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+              final sessionService = StudySessionService();
+              await sessionService.init();
+              await sessionModel.endSession(sessionService);
+              if (mounted) setState(() {});
+            },
+            child: Text(
+              'End Session',
+              style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -96,6 +167,41 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                 _buildSessionSettings(sessionModel),
                 const SizedBox(height: 10),
                 _buildThemeColorPicker(sessionModel),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _confirmAndEndSession(context, sessionModel);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      maximumSize: const Size(100, 40),
+                      minimumSize: const Size(100, 40),
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Colors.redAccent,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'End Session',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
             // Page 2: Task Manager
@@ -304,7 +410,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Total study time',
+                    'Total focus time',
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,

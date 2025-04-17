@@ -10,7 +10,7 @@ import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/current_session/study_session_dialog.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/current_session/study_session_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';

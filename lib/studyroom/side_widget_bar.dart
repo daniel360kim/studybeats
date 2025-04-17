@@ -5,7 +5,7 @@ import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
 import 'package:studybeats/studyroom/side_widgets/notes/notes.dart';
 import 'package:studybeats/studyroom/side_widgets/scene_select.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/study_sessions.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/study_sessions.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -114,7 +114,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                 ),
                 NavigationItem(
                   selectedOption: _selectedOption,
-                  toolTip: 'Pomodoro Timer',
+                  toolTip: 'Focus Session',
                   option: NavigationOption.timer,
                   imagePath: 'assets/icons/timer.png',
                   onItemTapped: _onItemTapped,
@@ -191,13 +191,14 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                 },
               ),
             ),
-          Visibility(
-            maintainState: true,
-            visible: _selectedOption == NavigationOption.timer,
-            child: StudySessionSideWidget(
-              onClose: () => setState(() => _selectedOption = null),
+          if (AuthService().isUserLoggedIn())
+            Visibility(
+              maintainState: true,
+              visible: _selectedOption == NavigationOption.timer,
+              child: StudySessionSideWidget(
+                onClose: () => setState(() => _selectedOption = null),
+              ),
             ),
-          ),
           if (AuthService().isUserLoggedIn())
             Visibility(
               maintainState: true,

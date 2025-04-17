@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:studybeats/api/study/objects.dart';
 
 class SessionTodoReference {
   final String todoId;
@@ -57,7 +58,6 @@ class StudyStatistics {
       };
 }
 
-
 @JsonSerializable()
 class StudySession {
   String id;
@@ -73,6 +73,7 @@ class StudySession {
   bool soundEnabled;
   Color themeColor;
   String? todoListId;
+  int numCompletedTasks;
 
   /// Actual study duration accumulated during the session.
   Duration actualStudyDuration;
@@ -96,27 +97,31 @@ class StudySession {
     required this.actualBreakDuration,
     this.themeColor = Colors.blue,
     this.todoListId,
+    this.numCompletedTasks = 0,
   });
 
   factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
-    id: json['id'],
-    title: json['title'],
-    startTime: DateTime.parse(json['startTime']),
-    updatedTime: DateTime.parse(json['updatedTime']),
-    endTime: json['endTime'] != null ? DateTime.parse(json['endTime']) : null,
-    studyDuration: Duration(minutes: json['studyDuration']),
-    breakDuration: Duration(minutes: json['breakDuration']),
-    todos: (json['todos'] as List<dynamic>)
-        .map((e) => SessionTodoReference.fromJson(e as Map<String, dynamic>))
-        .toSet(),
-    sessionRating: json['sessionRating'],
-    soundFxId: json['soundFxId'],
-    soundEnabled: json['soundEnabled'],
-    actualStudyDuration: Duration(seconds: json['actualStudyDuration']),
-    actualBreakDuration: Duration(seconds: json['actualBreakDuration']),
-    themeColor: Color(json['themeColor']),
-    todoListId: json['todoListId'],
-  );
+        id: json['id'],
+        title: json['title'],
+        startTime: DateTime.parse(json['startTime']),
+        updatedTime: DateTime.parse(json['updatedTime']),
+        endTime:
+            json['endTime'] != null ? DateTime.parse(json['endTime']) : null,
+        studyDuration: Duration(minutes: json['studyDuration']),
+        breakDuration: Duration(minutes: json['breakDuration']),
+        todos: (json['todos'] as List<dynamic>)
+            .map(
+                (e) => SessionTodoReference.fromJson(e as Map<String, dynamic>))
+            .toSet(),
+        sessionRating: json['sessionRating'],
+        soundFxId: json['soundFxId'],
+        soundEnabled: json['soundEnabled'],
+        actualStudyDuration: Duration(seconds: json['actualStudyDuration']),
+        actualBreakDuration: Duration(seconds: json['actualBreakDuration']),
+        themeColor: Color(json['themeColor']),
+        todoListId: json['todoListId'],
+        numCompletedTasks: json['numCompletedTasks'] ?? 0,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -136,6 +141,7 @@ class StudySession {
         'actualBreakDuration': actualBreakDuration.inSeconds,
         'themeColor': themeColor.value,
         'todoListId': todoListId,
+        'numCompletedTasks': numCompletedTasks,
       };
 
   /// Creates a copy of this StudySession with the given fields replaced by new values.
@@ -156,6 +162,7 @@ class StudySession {
     Duration? actualBreakDuration,
     Color? themeColor,
     String? todoListId,
+    int? numCompletedTasks,
   }) {
     return StudySession(
       id: id ?? this.id,
@@ -165,20 +172,18 @@ class StudySession {
       endTime: endTime ?? this.endTime,
       studyDuration: studyDuration ?? this.studyDuration,
       breakDuration: breakDuration ?? this.breakDuration,
-      todos: todos != null
-          ? Set<SessionTodoReference>.from(todos)
-          : this.todos,
+      todos: todos != null ? Set<SessionTodoReference>.from(todos) : this.todos,
       sessionRating: sessionRating ?? this.sessionRating,
       soundFxId: soundFxId ?? this.soundFxId,
       soundEnabled: soundEnabled ?? this.soundEnabled,
-
       actualStudyDuration: actualStudyDuration ?? this.actualStudyDuration,
       actualBreakDuration: actualBreakDuration ?? this.actualBreakDuration,
       themeColor: themeColor ?? this.themeColor,
       todoListId: todoListId ?? this.todoListId,
+      numCompletedTasks: numCompletedTasks ?? this.numCompletedTasks,
     );
   }
-  
+
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);

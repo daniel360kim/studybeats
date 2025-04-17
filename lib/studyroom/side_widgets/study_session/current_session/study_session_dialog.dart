@@ -11,7 +11,7 @@ import 'package:studybeats/api/study/timer_fx/timer_fx_service.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/timer_player.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/timer_player.dart';
 
 /// A dialog overlay that displays the countdown timer for the current phase (study or break)
 /// and provides pause/resume and skip controls.
@@ -34,7 +34,7 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
   bool _isEditingTitle = false;
   late TextEditingController _titleController;
 
-  final _logger = getLogger('Study Session Dialog');
+  final _logger = getLogger('Focus Session Dialog');
   Offset _offset = Offset.zero;
 
   // Timer for updating the dialog's countdown.
@@ -59,6 +59,78 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
     _soundPlayer.dispose();
     _titleController.dispose();
     super.dispose();
+  }
+
+  Future<void> _confirmAndEndSession(
+      BuildContext context, StudySessionModel sessionModel) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            const SizedBox(width: 8),
+            Text(
+              'End Session?',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to end this study session? Your progress will be saved.',
+          style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: Colors.grey.shade200,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+              final sessionService = StudySessionService();
+              await sessionService.init();
+              await sessionModel.endSession(sessionService);
+              if (mounted) setState(() {});
+            },
+            child: Text(
+              'End Session',
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _studySessionService.init();
+        await sessionModel.endSession(_studySessionService);
+        if (mounted) setState(() {});
+      } catch (e) {
+        _logger.e('Error ending session: ${e.toString()}');
+      }
+    }
   }
 
   void _initStudySessionService() async {
@@ -103,7 +175,7 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
     String phaseLabel;
     if (sessionModel.currentPhase == SessionPhase.studyTime) {
       phaseLabel =
-          "Study (${_formatDuration(sessionModel.currentSession!.studyDuration)})";
+          "Focus (${_formatDuration(sessionModel.currentSession!.studyDuration)})";
     } else {
       phaseLabel =
           "Break (${_formatDuration(sessionModel.currentSession!.breakDuration)})";
@@ -113,7 +185,7 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
     String tabDescriptionLabel;
     if (sessionModel.currentPhase == SessionPhase.studyTime) {
       tabDescriptionLabel =
-          "Study: ${formatDurationForTab(sessionModel.remainingTime)} left";
+          "Focus: ${formatDurationForTab(sessionModel.remainingTime)} left";
     } else {
       tabDescriptionLabel =
           "Break: ${formatDurationForTab(sessionModel.remainingTime)} left";
@@ -150,14 +222,7 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
             IconButton(
               icon: const Icon(Icons.close),
               tooltip: 'End Session',
-              onPressed: () async {
-                try {
-                  await _studySessionService.init();
-                  await sessionModel.endSession(_studySessionService);
-                } catch (e) {
-                  _logger.e('Error ending session: ${e.toString()}');
-                }
-              },
+              onPressed: () => _confirmAndEndSession(context, sessionModel),
             ),
           ],
         ),
@@ -283,17 +348,9 @@ class _StudySessionDialogState extends State<StudySessionDialog> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'End Session',
-              onPressed: () async {
-                try {
-                  await _studySessionService.init();
-                  await sessionModel.endSession(_studySessionService);
-                } catch (e) {
-                  _logger.e('Error ending session: ${e.toString()}');
-                }
-              },
-            ),
+                icon: const Icon(Icons.close),
+                tooltip: 'End Session',
+                onPressed: () => _confirmAndEndSession(context, sessionModel)),
           ],
         ),
 

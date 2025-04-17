@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/timer_swiper.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_settings.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/new_session/timer_swiper.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/new_session/session_settings.dart';
 
 class SessionInputs extends StatefulWidget {
   const SessionInputs({

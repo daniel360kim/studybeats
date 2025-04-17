@@ -7,9 +7,11 @@ import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/current_session/session_controls.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/session_inputs.dart';
-import 'package:studybeats/studyroom/side_widgets/timer/new_session/todo_adder.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_controls.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_end_summary.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/home/home_page.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/new_session/session_inputs.dart';
+import 'package:studybeats/studyroom/side_widgets/study_session/new_session/todo_adder.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
 import 'package:uuid/uuid.dart';
 
@@ -44,6 +46,7 @@ class SessionPageController extends StatefulWidget {
 
 class _CreateStudySessionPageState extends State<SessionPageController>
     with SingleTickerProviderStateMixin {
+  UniqueKey _homeKey = UniqueKey();
   // Fields to store user inputs.
   String _sessionName = "Untitled Session";
   Duration _studyDuration = const Duration(minutes: 25);
@@ -53,6 +56,9 @@ class _CreateStudySessionPageState extends State<SessionPageController>
   bool _timerSoundEnabled = true;
   int? _selectedTimerFxId;
   bool isLoopSession = true;
+
+  StudySession?
+      _completedSession; // holds the study session that was just finished
 
   int _currentPage = 0;
 
@@ -65,11 +71,7 @@ class _CreateStudySessionPageState extends State<SessionPageController>
     super.initState();
     initService();
 
-    _pageController.addListener(() {
-      setState(() {
-        _currentPage = _pageController.page?.round() ?? 0;
-      });
-    });
+    // Removed the _pageController.addListener block as onPageChanged will handle page updates.
   }
 
   @override
@@ -101,7 +103,18 @@ class _CreateStudySessionPageState extends State<SessionPageController>
 
     studySessionModel.startSession(newStudySession, _studySessionService);
     studySessionModel.addOnSessionEndCallback(() async {
-      _pageController.jumpToPage(1); // go to main page after a session ends
+      setState(() {
+        _completedSession = studySessionModel.currentSession;
+      });
+
+      // Wait until the new frame builds with the new page
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients &&
+            _pageController.positions.isNotEmpty) {
+          // Optional: you could also check the number of children in the PageView
+          _pageController.jumpToPage(4);
+        }
+      });
     });
   }
 
@@ -110,8 +123,8 @@ class _CreateStudySessionPageState extends State<SessionPageController>
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
       child: Row(
         children: [
-          if (_currentPage != 0 &&
-              _currentPage != 2) // Hide back button on first and last page
+          if (_currentPage == 1 ||
+              _currentPage == 2) // Hide back button on first and last page
             IconButton(
               icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
               onPressed: () {
@@ -132,18 +145,46 @@ class _CreateStudySessionPageState extends State<SessionPageController>
       children: [
         _buildHeader(),
         SizedBox(
-          height: _currentPage == 1
+          height: _currentPage == 1 || _currentPage == 2
               ? MediaQuery.of(context).size.height - 170
               : MediaQuery.of(context).size.height - 130,
           child: // Inside SessionPageController build method:
               PageView(
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (idx) {
+              setState(() {
+                _currentPage = idx;
+                if (idx == 0) {
+                  // Reset the key to force rebuild of home page
+                  _homeKey = UniqueKey();
+                }
+              });
+            },
             children: [
+              StudySessionHomePage(
+                key: _homeKey,
+                onSessionStart: () {
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+              ),
               buildSessionNameTimeInputPage(),
               buildTaskSelectionPage(),
               // Wrap this with a Scaffold to allow BottomNavigationBar to anchor to bottom
               CurrentSessionControls(),
+              if (_completedSession != null)
+                // Show session summary only if a session has been completed
+                SessionEndSummary(
+                  onClose: () {
+                    setState(() {
+                      _completedSession = null;
+                      _pageController.jumpToPage(0);
+                    });
+                  },
+                ),
             ],
           ),
         ),
@@ -225,7 +266,7 @@ class _CreateStudySessionPageState extends State<SessionPageController>
                 );
               },
               child: Text(
-                'Finish',
+                'Start',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
