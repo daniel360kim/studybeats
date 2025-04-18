@@ -162,9 +162,9 @@ class _StudyRoomState extends State<StudyRoom> {
 
     // Switch the tab description based on the session state.
     sessionModel.addOnSessionEndCallback(() async {
-      SystemChrome.setApplicationSwitcherDescription(
+      await SystemChrome.setApplicationSwitcherDescription(
         const ApplicationSwitcherDescription(
-          label: 'StudyBeats',
+          label: 'Studybeats',
         ),
       );
     });

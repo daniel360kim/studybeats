@@ -93,50 +93,57 @@ class _TodoState extends State<Todo> {
     return SizedBox(
       width: 400,
       height: MediaQuery.of(context).size.height - 80,
-      child: PageView(
-        controller: _taskPageController,
-        physics: const NeverScrollableScrollPhysics(),
+      child: Column(
         children: [
-          _buildTaskListCard(sessionModel),
-          SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    tooltip: 'Back to tasks',
-                    onPressed: () {
-                      _taskPageController.animateToPage(
-                        0,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
+          SizedBox(
+            height: MediaQuery.of(context).size.height - 80 - 70,
+            child: PageView(
+              controller: _taskPageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildTaskListCard(sessionModel),
+                SingleChildScrollView(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          tooltip: 'Back to tasks',
+                          onPressed: () {
+                            _taskPageController.animateToPage(
+                              0,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TodoAdder(
+                          // Pass in the already added todos from the current session as initial selection
+                          initialSelectedTodoItems:
+                              sessionModel.currentSession?.todos ?? {},
+                          // Update the session by replacing the entire todos set
+                          onTodoItemToggled: (selectedItems) async {
+                            await sessionModel.updateSession(
+                              sessionModel.currentSession!
+                                  .copyWith(todos: selectedItems.toList()),
+                              _studySessionService,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  TodoAdder(
-                    // Pass in the already added todos from the current session as initial selection
-                    initialSelectedTodoItems:
-                        sessionModel.currentSession?.todos ?? {},
-                    // Update the session by replacing the entire todos set
-                    onTodoItemToggled: (selectedItems) async {
-                      await sessionModel.updateSession(
-                        sessionModel.currentSession!
-                            .copyWith(todos: selectedItems.toList()),
-                        _studySessionService,
-                      );
-                    },
-                  ),
-                ],
-              ),
+                )
+              ],
             ),
-          )
+          ),
         ],
       ),
     );

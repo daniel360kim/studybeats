@@ -56,6 +56,10 @@ class _SceneSelectorState extends State<SceneSelector> {
         setState(() {
           _isPro = isPro;
         });
+      } else {
+        setState(() {
+          _isPro = false;
+        });
       }
 
       final sceneList = await _sceneService.getSceneData();

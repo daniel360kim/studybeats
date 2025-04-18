@@ -69,7 +69,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
             baseColor: kFlourishAliceBlue,
             highlightColor: Colors.grey.shade200,
             child: Container(
-              width: 350,
+              width: 450,
               height: 200,
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -88,7 +88,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
             snapshot.data!.totalTodosCompleted.toString();
 
         return Container(
-          width: 350,
+          width: 450,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -191,7 +191,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
         if (snapshot.connectionState != ConnectionState.done) {
           return Container(
             height: 380,
-            width: 350,
+            width: 450,
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
@@ -272,7 +272,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
 
         return Container(
           height: 380,
-          width: 350,
+          width: 450,
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
@@ -440,7 +440,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
         }
         final streak = snap.data!;
         return Container(
-          width: 350,
+          width: 450,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,

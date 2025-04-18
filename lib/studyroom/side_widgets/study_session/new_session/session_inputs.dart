@@ -226,7 +226,7 @@ class _SessionInputsState extends State<SessionInputs>
           child: StatefulBuilder(
             builder: (context, setState) {
               return SizedBox(
-                width: 350,
+                width: 450,
                 height: 380,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

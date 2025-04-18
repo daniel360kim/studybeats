@@ -90,9 +90,11 @@ class _AiChatState extends State<AiChat> {
         });
       }
       _scrollToBottom();
-      setState(() {
-        _showTokenMessage = _openaiService.tokenLimitExceeded;
-      });
+      if (mounted) {
+        setState(() {
+          _showTokenMessage = _openaiService.tokenLimitExceeded;
+        });
+      }
     } catch (e) {
       _logger.e('Failed to get conversation history from Firestore: $e');
       if (mounted) {

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
@@ -220,6 +221,11 @@ class StudySessionModel extends ChangeNotifier {
     if (_currentSession == null) {
       throw Exception('No active session to end.');
     }
+    await SystemChrome.setApplicationSwitcherDescription(
+      const ApplicationSwitcherDescription(
+        label: 'Studybeats',
+      ),
+    );
 
     for (var callback in _onSessionEndCallbacks) {
       await callback();

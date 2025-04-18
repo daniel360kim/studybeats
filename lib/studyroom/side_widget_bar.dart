@@ -90,11 +90,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   option: NavigationOption.scene,
                   imagePath: 'assets/icons/scene.png',
                   onItemTapped: (option) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() => _selectedOption = null);
-                      _redirectToLogin();
-                      return;
-                    }
                     _onItemTapped(option);
                   },
                 ),
@@ -117,7 +112,14 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   toolTip: 'Focus Session',
                   option: NavigationOption.timer,
                   imagePath: 'assets/icons/timer.png',
-                  onItemTapped: _onItemTapped,
+                  onItemTapped: (value) {
+                    if (!AuthService().isUserLoggedIn()) {
+                      setState(() => _selectedOption = null);
+                      _redirectToLogin();
+                      return;
+                    }
+                    _onItemTapped(value);
+                  },
                 ),
                 NavigationItem(
                   selectedOption: _selectedOption,
@@ -163,23 +165,29 @@ class SideWidgetBarState extends State<SideWidgetBar> {
       onTap: () {},
       child: Column(
         children: [
-          if (AuthService().isUserLoggedIn())
-            Visibility(
-              maintainState: true,
-              visible: _selectedOption == NavigationOption.scene,
-              child: SceneSelector(
-                onSceneSelected: (id) async {
-                  widget.onSceneChanged(id);
+          Visibility(
+            maintainState: true,
+            visible: _selectedOption == NavigationOption.scene,
+            child: SceneSelector(
+              onSceneSelected: (id) async {
+                widget.onSceneChanged(id);
+                if (AuthService().isUserLoggedIn()) {
                   await AuthService().changeselectedSceneId(id);
-                },
-                onClose: () => setState(() => _selectedOption = null),
-                currentScene: widget.currentScene,
-                currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
-                onProSceneSelected: () {
-                  widget.onUpgradeSelected(NavigationOption.scene);
-                },
-              ),
+                }
+              },
+              onClose: () => setState(() => _selectedOption = null),
+              currentScene: widget.currentScene,
+              currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
+              onProSceneSelected: () {
+                if (!AuthService().isUserLoggedIn()) {
+                  setState(() => _selectedOption = null);
+                  _redirectToLogin();
+                  return;
+                }
+                widget.onUpgradeSelected(NavigationOption.scene);
+              },
             ),
+          ),
           if (AuthService().isUserLoggedIn())
             Visibility(
               maintainState: true,

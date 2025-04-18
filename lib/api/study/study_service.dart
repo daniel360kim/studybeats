@@ -346,13 +346,6 @@ class TestDataInjector {
       final endTime = i % 5 == 0 ? null : updatedTime;
 
       // Generate a few dummy tasks
-      final taskCount = 1 + _random.nextInt(5);
-      final todos = List<SessionTodoReference>.generate(taskCount, (idx) {
-        return SessionTodoReference(
-          todoId: 'todo_${i}_$idx',
-          todoListId: 'list_${_random.nextInt(3)}',
-        );
-      });
 
       final session = StudySession(
         id: 'test_${day.toIso8601String()}',
@@ -362,14 +355,14 @@ class TestDataInjector {
         endTime: endTime,
         studyDuration: const Duration(minutes: 25), // or zero if not used
         breakDuration: const Duration(minutes: 5),
-        todos: todos.toSet(),
+        todos: {},
         sessionRating: null,
         soundFxId: i % 4 == 0 ? null : _random.nextInt(10),
         soundEnabled: _random.nextBool(),
         actualStudyDuration: actualStudyDuration,
         actualBreakDuration: actualBreakDuration,
         themeColor: Colors.blue,
-        numCompletedTasks: todos.where((t) => _random.nextBool()).length,
+        numCompletedTasks: 0,
       );
 
       await service.createSession(session);

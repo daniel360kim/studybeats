@@ -40,7 +40,7 @@ class _PomodoroTimerState extends State<StudySessionSideWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 350,
+      width: 450,
       height: MediaQuery.of(context).size.height - 80,
       child: Container(
         decoration: const BoxDecoration(

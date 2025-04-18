@@ -100,11 +100,13 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
   void initState() {
     super.initState();
     _titleController.addListener(() {
+
       setState(() {});
     });
     _descriptionController.addListener(() {
       setState(() {});
     });
+    
   }
 
   @override
@@ -116,27 +118,46 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
+    return KeyboardListener(
+      autofocus: true,
+      focusNode: FocusNode(),
+      onKeyEvent: (KeyEvent event) {
+        if (event.logicalKey == LogicalKeyboardKey.enter) {
+          final newTodo = TodoItem(
+            id: const Uuid().v4(),
+            title: _titleController.text,
+            description: _descriptionController.text,
+            isDone: false,
+            isFavorite: false,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            dueDate: _selectedDate,
+            dueTime: _selectedTime,
+          );
+          widget.onCreateTask(newTodo);
+        } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+          widget.onClose();
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey, width: 1.0),
+          borderRadius: BorderRadius.circular(12.0),
         ),
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          ...buildInputFields(),
-          const SizedBox(height: 12.0),
-          buildDateTimeButtons(),
-          const SizedBox(height: 4.0),
-          const Divider(),
-          const SizedBox(height: 4.0),
-          buildButtons(),
-        ],
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ...buildInputFields(),
+            const SizedBox(height: 12.0),
+            buildDateTimeButtons(),
+            const SizedBox(height: 4.0),
+            const Divider(),
+            const SizedBox(height: 4.0),
+            buildButtons(),
+          ],
+        ),
       ),
     );
   }
@@ -387,7 +408,8 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
             ), // Dialog background color
             datePickerTheme: const DatePickerThemeData(
               backgroundColor: Colors.white, // Picker background
-            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
+            ),
+            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );
@@ -431,7 +453,8 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
               dialTextColor: kFlourishBlackish, // Dial text color
               entryModeIconColor:
                   kFlourishBlackish, // Icon color for switching modes
-            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
+            ),
+            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );
