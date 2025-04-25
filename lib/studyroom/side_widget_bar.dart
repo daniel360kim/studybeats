@@ -24,6 +24,7 @@ class SideWidgetBar extends StatefulWidget {
     required this.currentScene,
     required this.currentSceneBackgroundUrl,
     required this.onUpgradeSelected,
+    required this.onOpenLoginDialog,
     super.key,
   });
 
@@ -31,6 +32,7 @@ class SideWidgetBar extends StatefulWidget {
   final SceneData currentScene;
   final String currentSceneBackgroundUrl;
   final ValueChanged<NavigationOption> onUpgradeSelected;
+  final ValueChanged<int> onOpenLoginDialog;
 
   @override
   State<SideWidgetBar> createState() => SideWidgetBarState();
@@ -62,8 +64,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
   }
 
   Widget _buildControlBar() {
-    // This GestureDetector is used to prevent the click event within the
-    // side widget bar from propagating to the main screen.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
@@ -158,8 +158,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
   }
 
   Widget _getSelectedWidget() {
-    // This GestureDetector is used to prevent the click event within the
-    // side widget bar from propagating to the main screen.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
@@ -266,6 +264,7 @@ class _NavigationItemState extends State<NavigationItem> {
   @override
   Widget build(BuildContext context) {
     final bool isSelected = widget.option == widget.selectedOption;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
@@ -273,36 +272,42 @@ class _NavigationItemState extends State<NavigationItem> {
         message: widget.toolTip,
         child: Column(
           children: [
-            SizedBox(
-              height: 50,
-              width: 50,
-              child: GestureDetector(
-                onTap: () => widget.onItemTapped(widget.option),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isSelected || _hovering
-                        ? Colors.white.withOpacity(0.4)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10.0),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.5),
-                              offset: const Offset(0, 2),
-                              blurRadius: 8.0,
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      widget.imagePath,
-                      fit: BoxFit.fill,
+            Row(
+              children: [
+                SizedBox(
+                  height: 50,
+                  width: 50,
+                  child: GestureDetector(
+                    onTap: () {
+                      widget.onItemTapped(widget.option);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSelected || _hovering
+                            ? Colors.white.withOpacity(0.4)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10.0),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.5),
+                                  offset: const Offset(0, 2),
+                                  blurRadius: 8.0,
+                                ),
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Image.asset(
+                          widget.imagePath,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
             const SizedBox(height: 3.0),
           ],

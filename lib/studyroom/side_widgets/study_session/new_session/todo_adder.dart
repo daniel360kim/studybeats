@@ -438,7 +438,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
           title: Row(
             children: [
               SizedBox(
-                width: 310,
+                width: 250,
                 child: Text(
                   widget.todoItem.title,
                   style: GoogleFonts.inter(

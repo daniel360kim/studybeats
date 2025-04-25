@@ -44,6 +44,9 @@ class _StudyRoomState extends State<StudyRoom> {
   final StudySessionService _studySessionService =
       StudySessionService(); // Assuming this is the correct service
 
+  bool showLoginDialog = true;
+  int loginDialogOffset = 0;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +60,11 @@ class _StudyRoomState extends State<StudyRoom> {
 
   void initStudySession() async {
     try {
+      await SystemChrome.setApplicationSwitcherDescription(
+        const ApplicationSwitcherDescription(
+          label: 'Studybeats',
+        ),
+      );
       await _studySessionService.init();
     } catch (e) {
       // TODO implement proper error handling
@@ -204,51 +212,56 @@ class _StudyRoomState extends State<StudyRoom> {
           top: 0,
           left: 0,
           child: _currentScene != null
-              ? SideWidgetBar(
-                  key: _sideWidgetKey,
-                  onSceneChanged: (id) {
-                    changeScene(id);
-                  },
-                  currentScene: _currentScene!,
-                  currentSceneBackgroundUrl: _backgroundImageUrl!,
-                  onUpgradeSelected: (option) async {
-                    // Show the upgrade dialog
-                    switch (option) {
-                      case NavigationOption.scene:
-                        await showDialog(
-                          context: context,
-                          builder: (_) => const PremiumUpgradeDialog(
-                            title: 'Unlock more scenes',
-                            description:
-                                'Get access to more scenes, new genres, and more!',
-                          ),
-                        );
-                        break;
-                      case NavigationOption.notes:
-                        await showDialog(
-                          context: context,
-                          builder: (_) => const PremiumUpgradeDialog(
-                            title: 'Unlock more notes',
-                            description:
-                                'With Pro, you can create unlimited notes and get access to more features!',
-                          ),
-                        );
+              ? Row(
+                  children: [
+                    SideWidgetBar(
+                      onOpenLoginDialog: (index) {},
+                      key: _sideWidgetKey,
+                      onSceneChanged: (id) {
+                        changeScene(id);
+                      },
+                      currentScene: _currentScene!,
+                      currentSceneBackgroundUrl: _backgroundImageUrl!,
+                      onUpgradeSelected: (option) async {
+                        // Show the upgrade dialog
+                        switch (option) {
+                          case NavigationOption.scene:
+                            await showDialog(
+                              context: context,
+                              builder: (_) => const PremiumUpgradeDialog(
+                                title: 'Unlock more scenes',
+                                description:
+                                    'Get access to more scenes, new genres, and more!',
+                              ),
+                            );
+                            break;
+                          case NavigationOption.notes:
+                            await showDialog(
+                              context: context,
+                              builder: (_) => const PremiumUpgradeDialog(
+                                title: 'Unlock more notes',
+                                description:
+                                    'With Pro, you can create unlimited notes and get access to more features!',
+                              ),
+                            );
 
-                        break;
-                      case NavigationOption.aiChat:
-                        await showDialog(
-                          context: context,
-                          builder: (_) => const PremiumUpgradeDialog(
-                            title: 'Unlimited chats with AI',
-                            description:
-                                'Get unlimited access and uploads to the Studybeats AI chat!',
-                          ),
-                        );
-                        break;
-                      default:
-                        break;
-                    }
-                  },
+                            break;
+                          case NavigationOption.aiChat:
+                            await showDialog(
+                              context: context,
+                              builder: (_) => const PremiumUpgradeDialog(
+                                title: 'Unlimited chats with AI',
+                                description:
+                                    'Get unlimited access and uploads to the Studybeats AI chat!',
+                              ),
+                            );
+                            break;
+                          default:
+                            break;
+                        }
+                      },
+                    ),
+                  ],
                 )
               : const SizedBox.shrink(),
         ),
@@ -285,9 +298,12 @@ class _StudyRoomState extends State<StudyRoom> {
               return CredentialBar(
                 loggedIn: appState.loggedIn,
                 onUpgradePressed: showInitialUpgradeDialog,
-                onLogout: () {
+                onLogout: () async {
                   changeScene(1);
-                  setState(() {});
+
+                  if (mounted) {
+                    setState(() {});
+                  }
                 },
               );
             },

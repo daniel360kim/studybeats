@@ -1,8 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/auth/urls.dart';
+import 'package:studybeats/api/study/objects.dart';
+import 'package:studybeats/api/study/session_model.dart';
+import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
@@ -299,6 +303,10 @@ class _ProfilePictureState extends State<ProfilePicture>
   }
 
   Future signOut() async {
+    final sessionModel = context.read<StudySessionModel>();
+                  final sessionService = StudySessionService();
+                  await sessionService.init();
+                  await sessionModel.endSession(sessionService);
     widget.onLogout();
     await FirebaseAuth.instance.signOut();
   }
