@@ -95,7 +95,7 @@ class ProfilePicture extends StatefulWidget {
   });
 
   final VoidCallback onLogout;
-  final VoidCallback onUpgradePressed; 
+  final VoidCallback onUpgradePressed;
   @override
   State<ProfilePicture> createState() => _ProfilePictureState();
 }
@@ -303,11 +303,19 @@ class _ProfilePictureState extends State<ProfilePicture>
   }
 
   Future signOut() async {
-    final sessionModel = context.read<StudySessionModel>();
-                  final sessionService = StudySessionService();
-                  await sessionService.init();
-                  await sessionModel.endSession(sessionService);
-    widget.onLogout();
-    await FirebaseAuth.instance.signOut();
+    try {
+      final sessionModel = context.read<StudySessionModel>();
+      if (sessionModel.isActive) {
+        final sessionService = StudySessionService();
+        await sessionService.init();
+        await sessionModel.endSession(sessionService);
+      }
+      widget.onLogout();
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      await FirebaseAuth.instance.signOut();
+      widget.onLogout();
+      print('Error signing out: $e');
+    }
   }
 }

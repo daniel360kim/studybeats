@@ -134,7 +134,9 @@ class _SceneSelectorState extends State<SceneSelector> {
                         isUserPro: _isPro,
                       )),
                   // For non-pro users, show a pro scene promotion if any pro scenes exist.
-                  if (!_isPro && proItems.isNotEmpty)
+                  if (!_isPro &&
+                      proItems.isNotEmpty &&
+                      _authService.isUserLoggedIn())
                     _buildProSceneStack(proItems),
                 ],
               ),

@@ -1,14 +1,16 @@
 import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
+import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
 import 'package:studybeats/studyroom/side_widgets/notes/notes.dart';
 import 'package:studybeats/studyroom/side_widgets/scene_select.dart';
 import 'package:studybeats/studyroom/side_widgets/study_session/study_sessions.dart';
 import 'package:studybeats/studyroom/side_widgets/todo/todo_widget.dart';
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 enum NavigationOption {
   scene,
@@ -40,6 +42,143 @@ class SideWidgetBar extends StatefulWidget {
 
 class SideWidgetBarState extends State<SideWidgetBar> {
   NavigationOption? _selectedOption;
+  final GlobalKey _aiChatKey = GlobalKey();
+  final GlobalKey _timerKey = GlobalKey();
+  final GlobalKey _todoKey = GlobalKey();
+  final GlobalKey _notesKey = GlobalKey();
+
+  void _showLoginMenu(GlobalKey key) {
+    final RenderBox box = key.currentContext!.findRenderObject() as RenderBox;
+    final Offset offset = box.localToGlobal(Offset.zero);
+    final Size screenSize = MediaQuery.of(context).size;
+    final double leftMargin = offset.dx + box.size.width;
+    final double topMargin = offset.dy;
+    final double rightMargin = screenSize.width - offset.dx;
+    final double bottomMargin = screenSize.height - offset.dy - box.size.height;
+
+    showMenu(
+      color: Colors.transparent,
+      context: context,
+      position: RelativeRect.fromLTRB(
+        leftMargin,
+        topMargin,
+        rightMargin,
+        bottomMargin,
+      ),
+      items: [
+        PopupMenuItem(
+          enabled: false,
+          padding: const EdgeInsets.all(0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            width: 280,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(10),
+                      topRight: const Radius.circular(10),
+                    ),
+                    child: Image.asset(
+                      'assets/flat/abstract.png',
+                      height: 160,
+                      width: 280,
+                      fit: BoxFit.fitWidth,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Use advanced features for free',
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: kFlourishBlackish),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Save tasks, start study sessions, and jot notes by logging in',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () =>
+                                  context.goNamed(AppRoute.loginPage.name),
+                              child: Text(
+                                'Log in',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.black,
+                                side: const BorderSide(color: Colors.grey),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () =>
+                                  context.goNamed(AppRoute.signUpPage.name),
+                              child: Text(
+                                'Sign up',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   void _onItemTapped(NavigationOption option) {
     setState(() {
@@ -74,10 +213,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.6),
               border: const Border(
-                bottom: BorderSide(
-                  color: Colors.grey,
-                  width: 1.0,
-                ),
+                bottom: BorderSide(color: Colors.grey, width: 1.0),
               ),
             ),
             height: MediaQuery.of(context).size.height - 80,
@@ -94,6 +230,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   },
                 ),
                 NavigationItem(
+                  key: _aiChatKey,
                   selectedOption: _selectedOption,
                   toolTip: 'Studybeats Bot',
                   option: NavigationOption.aiChat,
@@ -101,27 +238,29 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   onItemTapped: (option) {
                     if (!AuthService().isUserLoggedIn()) {
                       setState(() => _selectedOption = null);
-                      _redirectToLogin();
+                      _showLoginMenu(_aiChatKey);
                       return;
                     }
                     _onItemTapped(option);
                   },
                 ),
                 NavigationItem(
+                  key: _timerKey,
                   selectedOption: _selectedOption,
                   toolTip: 'Focus Session',
                   option: NavigationOption.timer,
                   imagePath: 'assets/icons/timer.png',
-                  onItemTapped: (value) {
+                  onItemTapped: (option) {
                     if (!AuthService().isUserLoggedIn()) {
                       setState(() => _selectedOption = null);
-                      _redirectToLogin();
+                      _showLoginMenu(_timerKey);
                       return;
                     }
-                    _onItemTapped(value);
+                    _onItemTapped(option);
                   },
                 ),
                 NavigationItem(
+                  key: _todoKey,
                   selectedOption: _selectedOption,
                   toolTip: 'Todo List',
                   option: NavigationOption.todo,
@@ -129,13 +268,14 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   onItemTapped: (option) {
                     if (!AuthService().isUserLoggedIn()) {
                       setState(() => _selectedOption = null);
-                      _redirectToLogin();
+                      _showLoginMenu(_todoKey);
                       return;
                     }
                     _onItemTapped(option);
                   },
                 ),
                 NavigationItem(
+                  key: _notesKey,
                   selectedOption: _selectedOption,
                   toolTip: 'Notes',
                   option: NavigationOption.notes,
@@ -143,7 +283,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   onItemTapped: (option) {
                     if (!AuthService().isUserLoggedIn()) {
                       setState(() => _selectedOption = null);
-                      _redirectToLogin();
+                      _showLoginMenu(_notesKey);
                       return;
                     }
                     _onItemTapped(option);
