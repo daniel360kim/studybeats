@@ -102,11 +102,15 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                   borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-              Navigator.of(context).pop(true);
-              final sessionService = StudySessionService();
-              await sessionService.init();
-              await sessionModel.endSession(sessionService);
-              if (mounted) setState(() {});
+              try {
+                final sessionService = StudySessionService();
+                await sessionService.init();
+                await sessionModel.endSession(sessionService);
+                if (mounted) setState(() {});
+                Navigator.of(context).pop(true);
+              } catch (e) {
+                print("Error ending session: $e");
+              }
             },
             child: Text(
               'End Session',

@@ -48,7 +48,17 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   void initState() {
     super.initState();
     _subscription = widget.uncompletedStream.listen((newItems) {
+      // Mark items checked as done as done
+      for (var item in newItems) {
+        if (item.isDone) {
+          widget.todoService.markTodoItemAsDone(
+            listId: widget.listId,
+            todoItemId: item.id,
+          );
+        }
+      }
       final sortedNewItems = _sortItems(newItems);
+
       _updateList(sortedNewItems);
     });
   }
