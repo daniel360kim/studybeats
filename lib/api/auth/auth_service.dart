@@ -11,12 +11,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logger/logger.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:uuid/uuid.dart';
-import 'urls.dart';
 
 class AuthService {
   final Logger _logger = getLogger('AuthService');
   final AnalyticsService _analyticsService = AnalyticsService();
-
+  final _pfpStorageRef = FirebaseStorage.instance.ref('brand');
   Future _createUserEmailPassword(String email, String password) async {
     try {
       _logger.i('Requesting account creation with email and password');
@@ -34,7 +33,7 @@ class AuthService {
     }
   }
 
-  Future _registerWithFirestore(String name, String imageURL) async {
+  Future _registerWithFirestore(String name, String? imageURL) async {
     try {
       _logger.i('Registering user with Firebase');
       return await FirebaseFirestore.instance
@@ -111,11 +110,12 @@ class AuthService {
     }
   }
 
+
   Future<void> signUp(String email, String password, String name) async {
     try {
       await _createUserEmailPassword(email, password);
       await _login(email, password);
-      await _registerWithFirestore(name, kDefaultProfilePicture);
+      await _registerWithFirestore(name, null);
       _logger.i('User registered succesfully');
     } catch (e) {
       rethrow;
@@ -224,7 +224,7 @@ class AuthService {
         _logger.w(
             'Profile photo request failed. Setting profile photo as default picture');
         await _analyticsService.logSignUp(SignupMethod.microsoft);
-        _registerWithFirestore(displayName, kDefaultProfilePicture);
+        _registerWithFirestore(displayName, null);
         return;
       }
       _logger.e('Microsoft sign in failed. $e');
@@ -241,7 +241,7 @@ class AuthService {
     }
   }
 
-  Future<String> getProfilePictureUrl() async {
+  Future<String?> getProfilePictureUrl() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {

@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
-import 'package:studybeats/api/auth/urls.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
@@ -118,18 +118,30 @@ class _ProfilePictureState extends State<ProfilePicture>
   void initState() {
     super.initState();
     _updateProStatus();
+    getProfilePictureUrl();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 5),
       vsync: this,
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(_controller);
+  }
 
-    // Fetch the profile image URL once during initialization
-    _authService.getProfilePictureUrl().then((url) {
+  void getProfilePictureUrl() async {
+    final profileUrl = await _authService.getProfilePictureUrl();
+    if (profileUrl == null) {
+      final storageRef =
+          FirebaseStorage.instance.ref().child('brand/abstract.png');
+      final url = await storageRef.getDownloadURL();
       setState(() {
         _profileImageUrl = url;
-        _loadingProfilePicture = false;
       });
+    } else {
+      setState(() {
+        _profileImageUrl = profileUrl;
+      });
+    }
+    setState(() {
+      _loadingProfilePicture = false;
     });
   }
 
@@ -153,11 +165,6 @@ class _ProfilePictureState extends State<ProfilePicture>
 
   Widget buildIconsMenu() {
     late final String pfpUrl;
-    if (_profileImageUrl == null) {
-      pfpUrl = kDefaultProfilePicture;
-    } else {
-      pfpUrl = _profileImageUrl!;
-    }
     return Column(
       children: [
         MouseRegion(
@@ -268,27 +275,47 @@ class _ProfilePictureState extends State<ProfilePicture>
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(30),
-                                child: CachedNetworkImage(
-                                  height: _iconSize,
-                                  width: _iconSize,
-                                  imageUrl: pfpUrl,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      Shimmer.fromColors(
-                                    baseColor: Colors.grey[300]!,
-                                    highlightColor: Colors.grey[100]!,
-                                    child: Container(
-                                      height: _iconSize,
-                                      width: _iconSize,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              child: _profileImageUrl == null
+                                  ? const Icon(
+                                      Icons.account_circle,
+                                      size: 50,
+                                      color: kFlourishAliceBlue,
+                                    )
+                                  : _profileImageUrl == null
+                                      ? const Icon(
+                                          Icons.account_circle,
+                                          size: 50,
+                                          color: kFlourishAliceBlue,
+                                        )
+                                      : ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(30),
+                                          child: CachedNetworkImage(
+                                            height: _iconSize,
+                                            width: _iconSize,
+                                            imageUrl: _profileImageUrl!,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) =>
+                                                Shimmer.fromColors(
+                                              baseColor: Colors.grey[300]!,
+                                              highlightColor: Colors.grey[100]!,
+                                              child: Container(
+                                                height: _iconSize,
+                                                width: _iconSize,
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    const Icon(
+                                              Icons.account_circle,
+                                              size: 50,
+                                              color: kFlourishAliceBlue,
+                                            ),
+                                          ),
+                                        ),
                             ),
                     );
                   },

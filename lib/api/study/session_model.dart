@@ -227,10 +227,10 @@ class StudySessionModel extends ChangeNotifier {
       ),
     );
 
-    for (var callback in _onSessionEndCallbacks) {
-      await callback();
-    }
     try {
+      for (var callback in _onSessionEndCallbacks) {
+        await callback();
+      }
       int numCompletedTodos = 0;
       final todoService = TodoService();
       await todoService.init();

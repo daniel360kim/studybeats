@@ -109,7 +109,15 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                 if (mounted) setState(() {});
                 Navigator.of(context).pop(true);
               } catch (e) {
-                print("Error ending session: $e");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                  content: Text(
+                    'Failed to end session: $e',
+                    style: GoogleFonts.inter(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.redAccent,
+                  ),
+                );
               }
             },
             child: Text(
