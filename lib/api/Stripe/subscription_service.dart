@@ -9,7 +9,6 @@ import 'package:studybeats/api/Stripe/stripe_service.dart';
 class StripeSubscriptionService extends StripeService {
   late final DocumentReference<Map<String, dynamic>> _document;
   StripeSubscriptionService() : super() {
-    
     _document =
         FirebaseFirestore.instance.collection('customers').doc(user!.uid);
   }
@@ -91,6 +90,7 @@ class StripeSubscriptionService extends StripeService {
         'price': price,
         'success_url': 'https://app.studybeats.co',
         'cancel_url': 'https://app.studybeats.co',
+        'allow_promotion_codes': true,
       });
 
       final Completer<String> completer = Completer<String>();
