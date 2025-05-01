@@ -66,9 +66,13 @@ class _CreateStudySessionPageState extends State<SessionPageController>
 
   final StudySessionService _studySessionService = StudySessionService();
 
+  bool _wasSessionActive = false;
+
   @override
   void initState() {
     super.initState();
+    final initialSession = context.read<StudySessionModel>().currentSession;
+    _wasSessionActive = initialSession != null;
     initService();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final sessionModel = context.read<StudySessionModel>();
@@ -109,22 +113,6 @@ class _CreateStudySessionPageState extends State<SessionPageController>
     );
 
     studySessionModel.startSession(newStudySession, _studySessionService);
-    studySessionModel.addOnSessionEndCallback(() async {
-      if (mounted) {
-        setState(() {
-          _completedSession = studySessionModel.currentSession;
-        });
-      }
-
-      // Wait until the new frame builds with the new page
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_pageController.hasClients &&
-            _pageController.positions.isNotEmpty) {
-          // Optional: you could also check the number of children in the PageView
-          _pageController.jumpToPage(4);
-        }
-      });
-    });
   }
 
   Widget _buildHeader() {
@@ -157,44 +145,53 @@ class _CreateStudySessionPageState extends State<SessionPageController>
           height: _currentPage == 1 || _currentPage == 2
               ? MediaQuery.of(context).size.height - 170
               : MediaQuery.of(context).size.height - 130,
-          child: // Inside SessionPageController build method:
-              PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (idx) {
-              setState(() {
-                _currentPage = idx;
-                if (idx == 0) {
-                  // Reset the key to force rebuild of home page
-                  _homeKey = UniqueKey();
-                }
-              });
-            },
-            children: [
-              StudySessionHomePage(
-                key: _homeKey,
-                onSessionStart: () {
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
+          child: Consumer<StudySessionModel>(
+            builder: (context, sessionModel, _) {
+              final isActive = sessionModel.currentSession != null;
+              if (_wasSessionActive && !isActive) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _pageController.jumpToPage(4);
+                });
+              }
+              _wasSessionActive = isActive;
+              return PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (idx) {
+                  setState(() {
+                    _currentPage = idx;
+                    if (idx == 0) {
+                      // Reset the key to force rebuild of home page
+                      _homeKey = UniqueKey();
+                    }
+                  });
                 },
-              ),
-              buildSessionNameTimeInputPage(),
-              buildTaskSelectionPage(),
-              // Wrap this with a Scaffold to allow BottomNavigationBar to anchor to bottom
-              CurrentSessionControls(),
-              if (_completedSession != null)
-                // Show session summary only if a session has been completed
-                SessionEndSummary(
-                  onClose: () {
-                    setState(() {
-                      _completedSession = null;
-                      _pageController.jumpToPage(0);
-                    });
-                  },
-                ),
-            ],
+                children: [
+                  StudySessionHomePage(
+                    key: _homeKey,
+                    onSessionStart: () {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                  ),
+                  buildSessionNameTimeInputPage(),
+                  buildTaskSelectionPage(),
+                  // Wrap this with a Scaffold to allow BottomNavigationBar to anchor to bottom
+                  CurrentSessionControls(),
+                  // Always show session summary as page 4
+                  SessionEndSummary(
+                    onClose: () {
+                      setState(() {
+                        _completedSession = null;
+                        _pageController.jumpToPage(0);
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ],

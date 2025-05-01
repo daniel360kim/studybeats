@@ -53,16 +53,6 @@ class StudySessionModel extends ChangeNotifier {
   StudySession? get endedSession => _endedSession;
 
   final _logger = getLogger('Focus Session Model');
-  final List<Future<void> Function()> _onSessionEndCallbacks = [];
-
-  void addOnSessionEndCallback(Future<void> Function() callback) {
-    _onSessionEndCallbacks.add(callback);
-  }
-
-  void removeOnSessionEndCallback(Future<void> Function() callback) {
-    _onSessionEndCallbacks.remove(callback);
-  }
-
   StudySessionModel();
 
   @override
@@ -228,9 +218,6 @@ class StudySessionModel extends ChangeNotifier {
     );
 
     try {
-      for (var callback in _onSessionEndCallbacks) {
-        await callback();
-      }
       int numCompletedTodos = 0;
       final todoService = TodoService();
       await todoService.init();

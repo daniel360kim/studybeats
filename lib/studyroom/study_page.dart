@@ -168,15 +168,6 @@ class _StudyRoomState extends State<StudyRoom> {
   Widget build(BuildContext context) {
     final sessionModel = context.watch<StudySessionModel>();
 
-    // Switch the tab description based on the session state.
-    sessionModel.addOnSessionEndCallback(() async {
-      await SystemChrome.setApplicationSwitcherDescription(
-        const ApplicationSwitcherDescription(
-          label: 'Studybeats',
-        ),
-      );
-    });
-
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
