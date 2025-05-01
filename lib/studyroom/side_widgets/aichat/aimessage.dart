@@ -57,7 +57,7 @@ class AiMessage extends StatelessWidget {
           height: 20,
           width: 20,
           child: CircleAvatar(
-            backgroundImage: CachedNetworkImageProvider(kBlankProfilePicture),
+            backgroundImage: AssetImage('assets/brand/logo.png'),
           ),
         );
       }

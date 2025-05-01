@@ -435,7 +435,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
               color: _isSelected ? kFlourishAdobe : kFlourishBlackish,
             ),
           ),
-          title: Row(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 width: 250,
@@ -449,7 +450,22 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 12),
+              if (widget.todoItem.description != null &&
+                  widget.todoItem.description!.isNotEmpty)
+                const SizedBox(height: 4),
+              if (widget.todoItem.description != null &&
+                  widget.todoItem.description!.isNotEmpty)
+                Text(
+                  widget.todoItem.description!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              const SizedBox(height: 6),
               if (widget.todoItem.dueDate != null) buildDeadlineDescription(),
             ],
           ),
