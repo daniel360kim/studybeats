@@ -154,7 +154,7 @@ class StripeSubscriptionService extends StripeService {
     try {
       final HttpsCallable functionRef = FirebaseFunctions.instance
           .httpsCallableFromUrl(
-              'https://us-west2-flourish-web-fa343.cloudfunctions.net/ext-firestore-stripe-payments-createPortalLink');
+              'https://us-west1-flourish-web-fa343.cloudfunctions.net/ext-firestore-stripe-payments-createPortalLink');
       final response = await functionRef.call(<String, dynamic>{
         'returnUrl': 'https://app.studybeats.co/account',
       });
