@@ -86,8 +86,6 @@ class _SubscriptionTabState extends State<SubscriptionTab> {
                 children: [
                   _buildDetail('Plan',
                       '${_subscriptionDetails!.interval[0].toUpperCase()}${_subscriptionDetails!.interval.substring(1)}ly'),
-                  _buildDetail('Next Payment',
-                      '\$${_subscriptionDetails!.unitPrice / 100}'),
                   _buildDetail('Next billing date',
                       _formatDate(_subscriptionDetails!.currentPeriodEnd)),
                   _buildDetail('Member since',

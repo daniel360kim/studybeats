@@ -321,7 +321,7 @@ class OpenaiService {
     }
     return chatMessages;
   }
-  
+
   Future<String> getAPIResponse(List<Map<String, dynamic>> messages) async {
     try {
       _logger.i('Starting request to OpenAI API');

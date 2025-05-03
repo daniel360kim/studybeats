@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
@@ -85,6 +86,10 @@ class _StudyRoomState extends State<StudyRoom> {
             _playlistId = null;
           });
           return;
+        }
+        final authService = AuthService();
+        if (authService.isUserLoggedIn()) {
+          await authService.logUserUsage();
         }
         final initialSceneIndex = await AuthService().getselectedSceneId();
         _logger.i('Initial scene index $initialSceneIndex');

@@ -15,7 +15,6 @@ import 'package:uuid/uuid.dart';
 class AuthService {
   final Logger _logger = getLogger('AuthService');
   final AnalyticsService _analyticsService = AnalyticsService();
-  final _pfpStorageRef = FirebaseStorage.instance.ref('brand');
   Future _createUserEmailPassword(String email, String password) async {
     try {
       _logger.i('Requesting account creation with email and password');
@@ -168,6 +167,35 @@ class AuthService {
       _logger.e('Google sign in failed. $e');
       rethrow;
     }
+  }
+
+  Future<UserMetadata> getUserMetadata() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return user.metadata;
+    } else {
+      _logger.e('Attempted to get user metadata while logged out');
+      throw Exception();
+    }
+  }
+
+  // Call this function to log the date time that the user last used the app
+  Future<void> logUserUsage() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .update({'lastUsed': DateTime.now()});
+      } else {
+        _logger.e('Attempted to log user usage while logged out');
+      }
+    } catch (e) {
+      _logger.e('Error while logging user usage $e');
+      rethrow;
+    }
+
   }
 
   Future<void> signUpInWithMicrosoft() async {
