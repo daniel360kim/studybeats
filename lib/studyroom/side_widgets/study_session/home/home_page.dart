@@ -48,14 +48,6 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
-          ElevatedButton(
-              onPressed: () async {
-                final injector = TestDataInjector(
-                  _studySessionService,
-                );
-                await injector.injectTestData();
-              },
-              child: const Text('Inject Test Data')),
           _buildStartSessionButton(),
           const SizedBox(height: 16),
           _buildStreakCard(),

@@ -235,6 +235,13 @@ class _TodoAdderState extends State<TodoAdder> {
     if (_creatingNewTask) {
       return CreateNewTaskInputs(
         onCreateTask: (newTask) async {
+          final newTaskRef = SessionTodoReference(
+            todoId: newTask.id,
+            todoListId: _selectedListId!,
+          );
+
+          _selectedTodoItems.add(newTaskRef);
+
           setState(() {
             if (_uncompletedTodoItems == null) {
               _uncompletedTodoItems = [newTask];
@@ -244,16 +251,6 @@ class _TodoAdderState extends State<TodoAdder> {
                 ..._uncompletedTodoItems!,
               ];
             }
-            final newTaskRef = SessionTodoReference(
-              todoId: newTask.id,
-              todoListId: _selectedListId!,
-            );
-
-            setState(() {
-              _selectedTodoItems.add(newTaskRef);
-              widget.onTodoItemToggled(_selectedTodoItems);
-            });
-
             _creatingNewTask = false;
           });
           try {
