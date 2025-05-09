@@ -1,7 +1,9 @@
 import 'dart:ui';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/audio/audio.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
@@ -304,30 +306,32 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   List<Widget> buildControlWidgets() {
     return [
-      StreamBuilder<PlayerState>(
-        stream: _audio.audioPlayer.playerStateStream,
-        builder: (context, snapshot) {
-          final playerState = snapshot.data;
-          final playing = playerState?.playing;
-          if (playing != null) {
-            return Controls(
-              onShuffle: () => _audio.shuffle(),
-              onPrevious: _previousSong,
-              onPlay: _audio.play,
-              onPause: _audio.pause,
-              onNext: _nextSong,
-              onFavorite: (value) {
-                _authService.isUserLoggedIn()
-                    ? _toggleFavorite(value)
-                    : context.goNamed(AppRoute.loginPage.name);
-              },
-              isPlaying: playing,
-              isFavorite: _isCurrentSongFavorite,
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        },
+      Center(
+        child: StreamBuilder<PlayerState>(
+          stream: _audio.audioPlayer.playerStateStream,
+          builder: (context, snapshot) {
+            final playerState = snapshot.data;
+            final playing = playerState?.playing;
+            if (playing != null) {
+              return Controls(
+                onShuffle: () => _audio.shuffle(),
+                onPrevious: _previousSong,
+                onPlay: _audio.play,
+                onPause: _audio.pause,
+                onNext: _nextSong,
+                onFavorite: (value) {
+                  _authService.isUserLoggedIn()
+                      ? _toggleFavorite(value)
+                      : context.goNamed(AppRoute.loginPage.name);
+                },
+                isPlaying: playing,
+                isFavorite: _isCurrentSongFavorite,
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          },
+        ),
       ),
       SongInfo(
         song: currentSongInfo,

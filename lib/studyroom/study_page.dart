@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
@@ -6,6 +8,7 @@ import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/app_state.dart';
+import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
@@ -16,6 +19,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/upgrade_dialogs.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:studybeats/studyroom/welcome_widget.dart';
 
 class StudyRoom extends StatefulWidget {
   const StudyRoom({this.openPricing = false, super.key});
@@ -48,14 +54,29 @@ class _StudyRoomState extends State<StudyRoom> {
   bool showLoginDialog = true;
   int loginDialogOffset = 0;
 
+  bool _showWelcomePopup = false;
+
   @override
   void initState() {
     super.initState();
     initScenes();
+    checkFirstVisit();
     if (widget.openPricing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showInitialUpgradeDialog();
       });
+    }
+  }
+
+  void checkFirstVisit() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasVisited = prefs.getBool('hasVisited') ?? false;
+
+    if (!hasVisited) {
+      setState(() {
+        _showWelcomePopup = true;
+      });
+      await prefs.setBool('hasVisited', true);
     }
   }
 
@@ -186,6 +207,9 @@ class _StudyRoomState extends State<StudyRoom> {
           children: [
             buildBackgroundImage(),
             if (sessionModel.isActive) StudySessionDialog(),
+            if (_showWelcomePopup)
+              WelcomePopup(
+                  onClose: () => setState(() => _showWelcomePopup = false)),
           ],
         ),
       ),
