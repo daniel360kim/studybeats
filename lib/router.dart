@@ -56,12 +56,12 @@ enum AppRoute {
 }
 
 GoRouter createRouter(BuildContext context) {
-  bool isTablet = GetPlatform.isTablet;
+  bool isMobile = GetPlatform.isMobile;
 
   Widget initialPage;
 
-  // Only show the mobile landing page if the user is on a tablet
-  if (isTablet) {
+  // Only show the mobile landing page if the user is on a phone or mobile device
+  if (isMobile) {
     initialPage = const MobileLandingPage();
   } else {
     initialPage = const StudyRoom();
