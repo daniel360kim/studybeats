@@ -1,19 +1,39 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+// functions/index.js
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+const admin = require("firebase-admin");
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Initialize Firebase Admin SDK.
+try {
+  if (admin.apps.length === 0) {
+    admin.initializeApp();
+  }
+} catch (e) {
+  console.warn("Firebase Admin SDK already initialized or error during initialization in index.js:", e.message);
+}
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
+// Import functions from mailchimpHooks.js
+const mailchimpRelatedFunctions = require('./mailchimpHooks');
+// Import functions from userManagementHooks.js
+const userManagementRelatedFunctions = require('./userManagementHooks');
+
+
+// --- Re-export functions from mailchimpHooks.js ---
+exports.initializeUserSettingsOnUserCreate = mailchimpRelatedFunctions.initializeUserSettingsOnUserCreate;
+exports.manageMailchimpFromNotificationSettingsChange = mailchimpRelatedFunctions.manageMailchimpFromNotificationSettingsChange;
+exports.cleanupUserOnDelete = mailchimpRelatedFunctions.cleanupUserOnDelete; // This is the Firestore onDocumentDeleted trigger
+exports.backfillDefaultNotificationSettings = mailchimpRelatedFunctions.backfillDefaultNotificationSettings;
+
+// --- Re-export functions from userManagementHooks.js ---
+exports.handleAuthUserDeletionV1 = userManagementRelatedFunctions.handleAuthUserDeletionV1; // This is the Auth onUserDeleted trigger
+
+
+// Example of another function directly in index.js (if you have any)
+// const { onRequest } = require("firebase-functions/v2/https");
+// const logger = require("firebase-functions/logger");
+//
+// exports.simpleHttpTest = onRequest((request, response) => {
+//   logger.info("Simple HTTP Test function called from index.js!");
+//   response.send("Hello from a simple function in index.js!");
 // });
+
+// Ensure all functions you intend to deploy are exported from this file.
