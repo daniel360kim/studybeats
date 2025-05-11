@@ -2,6 +2,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
+import 'package:studybeats/auth_pages/account/notifications_tab.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/router.dart';
 import 'package:universal_html/html.dart' as html;
@@ -56,7 +57,7 @@ class _AccountPageState extends State<AccountPage>
         context.goNamed(AppRoute.loginPage.name);
       }
     });
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadUserData();
     getMembershipStatus();
     updateProfilePictureUrl();
@@ -205,6 +206,7 @@ class _AccountPageState extends State<AccountPage>
       tabs: const [
         Tab(text: 'Subscription'),
         Tab(text: 'Profile'),
+        Tab(text: 'Notifications'),
         Tab(text: 'Help'),
       ],
     );
@@ -239,6 +241,7 @@ class _AccountPageState extends State<AccountPage>
                       });
                     },
                   ),
+                  NotificationsTab(),
                   const HelpTab(),
                 ],
               ),

@@ -5,13 +5,14 @@ const { onRequest } = require("firebase-functions/v2/https"); // For HTTP functi
 const admin = require("firebase-admin");
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 const logger = require("firebase-functions/logger");
-const {defineSecret, defineString} = require("firebase-functions/params");
+const { defineString, defineSecret } = require("firebase-functions/params");
 
 // --- Define Firebase Function Parameters ---
 const mailchimpAudienceIdParam = defineString("MAILCHIMP_AUDIENCE_ID");
 const mailchimpServerPrefixParam = defineString("MAILCHIMP_SERVER_PREFIX");
-const mailchimpApiKeyParam = defineSecret("MAILCHIMP_API_KEY"); // This is sensitive
-const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+const mailchimpApiKeyParam = defineSecret("MAILCHIMP_API_KEY");
+const backfillSecretKeyParam = defineSecret("BACKFILL_SECRET_KEY_SM");
+
 
 // Initialize Firebase Admin SDK
 try {
@@ -35,38 +36,82 @@ const TAG_MARKETING_EMAILS = "Marketing Emails";
 const TAG_PRODUCT_UPDATES = "Product Updates";
 const TAG_TODO_NOTIFICATIONS = "Todo Notifications";
 
+// --- Retry Logic Configuration ---
+const MAX_RETRIES = 3; // Max number of retries for Mailchimp API calls
+const INITIAL_BACKOFF_MS = 1000; // Initial wait time in milliseconds (1 second)
+
+/**
+ * Helper function to introduce a delay.
+ * @param {number} ms - Milliseconds to wait.
+ * @returns {Promise<void>}
+ */
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Helper function to execute an async Mailchimp API call with retry logic.
+ * @param {Function} apiCallFunction - An async function that performs the Mailchimp API call.
+ * @param {string} actionDescription - A description of the action for logging.
+ * @param {string} userEmail - The user email for logging context.
+ * @returns {Promise<any>} The result of the API call if successful.
+ * @throws Will re-throw the error if all retries fail or if it's a non-retryable error.
+ */
+async function executeMailchimpApiWithRetry(apiCallFunction, actionDescription, userEmail) {
+    let attempts = 0;
+    let currentBackoff = INITIAL_BACKOFF_MS;
+
+    while (attempts < MAX_RETRIES) {
+        attempts++;
+        try {
+            logger.info(`Attempt ${attempts} for Mailchimp action "${actionDescription}" for user ${userEmail}.`);
+            return await apiCallFunction(); // Attempt the API call
+        } catch (error) {
+            const status = error.status; // HTTP status code from Mailchimp error
+            const isRetryable = (status === 429) || (status >= 500 && status <= 599);
+
+            logger.warn(`Mailchimp action "${actionDescription}" for user ${userEmail} failed on attempt ${attempts} with status ${status}. Error: ${error.message}`, {
+                errorDetails: error.response?.body || error,
+            });
+
+            if (isRetryable && attempts < MAX_RETRIES) {
+                logger.info(`Retrying Mailchimp action "${actionDescription}" for ${userEmail} in ${currentBackoff}ms...`);
+                await delay(currentBackoff);
+                currentBackoff *= 2; // Exponential backoff
+            } else {
+                logger.error(`Mailchimp action "${actionDescription}" for ${userEmail} failed after ${attempts} attempts or with non-retryable error. Status: ${status}.`);
+                throw error; // Re-throw the error if max retries reached or error is not retryable
+            }
+        }
+    }
+}
+
+
 /**
  * Helper function to get an initialized Mailchimp API client.
  */
-async function getMailchimpClient() {
+function getMailchimpClient() {
     try {
-        const apiKey = isEmulator
-            ? process.env.MAILCHIMP_API_KEY // fallback for local development
-            :  mailchimpApiKeyParam.value(); // secure access for deployed env
-        
-        if (apiKey.length == 0) {
-            throw new Error("API key is empty.");
+        const apiKey = mailchimpApiKeyParam.value();
+        const serverPrefix = mailchimpServerPrefixParam.value();
+
+        if (process.env.FUNCTIONS_EMULATOR === 'true') {
+            logger.info("DEBUG: Mailchimp Parameters (Emulator):", {
+                serverPrefix: serverPrefix,
+                apiKeyIsPresent: !!apiKey,
+                apiKeyFirstChars: apiKey ? apiKey.substring(0, 4) + "..." : "NOT_SET",
+            });
         }
-
-        const serverPrefix = isEmulator ? process.env.MAILCHIMP_SERVER_PREFIX :  mailchimpServerPrefixParam.value();
-        const audienceId = isEmulator ? process.env.MAILCHIMP_AUDIENCE_ID : mailchimpAudienceIdParam.value();
-
-        logger.info("Mailchimp Parameters Loaded:", {
-            audienceId: audienceId,
-            serverPrefix: serverPrefix,
-            apiKeyIsPresent: !!apiKey,
-            apiKeyFirstChars: apiKey ? apiKey.substring(0, 4) + "..." : "NOT_SET",
-        });
 
         if (apiKey && serverPrefix) {
             mailchimp.setConfig({ apiKey: apiKey, server: serverPrefix });
             return mailchimp;
         } else {
-            logger.error("Missing API key or server prefix.");
+            logger.error("CRITICAL: Mailchimp API Key or Server Prefix parameter values are missing. Cannot configure Mailchimp client.");
             return null;
         }
     } catch (error) {
-        logger.error("Error retrieving Mailchimp parameters:", error);
+        logger.error("CRITICAL: Error accessing Mailchimp parameters (API Key/Server Prefix) in runtime.", error);
         return null;
     }
 }
@@ -90,7 +135,7 @@ async function syncUserToMailchimpWithTags(mcClient, mailchimpAudienceId, userEm
     if (settings.productUpdatesEnabled) activeTagNames.push(TAG_PRODUCT_UPDATES);
     if (settings.todoNotificationsEnabled) activeTagNames.push(TAG_TODO_NOTIFICATIONS);
 
-    const memberData = {
+    const memberDataForSet = {
         email_address: userEmail,
         status: overallStatus,
         tags: activeTagNames,
@@ -98,34 +143,58 @@ async function syncUserToMailchimpWithTags(mcClient, mailchimpAudienceId, userEm
 
     logger.info(`Attempting to set Mailchimp status for ${userEmail} to ${overallStatus} with active tags:`, activeTagNames);
     try {
-        await mcClient.lists.setListMember(mailchimpAudienceId, userEmail, memberData);
+        await executeMailchimpApiWithRetry(
+            async () => mcClient.lists.setListMember(mailchimpAudienceId, userEmail, memberDataForSet),
+            "setListMember (status & active tags)",
+            userEmail
+        );
         logger.info(`Successfully set Mailchimp status and active tags for ${userEmail}.`);
 
-        const tagsToDeactivate = [];
+        const tagsToManageStatus = [];
         if (previousSettings) {
             if (previousSettings.marketingEmailsEnabled && !settings.marketingEmailsEnabled) {
-                tagsToDeactivate.push({ name: TAG_MARKETING_EMAILS, status: "inactive" });
+                tagsToManageStatus.push({ name: TAG_MARKETING_EMAILS, status: "inactive" });
             }
             if (previousSettings.productUpdatesEnabled && !settings.productUpdatesEnabled) {
-                tagsToDeactivate.push({ name: TAG_PRODUCT_UPDATES, status: "inactive" });
+                tagsToManageStatus.push({ name: TAG_PRODUCT_UPDATES, status: "inactive" });
             }
             if (previousSettings.todoNotificationsEnabled && !settings.todoNotificationsEnabled) {
-                tagsToDeactivate.push({ name: TAG_TODO_NOTIFICATIONS, status: "inactive" });
+                tagsToManageStatus.push({ name: TAG_TODO_NOTIFICATIONS, status: "inactive" });
             }
         } else if (!isGenerallySubscribed) {
-            if (!settings.marketingEmailsEnabled) tagsToDeactivate.push({ name: TAG_MARKETING_EMAILS, status: "inactive" });
-            if (!settings.productUpdatesEnabled) tagsToDeactivate.push({ name: TAG_PRODUCT_UPDATES, status: "inactive" });
-            if (!settings.todoNotificationsEnabled) tagsToDeactivate.push({ name: TAG_TODO_NOTIFICATIONS, status: "inactive" });
+            if (!settings.marketingEmailsEnabled) tagsToManageStatus.push({ name: TAG_MARKETING_EMAILS, status: "inactive" });
+            if (!settings.productUpdatesEnabled) tagsToManageStatus.push({ name: TAG_PRODUCT_UPDATES, status: "inactive" });
+            if (!settings.todoNotificationsEnabled) tagsToManageStatus.push({ name: TAG_TODO_NOTIFICATIONS, status: "inactive" });
+        }
+        // Ensure active tags are explicitly set to active if they changed from inactive
+        if (settings.marketingEmailsEnabled && (!previousSettings || !previousSettings.marketingEmailsEnabled)) {
+             tagsToManageStatus.push({ name: TAG_MARKETING_EMAILS, status: "active" });
+        }
+        if (settings.productUpdatesEnabled && (!previousSettings || !previousSettings.productUpdatesEnabled)) {
+             tagsToManageStatus.push({ name: TAG_PRODUCT_UPDATES, status: "active" });
+        }
+        if (settings.todoNotificationsEnabled && (!previousSettings || !previousSettings.todoNotificationsEnabled)) {
+             tagsToManageStatus.push({ name: TAG_TODO_NOTIFICATIONS, status: "active" });
         }
 
-        if (tagsToDeactivate.length > 0) {
-            logger.info(`Attempting to deactivate tags for ${userEmail}:`, tagsToDeactivate.map(t => t.name));
-            await mcClient.lists.updateListMemberTags(mailchimpAudienceId, userEmail, { tags: tagsToDeactivate });
-            logger.info(`Successfully sent deactivation for tags for ${userEmail}.`);
+        const uniqueTagsToManage = tagsToManageStatus.filter((tag, index, self) =>
+            index === self.findIndex((t) => t.name === tag.name && t.status === tag.status)
+        );
+
+        if (uniqueTagsToManage.length > 0) {
+            logger.info(`Attempting to update specific tag statuses for ${userEmail}:`, uniqueTagsToManage);
+            await executeMailchimpApiWithRetry(
+                async () => mcClient.lists.updateListMemberTags(mailchimpAudienceId, userEmail, { tags: uniqueTagsToManage }),
+                "updateListMemberTags (specific tag statuses)",
+                userEmail
+            );
+            logger.info(`Successfully sent specific tag status updates for ${userEmail}.`);
         }
     } catch (error) {
+        // Error already logged by executeMailchimpApiWithRetry if all retries failed
+        // We log a final summary error here.
         const errorBody = error.response?.body ? JSON.stringify(error.response.body) : error.message;
-        logger.error(`Error setting Mailchimp member status/tags for ${userEmail}: Status ${error.status}, Body: ${errorBody}`);
+        logger.error(`Failed to fully sync Mailchimp member status/tags for ${userEmail} after retries: Status ${error.status}, Body: ${errorBody}`);
     }
 }
 
@@ -141,7 +210,7 @@ const initializeUserSettingsOnUserCreateFunction = onDocumentCreated(
         try {
             const settingsSnap = await settingsDocRef.get();
             if (settingsSnap.exists) {
-                logger.info(`Notification settings already exist for ${userEmail}.`);
+                logger.info(`Notification settings already exist for ${userEmail}. Will not overwrite.`);
                 return null;
             }
             await settingsDocRef.set(defaultNotificationSettings);
@@ -163,7 +232,7 @@ const manageMailchimpFromNotificationSettingsChangeFunction = onDocumentWritten(
         const userEmail = event.params.userEmail;
         const settingsDocRef = db.doc(`users/${userEmail}/notificationSettings/preferences`);
 
-        const mcClient = await getMailchimpClient(); // This will log params
+        const mcClient = getMailchimpClient();
         if (!mcClient) {
             logger.error(`Aborting for ${userEmail}: Mailchimp client init failed.`);
             return null;
@@ -219,7 +288,7 @@ const cleanupUserOnDeleteFunction = onDocumentDeleted(
         const userEmail = event.params.userEmail;
         logger.info(`User document users/${userEmail} deleted from Firestore. Processing Mailchimp unsubscription and settings cleanup.`);
 
-        const mcClient = await getMailchimpClient(); // This will log params
+        const mcClient = getMailchimpClient();
         if (!mcClient) {
             logger.error(`Aborting cleanup for ${userEmail}: Mailchimp client init failed.`);
             return null;
@@ -256,36 +325,48 @@ const cleanupUserOnDeleteFunction = onDocumentDeleted(
  * for those who don't have them. This will subsequently trigger Mailchimp sync.
  */
 const backfillDefaultNotificationSettingsFunction = onRequest(
-    { timeoutSeconds: 540, region: "us-central1" },
+    {
+        timeoutSeconds: 540,
+        region: "us-central1",
+        secrets: ["BACKFILL_SECRET_KEY_SM"],
+    },
     async (request, response) => {
         const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
-        // --- LOGGING PARAMETERS FOR HTTP FUNCTION (if needed, getMailchimpClient will also log) ---
-        // const mcClientForHttp = getMailchimpClient(); // This would log them
-        // if (!mcClientForHttp) {
-        //     response.status(500).send("Mailchimp client configuration error.");
-        //     return;
-        // }
-        // const audienceIdForHttp = mailchimpAudienceIdParam.value();
-        // logger.info("Backfill HTTP function: Params loaded", { audienceId: audienceIdForHttp });
-        // --- END LOGGING FOR HTTP FUNCTION ---
-
-
         logger.info(`backfillDefaultNotificationSettingsFunction triggered. Emulator mode: ${isEmulator}`);
-        if (!isEmulator && request.query.secret !== BACKFILL_SECRET_KEY) {
+
+        let actualBackfillSecretKeyValue;
+        if (isEmulator) {
+            actualBackfillSecretKeyValue = process.env.BACKFILL_SECRET_KEY_SM;
+        } else {
+            try {
+                actualBackfillSecretKeyValue = backfillSecretKeyParam.value();
+            } catch (e) {
+                logger.error("Failed to retrieve BACKFILL_SECRET_KEY_SM from Secret Manager:", e);
+                response.status(500).send("Server configuration error for backfill secret.");
+                return;
+            }
+        }
+
+        if (request.query.secret !== actualBackfillSecretKeyValue) {
              logger.warn("Unauthorized attempt to run backfillDefaultNotificationSettings. Aborting.", {
                 isEmulator: isEmulator,
                 providedSecret: request.query.secret,
              });
-             response.status(403).send("Unauthorized: This function is protected.");
+             response.status(403).send("Unauthorized: This function is protected. Provide the correct 'secret' query parameter.");
              return;
+        }
+        if (!actualBackfillSecretKeyValue) {
+            logger.error("CRITICAL: BACKFILL_SECRET_KEY_SM is not configured for the environment. Aborting.");
+            response.status(500).send("Server configuration error: Backfill secret not available.");
+            return;
         }
 
         logger.info("Authorization successful for backfill. Proceeding...");
         let usersProcessed = 0;
-        let settingsCreated = 0;
+        let settingsCreatedCount = 0;
         const batchSize = 200;
-        let batch = db.batch();
-        let operationsInBatch = 0;
+        let currentBatch = db.batch();
+        let operationsInCurrentBatch = 0;
 
         try {
             const usersSnapshot = await db.collection("users").get();
@@ -305,37 +386,37 @@ const backfillDefaultNotificationSettingsFunction = onRequest(
                 try {
                     const settingsSnap = await settingsDocRef.get();
                     if (!settingsSnap.exists) {
-                        logger.info(`User ${userEmail} is missing notification settings during backfill. Preparing to create defaults.`);
-                        batch.set(settingsDocRef, defaultNotificationSettings);
-                        operationsInBatch++;
-                        settingsCreated++;
+                        logger.info(`User ${userEmail} is missing notification settings during backfill. Adding to batch to create defaults.`);
+                        currentBatch.set(settingsDocRef, defaultNotificationSettings);
+                        operationsInCurrentBatch++;
+                        settingsCreatedCount++;
 
-                        if (operationsInBatch >= batchSize) {
-                            logger.info(`Committing batch of ${operationsInBatch} settings creations during backfill...`);
-                            await batch.commit();
-                            batch = db.batch();
-                            operationsInBatch = 0;
+                        if (operationsInCurrentBatch >= batchSize) {
+                            logger.info(`Committing batch of ${operationsInCurrentBatch} settings creations during backfill...`);
+                            await currentBatch.commit();
+                            currentBatch = db.batch();
+                            operationsInCurrentBatch = 0;
                             logger.info("Backfill batch committed. Continuing...");
                         }
                     }
-                } catch (userError) {
-                    logger.error(`Error processing user ${userEmail} during backfill:`, userError);
+                } catch (userProcessingError) {
+                    logger.error(`Error processing user ${userEmail} during backfill check/batching:`, userProcessingError);
                 }
             }
 
-            if (operationsInBatch > 0) {
-                logger.info(`Committing final batch of ${operationsInBatch} settings creations during backfill...`);
-                await batch.commit();
+            if (operationsInCurrentBatch > 0) {
+                logger.info(`Committing final batch of ${operationsInCurrentBatch} settings creations during backfill...`);
+                await currentBatch.commit();
                 logger.info("Final backfill batch committed.");
             }
 
-            const message = `Backfill completed. Processed ${usersProcessed} users. Created/initialized default notification settings for ${settingsCreated} users. These creations will trigger Mailchimp sync.`;
+            const message = `Backfill completed. Processed ${usersProcessed} users. Created default notification settings for ${settingsCreatedCount} users. Each creation will trigger Mailchimp sync.`;
             logger.info(message);
             response.status(200).send(message);
 
         } catch (error) {
-            logger.error("Error during backfillDefaultNotificationSettingsFunction:", error);
-            response.status(500).send("An error occurred during backfill. Check logs.");
+            logger.error("Error during backfillDefaultNotificationSettingsFunction execution:", error);
+            response.status(500).send("An error occurred during backfill. Check Cloud Function logs.");
         }
     }
 );
