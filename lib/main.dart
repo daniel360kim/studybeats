@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:studybeats/api/spotify/spotify_auth_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/app.dart';
 import 'package:studybeats/app_state.dart';
@@ -39,6 +40,8 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (context) => ApplicationState()),
           ChangeNotifierProvider(create: (context) => PlaylistNotifier()),
           ChangeNotifierProvider(create: (context) => StudySessionModel()),
+           ChangeNotifierProvider(create: (_) => SpotifyAuthService())
+
         ],
         child: const Studybeats(),
       ),

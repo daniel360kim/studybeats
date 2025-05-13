@@ -7,6 +7,7 @@ import 'package:studybeats/auth_pages/signup/create_password.dart';
 import 'package:studybeats/auth_pages/signup/forgot_password.dart';
 import 'package:studybeats/auth_pages/signup/name_page.dart';
 import 'package:studybeats/auth_pages/signup/signup_page.dart';
+import 'package:studybeats/auth_pages/spotify_auth.dart';
 import 'package:studybeats/landing/error_page.dart';
 import 'package:studybeats/landing/mobile_landing_page.dart';
 import 'package:studybeats/studyroom/study_page.dart';
@@ -53,6 +54,7 @@ enum AppRoute {
   forgotPassword,
   accountPage,
   getPro,
+  spotifyLoginPage,
 }
 
 GoRouter createRouter(BuildContext context) {
@@ -149,7 +151,6 @@ GoRouter createRouter(BuildContext context) {
           },
         ),
       ),
-   
       GoRoute(
         path: '/create-password',
         name: AppRoute.createPasswordPage.name,
@@ -207,6 +208,34 @@ GoRouter createRouter(BuildContext context) {
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/spotify-login-test', // Choose a path
+        name: AppRoute.spotifyLoginPage.name,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          name: AppRoute.spotifyLoginPage.name,
+          key: state.pageKey,
+          child: const SpotifyLoginPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+      GoRoute(
+        path:
+            '/spotify_callback', // Route for handling the redirect from Spotify
+        builder: (BuildContext context, GoRouterState state) {
+          // Extract parameters from the URL query string passed by Spotify
+          final code = state.uri.queryParameters['code'];
+          final stateParam = state.uri.queryParameters['state'];
+          final error = state.uri.queryParameters['error'];
+          // Pass parameters to the dedicated callback screen widget
+          return SpotifyCallbackScreen(
+            code: code,
+            state: stateParam,
+            error: error,
           );
         },
       ),

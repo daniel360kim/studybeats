@@ -424,7 +424,7 @@ class _AiChatState extends State<AiChat> {
           ),
         ),
       ),
-    );
+    ); 
   }
 
   void _handleKeyEvent(KeyEvent event) {

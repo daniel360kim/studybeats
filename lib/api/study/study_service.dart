@@ -90,7 +90,7 @@ class StudySessionService {
         );
       }
       await updateSession(session);
-      await _updateTotalStatistics(session, session.numCompletedTasks);
+      _updateTotalStatistics(session, session.numCompletedTasks);
     } catch (e, s) {
       _logger.e('Failed to end study session: $e $s');
       rethrow;

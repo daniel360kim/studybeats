@@ -111,11 +111,11 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                  content: Text(
-                    'Failed to end session: $e',
-                    style: GoogleFonts.inter(color: Colors.white),
-                  ),
-                  backgroundColor: Colors.redAccent,
+                    content: Text(
+                      'Failed to end session: $e',
+                      style: GoogleFonts.inter(color: Colors.white),
+                    ),
+                    backgroundColor: Colors.redAccent,
                   ),
                 );
               }
@@ -435,9 +435,11 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                   Text(
                     _formatDuration(
                       sessionModel.accumulatedStudyDuration +
-                          (sessionModel.currentPhase == SessionPhase.studyTime
+                          (sessionModel.currentPhase ==
+                                      SessionPhase.studyTime &&
+                                  sessionModel.startTime != null
                               ? DateTime.now()
-                                  .difference(sessionModel.startTime)
+                                  .difference(sessionModel.startTime!)
                               : Duration.zero),
                     ),
                     style: GoogleFonts.inter(
@@ -479,9 +481,11 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                   Text(
                     _formatDuration(
                       sessionModel.accumulatedBreakDuration +
-                          (sessionModel.currentPhase == SessionPhase.breakTime
+                          (sessionModel.currentPhase ==
+                                      SessionPhase.breakTime &&
+                                  sessionModel.startTime != null
                               ? DateTime.now()
-                                  .difference(sessionModel.startTime)
+                                  .difference(sessionModel.startTime!)
                               : Duration.zero),
                     ),
                     style: GoogleFonts.inter(

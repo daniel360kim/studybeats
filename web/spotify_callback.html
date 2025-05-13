@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spotify Auth Callback</title>
+  <script type="text/javascript">
+    window.onload = function() {
+      // Parse parameters from the URL query string
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      const error = params.get('error');
+
+      // Determine the target window (either the window that opened this popup or the parent frame)
+      let targetWindow = window.opener || window.parent;
+
+      // Check if a target window exists and if its origin matches this window's origin
+      // This is a security measure to prevent sending data to unintended windows/origins
+      if (targetWindow && targetWindow.location.origin === window.location.origin) {
+        // Construct the message object to send back to the main Flutter app
+        const message = {
+          type: 'spotifyAuthCallback', // Identifier for the message type
+          code: code,
+          state: state,
+          error: error,
+          sourceUrl: window.location.href // Send the full callback URL for easier parsing in Dart if needed
+        };
+
+        // Send the message to the target window (your Flutter app)
+        // The second argument specifies the target origin for security
+        targetWindow.postMessage(message, window.location.origin);
+
+      } else {
+        // Log an error if the target window cannot be reached securely
+        console.error("Security Error: Could not post message back to opener/parent window. Origins must match or window reference is missing.");
+        // Display an error message to the user in this callback window as feedback
+        document.body.innerHTML = '<p style="font-family: sans-serif; padding: 20px;">Error: Could not return to the application automatically. Please close this window and try logging in again.</p>';
+      }
+
+      // Optional: Automatically close this window/tab after a short delay
+      // This is often desired if the login flow opened a popup window.
+      // You might want to remove or adjust the delay based on user experience testing.
+      // setTimeout(() => { window.close(); }, 500); // Close after 0.5 seconds
+    };
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      text-align: center;
+      background-color: #f4f4f4;
+    }
+    p {
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <p>Processing Spotify login... Please wait.</p>
+  <p>You can close this window if it doesn't close automatically.</p>
+</body>
+</html>

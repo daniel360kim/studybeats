@@ -10,6 +10,9 @@ import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/playlist_controls.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/songinfo.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/volume.dart';
+
+import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/audio_source_switcher.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/audio_source_type.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/background_sounds.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/equalizer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
@@ -45,6 +48,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   bool _showQueue = false;
   bool _showEqualizer = false;
   bool _showBackgroundSound = false;
+  bool _showAudioSource = false;
 
   bool _isCurrentSongFavorite = false;
   final _authService = AuthService();
@@ -87,6 +91,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       _showQueue = false;
       _showEqualizer = false;
       _showBackgroundSound = false;
+      _showAudioSource = false;
     });
     _iconControlsKey.currentState!.closeAll();
   }
@@ -148,7 +153,10 @@ class PlayerWidgetState extends State<PlayerWidget>
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                if (_showQueue || _showEqualizer || _showBackgroundSound)
+                if (_showQueue ||
+                    _showEqualizer ||
+                    _showBackgroundSound ||
+                    _showAudioSource)
                   const Spacer(),
                 _showQueue
                     ? Align(
@@ -198,6 +206,20 @@ class PlayerWidgetState extends State<PlayerWidget>
                                 ),
                               );
                             }),
+                      )
+                    : const SizedBox.shrink(),
+                _showAudioSource
+                    ? Align(
+                        alignment: Alignment.bottomRight,
+                        child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {},
+                            child: AudioSourceSwitcher(
+                              initialAudioSource: AudioSourceType.spotify,
+                              onAudioSourceChanged: (source) {
+                                // Handle audio source change
+                              },
+                            )),
                       )
                     : const SizedBox.shrink(),
                 Visibility(
@@ -343,12 +365,12 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
       IconControls(
         key: _iconControlsKey,
-        onListPressed: (enabled) {
+        onAudioSourcePressed: (enabled) {
           setState(() {
-            // Uncomment if list functionality is needed.
-            //_showQueue = enabled;
+            _showAudioSource = enabled;
           });
         },
+        onListPressed: (enabled) {},
         onEqualizerPressed: (enabled) {
           setState(() {
             _showEqualizer = enabled;
