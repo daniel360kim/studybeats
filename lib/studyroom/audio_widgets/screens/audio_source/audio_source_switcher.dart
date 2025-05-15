@@ -163,29 +163,15 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
           _currentView = _SwitcherView.selection;
           _selectedPlaylistForTracksView = null;
           _currentlyPlayingUri = null;
-          // Search/filter state removed
         });
         widget.onAudioSourceChanged(source);
       }
     } else if (source == AudioSourceType.spotify) {
       setState(() {
         _selectedSource = source;
-        widget.onAudioSourceChanged(source);
       });
-
-      if (_authService.isAuthenticated) {
-        _logger.i(
-            "Spotify selected and authenticated. Fetching playlists (if needed).");
-        if (_userPlaylists != null) {
-          setState(() => _currentView = _SwitcherView.spotifyPlaylists);
-        } else {
-          _fetchUserPlaylists();
-        }
-      } else {
-        _logger.i("Spotify selected but not authenticated. Initiating login.");
-        _setLoading(true, message: 'Redirecting to Spotify for login...');
-        _authService.login();
-      }
+      widget.onAudioSourceChanged(source);
+      // No automatic view switch or playlist fetch here.
     }
   }
 
@@ -348,14 +334,16 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
     }
   }
 
-  // --- Playback ---
+  /// Attempts to start playback of the given track URI using the Spotify
+  /// REST API endpoint.
   Future<void> _startPlayback(String trackUri) async {
-    _logger.i("Attempting to play track: $trackUri");
+    _logger.i('Attempting to play track: $trackUri');
     if (!_authService.isAuthenticated || _authService.accessToken == null) {
-      _logger.e("Cannot start playback: Not authenticated or no access token.");
+      _logger
+          .e('Cannot start playback: user not authenticated or token missing.');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Spotify authentication error. Please login again."),
+          content: Text('Spotify authentication error. Please login again.'),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -364,51 +352,52 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Sending play command..."),
-        duration: Duration(seconds: 1),
-        backgroundColor: Colors.grey[600],
+        content: const Text('Sending play command…'),
+        duration: const Duration(seconds: 1),
+        backgroundColor: Colors.grey,
       ));
     }
 
     try {
-      String result = await _apiService.playItems(
+      _logger.i('Sending play command via REST /play endpoint.');
+      final result = await _apiService.playItems(
         _authService.accessToken!,
         trackUris: [trackUri],
       );
 
       if (mounted) {
-        if (result == "SUCCESS") {
-          _logger.i("Playback command successful for $trackUri");
+        if (result == 'SUCCESS') {
+          _logger.i('Playback command successful for $trackUri');
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Playback started on active device."),
+            content: Text('Playback started on active device.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ));
-        } else if (result == "PREMIUM_REQUIRED") {
-          _logger.w("Playback command failed for $trackUri: Premium Required.");
+        } else if (result == 'PREMIUM_REQUIRED') {
+          _logger.w(
+              'Playback failed – premium required for $trackUri (status=$result)');
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Spotify Premium is required to control playback."),
+            content: Text('Spotify Premium is required to control playback.'),
             backgroundColor: Colors.orangeAccent,
             duration: Duration(seconds: 3),
           ));
           setState(() => _currentlyPlayingUri = null);
         } else {
-          _logger
-              .w("Playback command failed for $trackUri with status: $result");
+          _logger.w('Playback failed for $trackUri (status=$result)');
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content:
-                Text("Could not start playback. Ensure Spotify is active."),
+                Text('Could not start playback. Ensure Spotify is active.'),
             backgroundColor: Colors.orangeAccent,
           ));
           setState(() => _currentlyPlayingUri = null);
         }
       }
     } catch (e, stacktrace) {
-      _logger.e("Exception during playback attempt: $e",
+      _logger.e('Exception during playback attempt: $e',
           error: e, stackTrace: stacktrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("An error occurred while trying to play."),
+          content: Text('An error occurred while trying to start playback.'),
           backgroundColor: Colors.redAccent,
         ));
         setState(() => _currentlyPlayingUri = null);
@@ -425,28 +414,18 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         "Build Selection View. Selected: $_selectedSource, Auth: $isSpotifyAuthenticated");
 
     return Padding(
-      // Added padding around the selection content
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch, // Make cards stretch
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header Row
+          // More prominent heading
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Audio Source',
+            Text('Choose your audio source',
                 style: GoogleFonts.inter(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                     color: kFlourishBlackish)),
             Row(children: [
-              if (isSpotifyAuthenticated)
-                Tooltip(
-                    message: "Logout Spotify",
-                    child: IconButton(
-                        icon: Icon(Icons.logout,
-                            color: Colors.redAccent.withOpacity(0.8)),
-                        onPressed: _logoutSpotify,
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints())),
               if (widget.onClose != null)
                 IconButton(
                     icon: Icon(Icons.close,
@@ -455,7 +434,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
                     tooltip: 'Close Panel'),
             ]),
           ]),
-          const SizedBox(height: 20), // Adjusted spacing
+          const SizedBox(height: 28),
 
           // Lofi Radio Card
           _buildSourceCard(
@@ -464,33 +443,123 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
             sourceType: AudioSourceType.lofi,
             isSelected: _selectedSource == AudioSourceType.lofi,
             onTap: () => _selectSource(AudioSourceType.lofi),
+            isSpotifyAuthenticated: isSpotifyAuthenticated,
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 18),
 
-          // Spotify Card
-          _buildSourceCard(
-            title: 'Spotify',
-            iconWidget: CircleAvatar(
-              // Custom icon for Spotify
-              radius: 18, // Slightly larger icon
-              backgroundColor: isSpotifyAuthenticated
-                  ? Colors.green.shade600
-                  : Colors.orangeAccent.shade700,
-              child: Icon(
-                isSpotifyAuthenticated ? Icons.music_note : Icons.login,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            subtitle: isSpotifyAuthenticated ? "Connected" : "Login required",
-            subtitleColor: isSpotifyAuthenticated
-                ? Colors.green.shade700
-                : Colors.orangeAccent.shade700,
-            sourceType: AudioSourceType.spotify,
-            isSelected: _selectedSource == AudioSourceType.spotify,
-            onTap: () => _selectSource(AudioSourceType.spotify),
-          ),
-          const Spacer(), // Pushes content to top if there's extra space
+          // Spotify Card (with tooltip/mini-dialog if not authenticated)
+          Builder(builder: (context) {
+            return _buildSourceCard(
+              title: 'Spotify',
+              iconWidget: !isSpotifyAuthenticated
+                  ? Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF1DB954), // Spotify green
+                          width: 2.5,
+                        ),
+                        color: Colors.white,
+                      ),
+                      child: Center(
+                        child: Image.asset(
+                          'assets/brand/spotify.png',
+                          width: 20,
+                          height: 20,
+                        ),
+                      ),
+                    )
+                  : CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.green.shade600,
+                      child: Image.asset(
+                        'assets/brand/spotify.png',
+                        width: 20,
+                        height: 20,
+                      ),
+                    ),
+              subtitle: isSpotifyAuthenticated
+                  ? GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {
+                        setState(() {
+                          _currentView = _SwitcherView.spotifyPlaylists;
+                        });
+                        if (_userPlaylists == null) {
+                          _fetchUserPlaylists();
+                        }
+                      },
+                      child: Text(
+                        "🎧 View your playlists",
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.green.shade700,
+                          decorationColor: Colors.green.shade700,
+                        ),
+                      ),
+                    )
+                  : "Tap to connect",
+              subtitleColor: isSpotifyAuthenticated
+                  ? Colors.green.shade700
+                  : const Color(0xFF1DB954).withOpacity(0.85),
+              sourceType: AudioSourceType.spotify,
+              isSelected: _selectedSource == AudioSourceType.spotify,
+              onTap: () {
+                if (!isSpotifyAuthenticated) {
+                  // Show tooltip/mini-dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.green[700]),
+                          SizedBox(width: 8),
+                          Text("Spotify Login Required",
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      content: Text(
+                        "Spotify login is required to view and play your playlists.",
+                        style: GoogleFonts.inter(),
+                      ),
+                      actions: [
+                        TextButton(
+                          child: Text("Cancel",
+                              style:
+                                  GoogleFonts.inter(color: Colors.grey[700])),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1DB954),
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text("Connect Spotify",
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600)),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _selectSource(AudioSourceType.spotify);
+                            _setLoading(true,
+                                message: 'Redirecting to Spotify for login...');
+                            _authService.login();
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  _selectSource(AudioSourceType.spotify);
+                }
+              },
+              showRipple: true,
+              isSpotifyAuthenticated: isSpotifyAuthenticated,
+            );
+          }),
+          const Spacer(),
         ],
       ),
     );
@@ -501,70 +570,129 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
     required String title,
     IconData? iconData,
     Widget? iconWidget,
-    String? subtitle,
+    dynamic subtitle,
     Color? subtitleColor,
     required AudioSourceType sourceType,
     required bool isSelected,
     required VoidCallback onTap,
+    bool showRipple = false,
+    bool isSpotifyAuthenticated = false,
   }) {
-    return Card(
-      elevation: isSelected ? 6.0 : 2.0,
-      shape: RoundedRectangleBorder(
+    // Themed gradients for cards
+    final Gradient? cardGradient = sourceType == AudioSourceType.spotify
+        ? LinearGradient(
+            colors: [
+              const Color(0xFF1DB954).withOpacity(0.13),
+              Colors.white.withOpacity(0.92)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : LinearGradient(
+            colors: [
+              Colors.blue.shade100.withOpacity(0.19),
+              Colors.white.withOpacity(0.92)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.0),
-        side: BorderSide(
+        gradient: cardGradient,
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withOpacity(0.17),
+                  blurRadius: 13,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : [],
+        border: Border.all(
           color: isSelected
-              ? Theme.of(context).primaryColor
+              ? (sourceType == AudioSourceType.spotify
+                  ? const Color(0xFF1DB954)
+                  : Theme.of(context).primaryColor)
               : Colors.grey.shade300,
           width: isSelected ? 2.0 : 1.0,
         ),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 20.0, vertical: 24.0), // Increased padding
-          child: Row(
-            children: [
-              if (iconWidget != null)
-                iconWidget
-              else if (iconData != null)
-                Icon(iconData,
-                    size: 30,
-                    color: isSelected
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey.shade700),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600, // Bolder title
-                        color: kFlourishBlackish,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: subtitleColor ?? Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12.0),
+          splashColor: Theme.of(context).primaryColor.withOpacity(0.14),
+          highlightColor: Theme.of(context).primaryColor.withOpacity(0.09),
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 140),
+            scale: isSelected ? 1.025 : 1.0,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 18.0),
+              child: Row(
+                children: [
+                  if (iconWidget != null)
+                    iconWidget
+                  else if (iconData != null)
+                    Icon(iconData,
+                        size: 32,
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey.shade700),
+                  const SizedBox(width: 22),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: kFlourishBlackish,
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 5),
+                          (subtitle is Widget)
+                              ? subtitle
+                              : Text(
+                                  subtitle,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: subtitleColor ??
+                                        (sourceType == AudioSourceType.spotify
+                                            ? const Color(0xFF1DB954)
+                                                .withOpacity(0.85)
+                                            : Colors.blueGrey.shade400),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (sourceType == AudioSourceType.spotify &&
+                      isSpotifyAuthenticated)
+                    IconButton(
+                      icon:
+                          Icon(Icons.logout, color: Colors.redAccent, size: 20),
+                      onPressed: _logoutSpotify,
+                      tooltip: "Logout Spotify",
+                    ),
+                  if (isSelected)
+                    Icon(Icons.check_circle,
+                        color: sourceType == AudioSourceType.spotify
+                            ? const Color(0xFF1DB954)
+                            : Theme.of(context).primaryColor,
+                        size: 27),
+                ],
               ),
-              if (isSelected)
-                Icon(Icons.check_circle,
-                    color: Theme.of(context).primaryColor, size: 24),
-            ],
+            ),
           ),
         ),
       ),
@@ -585,7 +713,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         // Header
         Padding(
           // Added padding to header row
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Row(children: [
             IconButton(
                 icon: Icon(Icons.arrow_back_ios,
@@ -698,7 +826,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         // Header
         Padding(
           // Added padding to header row
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Row(children: [
             IconButton(
                 icon: Icon(Icons.arrow_back_ios,
@@ -818,7 +946,9 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(
+              color: kFlourishAdobe,
+            ),
             const SizedBox(height: 20),
             Text(_loadingMessage,
                 textAlign: TextAlign.center,
