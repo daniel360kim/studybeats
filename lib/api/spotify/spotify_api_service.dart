@@ -1,4 +1,5 @@
 /// Service class for making authenticated calls to the Spotify Web API endpoints.
+library;
 import 'dart:convert'; // For jsonDecode
 import 'package:http/http.dart' as http;
 import 'package:studybeats/log_printer.dart'; // For making HTTP requests // Adjust import path as needed
@@ -55,7 +56,7 @@ class SpotifyApiService {
           _logger.e("Unsupported HTTP method: $method");
           throw Exception("Unsupported HTTP method: $method");
       }
-      _logger.d("Response from $method $url: ${response.statusCode}, Body: ${response.body.length < 200 ? response.body : response.body.substring(0, 200) + "..."}");
+      _logger.d("Response from $method $url: ${response.statusCode}, Body: ${response.body.length < 200 ? response.body : "${response.body.substring(0, 200)}..."}");
       return response;
     } catch (e, stackTrace) {
       _logger.e('Network or HTTP exception during $method request to $url: $e', error: e, stackTrace: stackTrace);

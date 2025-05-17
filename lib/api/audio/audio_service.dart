@@ -75,9 +75,9 @@ class AudioService {
             'Playlist info num songs does not match the number of metadata elements found.');
       }
 
-      // Map each metadata object to a SongMetadata object.
-      List<SongMetadata> sources = metadataList
-          .map((metadata) => SongMetadata.fromJson(metadata))
+      // Map each metadata object to a LofiSongMetadata object.
+      List<LofiSongMetadata> sources = metadataList
+          .map((metadata) => LofiSongMetadata.fromJson(metadata))
           .toList();
 
       // Create audio sources for each song concurrently.

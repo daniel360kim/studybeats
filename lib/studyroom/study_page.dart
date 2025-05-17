@@ -1,14 +1,10 @@
-import 'dart:async';
-import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/app_state.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
@@ -20,7 +16,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/upgrade_dialogs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/studyroom/welcome_widget.dart';
 
 class StudyRoom extends StatefulWidget {

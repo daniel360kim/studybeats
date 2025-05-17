@@ -3,12 +3,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/router.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
-import 'package:studybeats/auth_pages/unknown_error.dart';
 
 class WelcomePopup extends StatefulWidget {
   final VoidCallback onClose;
@@ -38,8 +35,8 @@ class _WelcomePopupState extends State<WelcomePopup> {
   ];
 
   final _authService = AuthService();
-  bool _loading = false;
-  bool _error = false;
+  final bool _loading = false;
+  final bool _error = false;
 
   late Timer _timer;
   late String _currentMessage;

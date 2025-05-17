@@ -1,6 +1,7 @@
 /// Handles the Spotify OAuth 2.0 Authorization Code Flow with PKCE
 /// for user authentication in a Flutter Web context.
 /// Manages the access token state (in-memory for this simple version).
+library;
 
 import 'dart:async';
 import 'dart:convert';

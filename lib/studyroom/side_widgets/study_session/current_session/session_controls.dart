@@ -436,10 +436,9 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                     _formatDuration(
                       sessionModel.accumulatedStudyDuration +
                           (sessionModel.currentPhase ==
-                                      SessionPhase.studyTime &&
-                                  sessionModel.startTime != null
+                                      SessionPhase.studyTime
                               ? DateTime.now()
-                                  .difference(sessionModel.startTime!)
+                                  .difference(sessionModel.startTime)
                               : Duration.zero),
                     ),
                     style: GoogleFonts.inter(
@@ -482,10 +481,9 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                     _formatDuration(
                       sessionModel.accumulatedBreakDuration +
                           (sessionModel.currentPhase ==
-                                      SessionPhase.breakTime &&
-                                  sessionModel.startTime != null
+                                      SessionPhase.breakTime
                               ? DateTime.now()
-                                  .difference(sessionModel.startTime!)
+                                  .difference(sessionModel.startTime)
                               : Duration.zero),
                     ),
                     style: GoogleFonts.inter(

@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:json_annotation/json_annotation.dart';
 
-SongMetadata _$SongMetadataFromJson(Map<String, dynamic> json) {
-  return SongMetadata(
+LofiSongMetadata _$SongMetadataFromJson(Map<String, dynamic> json) {
+  return LofiSongMetadata(
     artistName: json['artistName'] as String,
     collectionName: json['collectionName'] as String,
     trackName: json['trackName'] as String,
@@ -17,7 +17,7 @@ SongMetadata _$SongMetadataFromJson(Map<String, dynamic> json) {
   );
 }
 
-Map<String, dynamic> _$SongMetadataToJson(SongMetadata instance) =>
+Map<String, dynamic> _$SongMetadataToJson(LofiSongMetadata instance) =>
     <String, dynamic>{
       'artistName': instance.artistName,
       'collectionName': instance.collectionName,
@@ -32,7 +32,7 @@ Map<String, dynamic> _$SongMetadataToJson(SongMetadata instance) =>
     };
 
 @JsonSerializable()
-class SongMetadata {
+class LofiSongMetadata {
   final String artistName;
   final String collectionName;
   final String trackName;
@@ -44,7 +44,7 @@ class SongMetadata {
   final String waveformPath;
   final String songPath;
 
-  SongMetadata({
+  LofiSongMetadata({
     required this.artistName,
     required this.collectionName,
     required this.trackName,
@@ -57,12 +57,11 @@ class SongMetadata {
     required this.songPath,
   });
 
-  factory SongMetadata.fromJson(Map<String, dynamic> json) =>
+  factory LofiSongMetadata.fromJson(Map<String, dynamic> json) =>
       _$SongMetadataFromJson(json);
 
   Map<String, dynamic> toJson() => _$SongMetadataToJson(this);
 }
-
 
 WaveformMetadata _$WaveformMetadataFromJson(Map<String, dynamic> json) {
   return WaveformMetadata(
@@ -86,7 +85,6 @@ class WaveformMetadata {
   factory WaveformMetadata.fromJson(Map<String, dynamic> json) =>
       _$WaveformMetadataFromJson(json);
 }
-
 
 Playlist _$PlaylistFromJson(Map<String, dynamic> json) {
   return Playlist(

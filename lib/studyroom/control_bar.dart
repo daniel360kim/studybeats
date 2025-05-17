@@ -5,14 +5,15 @@ import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/studyroom/audio/audio.dart';
+import 'package:studybeats/studyroom/audio/audio_state.dart';
+import 'package:studybeats/studyroom/audio/display_track_info.dart';
+import 'package:studybeats/studyroom/audio/lofi_controller.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/playlist_controls.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/songinfo.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/volume.dart';
 
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/audio_source_switcher.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/audio_source_type.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/background_sounds.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/equalizer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
@@ -38,10 +39,10 @@ class PlayerWidget extends StatefulWidget {
 
 class PlayerWidgetState extends State<PlayerWidget>
     with WidgetsBindingObserver {
-  late final Audio _audio;
-  SongMetadata? currentSongInfo;
-  List<SongMetadata> songQueue = [];
-  List<SongMetadata> songOrder = [];
+  late final LofiAudioController _audio;
+  DisplayTrackInfo? currentSongInfo;
+  List<DisplayTrackInfo> songQueue = [];
+  List<DisplayTrackInfo> songOrder = [];
   final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
 
   bool verticalLayout = false;
@@ -60,7 +61,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   @override
   void initState() {
     super.initState();
-    _audio = Audio(
+    _audio = LofiAudioController(
       playlistId: widget.playlistId,
       onError: _showError,
     );
@@ -158,6 +159,7 @@ class PlayerWidgetState extends State<PlayerWidget>
                     _showBackgroundSound ||
                     _showAudioSource)
                   const Spacer(),
+                /*
                 _showQueue
                     ? Align(
                         alignment: Alignment.bottomRight,
@@ -167,13 +169,13 @@ class PlayerWidgetState extends State<PlayerWidget>
                           child: SongQueue(
                             songOrder: _audio.audioPlayer.sequence!
                                     .map((audioSource) =>
-                                        audioSource.tag as SongMetadata)
+                                        audioSource.tag as LofiSongMetadata)
                                     .toList()
                                     .isEmpty
                                 ? null
                                 : _audio.audioPlayer.sequence!
                                     .map((audioSource) =>
-                                        audioSource.tag as SongMetadata)
+                                        audioSource.tag as LofiSongMetadata)
                                     .toList(),
                             currentSong: currentSongInfo,
                             queue: songQueue.isEmpty ? null : songQueue,
@@ -187,6 +189,8 @@ class PlayerWidgetState extends State<PlayerWidget>
                         ),
                       )
                     : const SizedBox.shrink(),
+                    */
+                    /*
                 _showEqualizer
                     ? Align(
                         alignment: Alignment.bottomRight,
@@ -208,6 +212,7 @@ class PlayerWidgetState extends State<PlayerWidget>
                             }),
                       )
                     : const SizedBox.shrink(),
+                    */
                 _showAudioSource
                     ? Align(
                         alignment: Alignment.bottomRight,
@@ -357,7 +362,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
       SongInfo(
         song: currentSongInfo,
-        positionData: _audio.positionDataStream,
+        positionStream: _audio.positionDataStream,
         onSeekRequested: (newPosition) => _audio.seek(newPosition),
       ),
       VolumeSlider(
@@ -397,22 +402,19 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   void _nextSong() async {
-    setState(() {
-      currentSongInfo = _audio.getNextSongInfo();
-    });
     try {
-      await _audio.nextSong();
+      await _audio.next();
+      updateSong();
     } catch (e) {
       // Handle error as needed.
     }
   }
 
   void _previousSong() async {
-    setState(() {
-      currentSongInfo = _audio.getPreviousSongInfo();
-    });
+
     try {
-      await _audio.previousSong();
+      await _audio.previous();
+      updateSong();
     } catch (e) {
       // Handle error as needed.
     }

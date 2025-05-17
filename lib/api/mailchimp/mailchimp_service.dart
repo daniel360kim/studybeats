@@ -88,14 +88,14 @@ class NotificationSettingsService {
     }
 
     try {
-      _logger.i("Fetching notification settings for user: ${_currentUserEmail}");
+      _logger.i("Fetching notification settings for user: $_currentUserEmail");
       final snapshot = await docRef.get();
       if (snapshot.exists) {
         final settings = NotificationSettings.fromFirestore(snapshot);
         _logger.i("Fetched settings: ${settings.toString()}");
         return settings;
       } else {
-        _logger.i("Settings document does not exist for user: ${_currentUserEmail}. Returning client-side defaults. Firestore document will be created on next save.");
+        _logger.i("Settings document does not exist for user: $_currentUserEmail. Returning client-side defaults. Firestore document will be created on next save.");
         // The document will be created with defaults when a preference is first changed and saved.
         return NotificationSettings(); // All true by default
       }
@@ -116,7 +116,7 @@ class NotificationSettingsService {
     }
 
     try {
-      _logger.i("Setting notification settings for user ${_currentUserEmail}: ${settings.toString()}");
+      _logger.i("Setting notification settings for user $_currentUserEmail: ${settings.toString()}");
       // Using set with merge:true will create the document if it doesn't exist,
       // or update/merge if it does.
       await docRef.set(settings.toFirestore(), SetOptions(merge: true));
@@ -143,7 +143,7 @@ class NotificationSettingsService {
     }
 
     try {
-      _logger.i("Updating preference '$fieldName' to $isEnabled for user ${_currentUserEmail}");
+      _logger.i("Updating preference '$fieldName' to $isEnabled for user $_currentUserEmail");
       // Use set with merge:true to ensure the document is created if it doesn't exist.
       // This is safer than 'update' which would fail if the doc or field isn't there.
       await docRef.set({fieldName: isEnabled}, SetOptions(merge: true));

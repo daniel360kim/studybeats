@@ -18,9 +18,9 @@ class SongQueue extends StatefulWidget {
     required this.onSongSelected,
   });
 
-  final SongMetadata? currentSong;
-  final List<SongMetadata>? queue;
-  final List<SongMetadata>? songOrder;
+  final LofiSongMetadata? currentSong;
+  final List<LofiSongMetadata>? queue;
+  final List<LofiSongMetadata>? songOrder;
   final ValueChanged<int> onSongSelected;
 
   @override
@@ -186,7 +186,7 @@ class _SongQueueState extends State<SongQueue> {
 class QueueSongItem extends StatefulWidget {
   const QueueSongItem({required this.song, required this.onPressed, super.key});
 
-  final SongMetadata? song;
+  final LofiSongMetadata? song;
   final VoidCallback onPressed;
 
   @override

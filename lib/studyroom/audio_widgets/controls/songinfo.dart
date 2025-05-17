@@ -1,4 +1,4 @@
-import 'package:studybeats/api/audio/objects.dart';
+import 'package:studybeats/studyroom/audio/display_track_info.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,13 +8,13 @@ import 'package:marquee/marquee.dart'; // Add this package to your pubspec.yaml
 class SongInfo extends StatefulWidget {
   const SongInfo({
     required this.song,
-    required this.positionData,
+    required this.positionStream,
     required this.onSeekRequested,
     super.key,
   });
 
-  final SongMetadata? song;
-  final Stream<PositionData> positionData;
+  final DisplayTrackInfo? song;
+  final Stream<PositionData> positionStream;
   final ValueChanged<Duration> onSeekRequested;
 
   @override
@@ -59,7 +59,7 @@ class _SongInfoState extends State<SongInfo> {
                   ],
                 ),
                 child: StreamBuilder<PositionData>(
-                    stream: widget.positionData,
+                    stream: widget.positionStream,
                     builder: (context, snapshot) {
                       final positionData = snapshot.data;
                       final position = positionData?.position ?? Duration.zero;

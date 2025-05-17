@@ -24,7 +24,7 @@ class EqualizerControls extends StatefulWidget {
     required this.onSpeedChange,
   });
 
-  final SongMetadata? song;
+  final LofiSongMetadata? song;
   final Duration elapsedDuration;
   final ValueChanged<double> onSpeedChange;
 
@@ -83,6 +83,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
   String getUpscaledImage(String artworkUrl100) {
     return artworkUrl100.replaceAll('100x100', '500x500');
   }
+
   Widget buildHeader() {
     return Container(
       width: 500,

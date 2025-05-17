@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/audio_source_type.dart'; // Assuming kFlourishBlackish is here
+import 'package:studybeats/studyroom/audio/audio_state.dart';
 
 /// A reusable tile widget for selecting an audio source, now with subtitle support.
 class SourceOptionTile extends StatelessWidget {

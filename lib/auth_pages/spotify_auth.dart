@@ -1,11 +1,11 @@
 /// A simple page/widget for testing the Spotify login flow and displaying user profile.
+library;
 
-import 'dart:convert'; // Only needed if using _fetchSimpleUserProfile directly here
+// Only needed if using _fetchSimpleUserProfile directly here
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:http/http.dart' as http;
 import 'package:studybeats/api/spotify/spotify_api_service.dart';
 import 'package:studybeats/api/spotify/spotify_auth_service.dart';
 import 'package:studybeats/router.dart'; // Only needed if using _fetchSimpleUserProfile directly here

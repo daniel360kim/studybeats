@@ -33,7 +33,7 @@ class _SessionSettingsState extends State<SessionSettings> {
   List<TimerFxData> _timerFxList = [];
   TimerFxData? _selectedTimerFx;
   bool _enableTimerSound = true;
-  bool _loopSession = true; // New state variable for looping sessions
+  final bool _loopSession = true; // New state variable for looping sessions
 
   bool _error = false;
 

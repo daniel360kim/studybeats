@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show required; // For @required if needed, though often implicit
+// For @required if needed, though often implicit
 
 /// Data model for a simplified Spotify Playlist representation.
 class SpotifyPlaylistSimple {

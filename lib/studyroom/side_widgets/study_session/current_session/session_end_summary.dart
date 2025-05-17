@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/session_model.dart';
-import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/colors.dart';
 
 class SessionEndSummary extends StatefulWidget {
@@ -18,7 +17,7 @@ class SessionEndSummary extends StatefulWidget {
 }
 
 class _SessionEndSummaryState extends State<SessionEndSummary> {
-  bool _showTasksList = false;
+  final bool _showTasksList = false;
 
   @override
   Widget build(BuildContext context) {

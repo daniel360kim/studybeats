@@ -50,11 +50,11 @@ class Controls extends StatelessWidget {
       required this.isFavorite,
       super.key});
 
-  final VoidCallback onShuffle;
-  final VoidCallback onPrevious;
-  final VoidCallback onPlay;
-  final VoidCallback onPause;
-  final VoidCallback onNext;
+  final void Function() onShuffle;
+  final void Function() onPrevious;
+  final void Function() onPlay;
+  final void Function() onPause;
+  final void Function() onNext;
   final ValueChanged<bool> onFavorite;
   final bool isFavorite;
   final bool isPlaying;

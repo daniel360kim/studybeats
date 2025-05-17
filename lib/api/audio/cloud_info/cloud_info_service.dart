@@ -4,6 +4,7 @@ import 'package:studybeats/api/audio/cloud_info/objects.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/studyroom/audio/display_track_info.dart';
 
 ///
 /// audioLists (collection)
@@ -37,7 +38,7 @@ class SongCloudInfoService {
   }
 
   Future<void> markSongFavorite(
-      int playlistId, SongMetadata song, bool isFavorite) async {
+      int playlistId, DisplayTrackInfo song, bool isFavorite) async {
     try {
       if (!_authService.isUserLoggedIn()) {
         _logger.w('User is not logged in, ignoring request');
@@ -56,7 +57,7 @@ class SongCloudInfoService {
       final songRef = _audioCollection
           .doc(playlist.id.toString())
           .collection('songs')
-          .doc(song.id.toString());
+          .doc(song.trackName.toString());
 
       // Check if the song document exists
       final docSnapshot = await songRef.get();
@@ -84,7 +85,7 @@ class SongCloudInfoService {
     }
   }
 
-  Future<bool> isSongFavorite(int playlistId, SongMetadata song) async {
+  Future<bool> isSongFavorite(int playlistId, DisplayTrackInfo song) async {
     try {
       _logger.i(
           'Checking if song ${song.trackName} from playlist id $playlistId is a favorite');
@@ -96,7 +97,7 @@ class SongCloudInfoService {
       final songDoc = await _audioCollection
           .doc(playlist.id.toString())
           .collection('songs')
-          .doc(song.id.toString())
+          .doc(song.trackName.toString())
           .get();
       if (songDoc.exists) {
         final songCloudInfo = SongCloudInfo.fromJson(songDoc.data()!);
@@ -114,7 +115,7 @@ class SongCloudInfoService {
   /// Adds [timePlayed] to the song's time played in the cloud
   /// If the song does not exist in the cloud, it will be added
   Future<void> updateSongDuration(
-      int playlistId, SongMetadata song, Duration timePlayed) async {
+      int playlistId, LofiSongMetadata song, Duration timePlayed) async {
     try {
       if (!_authService.isUserLoggedIn()) {
         _logger.w('User is not logged in, ignoring request');
@@ -242,7 +243,7 @@ class SongCloudInfoService {
   }
 
   Future<bool> _doesSongReferenceExist(
-      Playlist playlist, SongMetadata song) async {
+      Playlist playlist, LofiSongMetadata song) async {
     try {
       _logger.i('Checking if song reference exists for ${song.trackName}');
       final songDoc = await _audioCollection

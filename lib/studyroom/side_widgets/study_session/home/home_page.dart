@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/study_service.dart';
@@ -291,7 +289,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                 ),
               ),
               Text(
-                '${_formatTime(dailyAverageStudy)}',
+                _formatTime(dailyAverageStudy),
                 style: GoogleFonts.inter(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
@@ -409,7 +407,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
         ),
         const SizedBox(height: 2),
         Text(
-          '${_formatTime(time)}',
+          _formatTime(time),
           style: GoogleFonts.inter(
             fontSize: 12,
             color: Colors.black,
