@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:studybeats/api/spotify/spotify_api_service.dart';
 import 'package:studybeats/api/spotify/spotify_auth_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
@@ -13,7 +12,6 @@ import 'package:studybeats/secrets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:studybeats/studyroom/audio/audio_controller.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio/lofi_controller.dart';
 import 'package:studybeats/studyroom/audio/spotify_controller.dart';
@@ -48,15 +46,7 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (context) => StudySessionModel()),
           ChangeNotifierProvider(create: (_) => SpotifyAuthService()),
           ChangeNotifierProvider(create: (_) => AudioSourceSelectionProvider()),
-          ChangeNotifierProvider(
-            create: (context) => SpotifyPlaybackProvider(
-              authService: Provider.of<SpotifyAuthService>(context,
-                  listen: false), // Crucial: get it from context
-              apiService:
-                  SpotifyApiService(), // Instantiate or get from provider
-            ),
-          ),
-         
+          
         ],
         child: const Studybeats(),
       ),

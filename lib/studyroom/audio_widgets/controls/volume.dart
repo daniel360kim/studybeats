@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class VolumeSlider extends StatefulWidget {
   const VolumeSlider({required this.volumeChanged, super.key});
 
-  final ValueChanged volumeChanged;
+  final Function volumeChanged;
 
   @override
   State<VolumeSlider> createState() => _VolumeSliderState();

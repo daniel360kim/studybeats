@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:ui'; // For ImageFilter.blur
+import 'dart:async'; // StreamSubscription
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-// Project-specific imports
-import 'package:studybeats/api/spotify/spotify_api_service.dart';
 import 'package:studybeats/api/spotify/spotify_auth_service.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/audio/audio_state.dart'; // ⬅️  enum + provider
+import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
 import 'package:studybeats/studyroom/audio/spotify_controller.dart';
 
@@ -27,19 +26,21 @@ enum _SwitcherView {
   spotifyError,
 }
 
-// Tracks the last failed async action for the retry button
+// Tracks the last failed async action
 enum _LastFailedAction { none, fetchPlaylists, fetchTracks }
 
 class AudioSourceSwitcher extends StatefulWidget {
   final AudioSourceType initialAudioSource;
   final ValueChanged<AudioSourceType> onAudioSourceChanged;
   final VoidCallback? onClose;
+  final SpotifyPlaybackController spotifyController;
 
   const AudioSourceSwitcher({
     super.key,
     required this.initialAudioSource,
     required this.onAudioSourceChanged,
     this.onClose,
+    required this.spotifyController,
   });
 
   @override
@@ -49,9 +50,7 @@ class AudioSourceSwitcher extends StatefulWidget {
 class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   _SwitcherView _currentView = _SwitcherView.selection;
 
-  // Spotify data
-  List<SpotifyPlaylistSimple>? _userPlaylists;
-  final Map<String, List<SpotifyTrackSimple>> _playlistTracksCache = {};
+  // Spotify state
   SpotifyPlaylistSimple? _selectedPlaylistForTracksView;
 
   // Loading & error state
@@ -62,23 +61,28 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
 
   // Services & logger
   late SpotifyAuthService _authService; // set in didChangeDependencies
-  final SpotifyApiService _apiService = SpotifyApiService();
   final _logger = getLogger('AudioSourceSwitcher');
 
-  // Minimal toast overlay
-  OverlayEntry? _toastOverlay;
+  // Local player-display subscription
+  SpotifyPlayerDisplayState _spotifyPlayerDisplayState =
+      SpotifyPlayerDisplayState.initial();
+  StreamSubscription? _spotifyDisplayStateSubscription;
 
   @override
   void initState() {
     super.initState();
 
-    // Seed the global selection provider with the initial source
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context
           .read<AudioSourceSelectionProvider>()
           .setSource(widget.initialAudioSource);
-      _logger
-          .i('initState: Initial source = ${widget.initialAudioSource.name}');
+    });
+
+    _spotifyDisplayStateSubscription =
+        widget.spotifyController.displayStateStream.listen((newState) {
+      if (mounted) {
+        setState(() => _spotifyPlayerDisplayState = newState);
+      }
     });
   }
 
@@ -90,12 +94,12 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
 
   @override
   void dispose() {
-    _toastOverlay?.remove();
+    _spotifyDisplayStateSubscription?.cancel();
     super.dispose();
   }
 
   // ---------------------------------------------------------------------------
-  //  Small helpers
+  //  Helpers
   // ---------------------------------------------------------------------------
 
   void setStateIfMounted(VoidCallback fn) {
@@ -103,9 +107,8 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   }
 
   void _setLoading(bool loading, {String message = 'Loading...'}) {
-    if (!mounted || (_isLoading == loading && _loadingMessage == message)) {
+    if (!mounted || (_isLoading == loading && _loadingMessage == message))
       return;
-    }
     setStateIfMounted(() {
       _isLoading = loading;
       if (loading) {
@@ -132,8 +135,6 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
       {bool clearSelection = false, bool keepUserPlaylists = false}) {
     if (!mounted) return;
     setStateIfMounted(() {
-      if (!keepUserPlaylists) _userPlaylists = null;
-      _playlistTracksCache.clear();
       _selectedPlaylistForTracksView = null;
       _spotifyErrorMsg = '';
       _isLoading = false;
@@ -152,95 +153,61 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   }
 
   // ---------------------------------------------------------------------------
-  //  Provider-backed playback actions
+  //  Controller-backed actions
   // ---------------------------------------------------------------------------
 
   Future<void> _startPlayback(String trackUri) async {
-    final playbackProvider = context.read<SpotifyPlaybackProvider>();
-    playbackProvider.playTrack(
+    widget.spotifyController.playTrack(
       trackUri,
       contextTracks: _selectedPlaylistForTracksView != null
-          ? _playlistTracksCache[_selectedPlaylistForTracksView!.id]
+          ? widget.spotifyController
+              .getCachedPlaylistTracks(_selectedPlaylistForTracksView!.id)
           : null,
     );
   }
 
-  void _toggleSdkPlayerPlayback() {
-    context.read<SpotifyPlaybackProvider>().togglePlayPause();
-  }
+  void _toggleSdkPlayerPlayback() => widget.spotifyController.togglePlayPause();
 
-  void _handleRetryPlayerConnection() {
-    context.read<SpotifyPlaybackProvider>().initializePlayer();
-  }
+  void _handleRetryPlayerConnection() =>
+      widget.spotifyController.initializePlayer();
 
   void _onAuthSuccess() {
-    context.read<SpotifyPlaybackProvider>().initializePlayer();
+    widget.spotifyController.initializePlayer();
     _fetchUserPlaylists();
   }
 
   void _logoutSpotify() {
-    context.read<SpotifyPlaybackProvider>().disposePlayer();
+    widget.spotifyController.disposePlayer();
     _authService.logout();
   }
 
   // ---------------------------------------------------------------------------
-  //  Audio source selection
-  // ---------------------------------------------------------------------------
-
-  void _selectSource(AudioSourceType source) {
-    _logger.i('Source selected: $source');
-
-    final selectionProvider = context.read<AudioSourceSelectionProvider>();
-    final current = selectionProvider.currentSource;
-
-    if (source == AudioSourceType.lofi) {
-      if (current != source || _currentView != _SwitcherView.selection) {
-        selectionProvider.setSource(source);
-        setStateIfMounted(() {
-          _currentView = _SwitcherView.selection;
-          _selectedPlaylistForTracksView = null;
-        });
-        widget.onAudioSourceChanged(source);
-      }
-    } else if (source == AudioSourceType.spotify) {
-      if (current != source) selectionProvider.setSource(source);
-      widget.onAudioSourceChanged(source);
-
-      if (_authService.isAuthenticated && _authService.accessToken != null) {
-        _handleRetryPlayerConnection();
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  //  Spotify API helpers
+  //  Spotify library helpers
   // ---------------------------------------------------------------------------
 
   Future<void> _fetchUserPlaylists({bool forceRefresh = false}) async {
-    if (!_authService.isAuthenticated || _authService.accessToken == null) {
+    if (!(_authService.isAuthenticated && _authService.accessToken != null)) {
       _setError('Authentication error. Please login again.',
           _LastFailedAction.fetchPlaylists);
       return;
     }
-    if (_userPlaylists != null && !forceRefresh) {
+
+    if (widget.spotifyController.cachedUserPlaylists != null && !forceRefresh) {
       setStateIfMounted(() => _currentView = _SwitcherView.spotifyPlaylists);
       return;
     }
+
     _setLoading(true, message: 'Loading your playlists...');
-    try {
-      final data = await _apiService.getUserPlaylists(
-        _authService.accessToken!,
-        limit: 50,
-      );
-      if (!mounted) return;
-      final items = (data?['items'] ?? []) as List<dynamic>;
-      _userPlaylists = items.map((e) => _parsePlaylist(e)).toList();
+    final playlists = await widget.spotifyController
+        .fetchUserPlaylists(forceRefresh: forceRefresh);
+    if (!mounted) return;
+
+    if (playlists != null) {
       setStateIfMounted(() {
         _isLoading = false;
         _currentView = _SwitcherView.spotifyPlaylists;
       });
-    } catch (e, st) {
-      _logger.e('fetchUserPlaylists error', error: e, stackTrace: st);
+    } else {
       _setError(
           'Could not load your playlists.', _LastFailedAction.fetchPlaylists);
     }
@@ -250,77 +217,39 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
     SpotifyPlaylistSimple playlist, {
     bool forceRefresh = false,
   }) async {
-    if (!_authService.isAuthenticated || _authService.accessToken == null) {
+    if (!(_authService.isAuthenticated && _authService.accessToken != null)) {
       _setError('Authentication error fetching tracks.',
           _LastFailedAction.fetchTracks);
       return;
     }
     _selectedPlaylistForTracksView = playlist;
-    if (_playlistTracksCache.containsKey(playlist.id) && !forceRefresh) {
+
+    if (widget.spotifyController.getCachedPlaylistTracks(playlist.id) != null &&
+        !forceRefresh) {
       setStateIfMounted(
           () => _currentView = _SwitcherView.spotifyPlaylistTracks);
       return;
     }
+
     _setLoading(true, message: 'Loading tracks for "${playlist.name}"...');
-    try {
-      final data = await _apiService.getPlaylistTracks(
-        _authService.accessToken!,
-        playlist.id,
-        limit: 100,
-      );
-      if (!mounted) return;
-      final items = (data?['items'] ?? []) as List<dynamic>;
-      final tracks = items
-          .map((e) => _parseTrack(e))
-          .whereType<SpotifyTrackSimple>()
-          .toList();
-      _playlistTracksCache[playlist.id] = tracks;
+    final tracks = await widget.spotifyController.fetchPlaylistTracks(
+      playlist.id,
+      forceRefresh: forceRefresh,
+    );
+    if (!mounted) return;
+
+    if (tracks != null) {
       setStateIfMounted(() {
+        // Pre‑load queue so Next/Previous work even before first tap.
+        widget.spotifyController
+            .setQueue(tracks, startIndex: 0); // default to first track
         _isLoading = false;
         _currentView = _SwitcherView.spotifyPlaylistTracks;
       });
-    } catch (e, st) {
-      _logger.e('fetchPlaylistTracks error', error: e, stackTrace: st);
+    } else {
       _setError('Could not load tracks for "${playlist.name}".',
           _LastFailedAction.fetchTracks);
     }
-  }
-
-  SpotifyPlaylistSimple _parsePlaylist(Map<String, dynamic> item) {
-    return SpotifyPlaylistSimple(
-      id: item['id'] ?? '',
-      name: item['name'] ?? 'Unknown Playlist',
-      imageUrl: (item['images'] as List?)?.isNotEmpty == true
-          ? item['images'][0]['url']
-          : null,
-      totalTracks: item['tracks']?['total'] ?? 0,
-    );
-  }
-
-  SpotifyTrackSimple? _parseTrack(Map<String, dynamic> item) {
-    final track = item['track'];
-    if (track == null ||
-        track['id'] == null ||
-        track['uri'] == null ||
-        track['is_local'] == true) return null;
-
-    final artists = (track['artists'] as List<dynamic>?)
-            ?.map((a) => a['name'] as String)
-            .join(', ') ??
-        'Unknown Artist';
-    final imageUrl = (track['album']?['images'] as List?)?.isNotEmpty == true
-        ? track['album']['images'][0]['url']
-        : null;
-
-    return SpotifyTrackSimple(
-      id: track['id'],
-      name: track['name'] ?? 'Unknown Track',
-      artists: artists,
-      albumName: track['album']?['name'],
-      albumImageUrl: imageUrl,
-      uri: track['uri'],
-      durationMs: track['duration_ms'] ?? 0,
-    );
   }
 
   void _retryLastAction() {
@@ -348,7 +277,34 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   }
 
   // ---------------------------------------------------------------------------
-  //  UI actions
+  //  Audio source selection
+  // ---------------------------------------------------------------------------
+
+  void _selectSource(AudioSourceType source) {
+    final selectionProvider = context.read<AudioSourceSelectionProvider>();
+    final current = selectionProvider.currentSource;
+
+    if (source == AudioSourceType.lofi) {
+      if (current != source || _currentView != _SwitcherView.selection) {
+        selectionProvider.setSource(source);
+        setStateIfMounted(() {
+          _currentView = _SwitcherView.selection;
+          _selectedPlaylistForTracksView = null;
+        });
+        widget.onAudioSourceChanged(source);
+      }
+    } else if (source == AudioSourceType.spotify) {
+      if (current != source) selectionProvider.setSource(source);
+      widget.onAudioSourceChanged(source);
+
+      if (_authService.isAuthenticated) {
+        _handleRetryPlayerConnection();
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  //  UI taps
   // ---------------------------------------------------------------------------
 
   void _handleSpotifyLoginTap() {
@@ -399,18 +355,19 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   }
 
   void _handleViewPlaylistsTap() {
-    final playback = context.read<SpotifyPlaybackProvider>();
+    final display = _spotifyPlayerDisplayState;
 
-    if (playback.playerStatus == PlayerConnectionStatus.connected ||
-        _userPlaylists != null) {
+    if (display.playerStatus == PlayerConnectionStatus.connected ||
+        widget.spotifyController.cachedUserPlaylists != null) {
       setStateIfMounted(() => _currentView = _SwitcherView.spotifyPlaylists);
-      if (_userPlaylists == null) _fetchUserPlaylists();
-    } else if (playback.playerStatus == PlayerConnectionStatus.error ||
-        playback.playerStatus == PlayerConnectionStatus.disconnected) {
+      if (widget.spotifyController.cachedUserPlaylists == null) {
+        _fetchUserPlaylists();
+      }
+    } else if (display.playerStatus == PlayerConnectionStatus.error ||
+        display.playerStatus == PlayerConnectionStatus.disconnected) {
       _handleRetryPlayerConnection();
-    } else if (playback.playerStatus == PlayerConnectionStatus.none &&
-        _authService.isAuthenticated &&
-        _authService.accessToken != null) {
+    } else if (display.playerStatus == PlayerConnectionStatus.none &&
+        _authService.isAuthenticated) {
       _handleRetryPlayerConnection();
     }
   }
@@ -425,7 +382,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         topLeft: Radius.circular(40), topRight: Radius.circular(40));
 
     return Consumer<SpotifyAuthService>(
-      builder: (context, authService, child) {
+      builder: (context, authService, _) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
 
@@ -483,7 +440,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   }
 
   Widget _buildCurrentView(SpotifyAuthService auth) {
-    final playback = context.watch<SpotifyPlaybackProvider>();
+    final display = _spotifyPlayerDisplayState;
     final selectedSource =
         context.watch<AudioSourceSelectionProvider>().currentSource;
 
@@ -512,29 +469,29 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
           selectedSource: selectedSource,
           isSpotifyAuthenticated: auth.isAuthenticated,
           isSpotifyPlayerConnecting:
-              playback.playerStatus == PlayerConnectionStatus.connecting,
+              display.playerStatus == PlayerConnectionStatus.connecting,
           isSpotifyPlayerConnected:
-              playback.playerStatus == PlayerConnectionStatus.connected,
+              display.playerStatus == PlayerConnectionStatus.connected,
           isSpotifyPlayerDisconnected:
-              playback.playerStatus == PlayerConnectionStatus.disconnected,
+              display.playerStatus == PlayerConnectionStatus.disconnected,
           isSpotifyPlayerError:
-              playback.playerStatus == PlayerConnectionStatus.error,
-          spotifyPlayerErrorMessage: playback.playerConnectionErrorMsg,
+              display.playerStatus == PlayerConnectionStatus.error,
+          spotifyPlayerErrorMessage: display.errorMessage,
           onClosePanel: widget.onClose,
           onSelectSource: _selectSource,
           onSpotifyLoginTap: _handleSpotifyLoginTap,
           onSpotifyLogout: _logoutSpotify,
           onViewPlaylistsTap: _handleViewPlaylistsTap,
           onRetryPlayerConnection: _handleRetryPlayerConnection,
-          currentPlayingTrack: playback.currentSpotifyTrackDetails,
-          isSdkPlayerPaused: playback.isPaused,
+          currentPlayingTrack: display.currentTrack,
+          isSdkPlayerPaused: display.isPaused,
           onToggleSdkPlayerPlayback: _toggleSdkPlayerPlayback,
         );
 
       case _SwitcherView.spotifyPlaylists:
         return SpotifyPlaylistView(
           key: const ValueKey('playlists'),
-          playlists: _userPlaylists,
+          playlists: widget.spotifyController.cachedUserPlaylists,
           isLoading: _isLoading,
           onBack: () =>
               setStateIfMounted(() => _currentView = _SwitcherView.selection),
@@ -557,10 +514,11 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         return SpotifyTracksView(
           key: ValueKey('tracks_${_selectedPlaylistForTracksView!.id}'),
           playlist: _selectedPlaylistForTracksView!,
-          tracks: _playlistTracksCache[_selectedPlaylistForTracksView!.id],
+          tracks: widget.spotifyController
+              .getCachedPlaylistTracks(_selectedPlaylistForTracksView!.id),
           isLoading: _isLoading,
-          currentlyPlayingUri: playback.currentlyPlayingUri,
-          isSdkPlayerPaused: playback.isPaused,
+          currentlyPlayingUri: display.currentlyPlayingUri,
+          isSdkPlayerPaused: display.isPaused,
           onBack: () => setStateIfMounted(
               () => _currentView = _SwitcherView.spotifyPlaylists),
           onClosePanel: widget.onClose,

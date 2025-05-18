@@ -1,32 +1,28 @@
-import 'package:flutter/foundation.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart'; // For PositionData
-// You'll need a common display model
-import 'package:studybeats/studyroom/audio/display_track_info.dart'; // Create this file (see Step 2)
-// AudioSourceType is defined in audio_state.dart, ensure it's imported if needed here,
-// though not strictly necessary for the abstract class itself.
-// import 'package:studybeats/studyroom/audio/audio_state.dart';
+import 'package:studybeats/studyroom/audio/display_track_info.dart'; // Unified display model
 
-
-abstract class AbstractAudioController with ChangeNotifier {
+abstract class AbstractAudioController {
   // Playback State
   bool get isPlaying;
   bool get isPaused;
+  Stream<bool> get isPlayingStream; // Stream for live updates on playing state
+  Stream<bool> get isBufferingStream; // Stream for live updates on buffering state
 
   // Track Information
-  DisplayTrackInfo? get currentDisplayTrackInfo; // Unified display model
-  Stream<PositionData> get positionDataStream;
+  DisplayTrackInfo? get currentDisplayTrackInfo; // Unified display model for current track
+  Stream<PositionData> get positionDataStream; // Stream for track position, buffered position, and duration
+
+  // Initialization and Disposal
+  Future<void> init(); // Initialize the controller (e.g., load playlist, setup player)
+  void dispose(); // Dispose of resources when the controller is no longer needed
 
   // Playback Controls
-  Future<void> play();
-  Future<void> pause();
-  Future<void> next();
-  Future<void> previous();
-  Future<void> seek(Duration position);
-  Future<void> setVolume(double volume); // Added for volume control
-  Future<void> shuffle();
-
-  // Lifecycle (optional for the interface, but good practice for implementations)
-  // Future<void> initialize(); // Implementations will have their own init
-  // @override // from ChangeNotifier
-  // void dispose(); // Implementations will call super.dispose()
+  Future<void> play(); // Start or resume playback
+  Future<void> pause(); // Pause playback
+  Future<void> stop(); // Stop playback and potentially release resources
+  Future<void> next(); // Skip to the next track
+  Future<void> previous(); // Skip to the previous track
+  Future<void> seek(Duration position); // Seek to a specific position in the current track
+  Future<void> setVolume(double volume); // Set the playback volume (0.0 to 1.0)
+  Future<void> shuffle(); // Toggle shuffle mode or re-shuffle the playlist
 }

@@ -1,358 +1,529 @@
 import 'dart:async';
 import 'dart:js_util' as js_util; // For JS interop in controller callbacks
 
-import 'package:flutter/foundation.dart'; // Required for ChangeNotifier
+import 'package:equatable/equatable.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:studybeats/api/spotify/spotify_api_service.dart';
 import 'package:studybeats/api/spotify/spotify_auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/audio_controller.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
-import 'package:studybeats/studyroom/audio/seekbar.dart'; // For PositionData
+import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
-// Import the file that defines spotifyPlayerInstance and other JS interop functions
-import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_web_player_controller.dart';
+import 'package:studybeats/studyroom/audio/spotify_web_player_controller.dart'
+    as player;
 
-// This enum can be defined here or in a shared location if AudioSourceSwitcher also uses it directly.
+/// Player connectivity
 enum PlayerConnectionStatus { none, connecting, connected, disconnected, error }
 
-class SpotifyPlaybackProvider
-    with ChangeNotifier
-    implements AbstractAudioController {
-  final SpotifyAuthService _authService;
-  final SpotifyApiService _apiService;
-  final SpotifyWebPlayerController _playerController =
-      SpotifyWebPlayerController(); // Dart wrapper
-  final _logger = getLogger('SpotifyPlaybackProvider');
+/// Thin DTO for the UI to observe
+class SpotifyPlayerDisplayState extends Equatable {
+  final PlayerConnectionStatus playerStatus;
+  final SpotifyTrackSimple? currentTrack;
+  final bool isPaused;
+  final String? errorMessage;
+  final String? currentlyPlayingUri;
+  final bool isPlaying;
 
-  PlayerConnectionStatus _playerStatus = PlayerConnectionStatus.none;
-  PlayerConnectionStatus get playerStatus => _playerStatus;
+  const SpotifyPlayerDisplayState({
+    required this.playerStatus,
+    this.currentTrack,
+    required this.isPaused,
+    this.errorMessage,
+    this.currentlyPlayingUri,
+    required this.isPlaying,
+  });
 
-  String? _playerConnectionErrorMsg;
-  String? get playerConnectionErrorMsg => _playerConnectionErrorMsg;
-
-  String? _currentlyPlayingUri;
-  String? get currentlyPlayingUri => _currentlyPlayingUri;
-
-  bool _isSdkPlayerPaused = true;
-  // bool get isSdkPlayerPaused => _isSdkPlayerPaused; // Keep this if direct access is still needed
-
-  SpotifyTrackSimple? _currentSpotifyTrackDetails;
-  SpotifyTrackSimple? get currentSpotifyTrackDetails =>
-      _currentSpotifyTrackDetails;
-
-  final StreamController<PositionData> _spotifyPositionDataStreamController =
-      StreamController<PositionData>.broadcast();
-  Stream<PositionData> get spotifyPositionDataStream =>
-      _spotifyPositionDataStreamController.stream;
-
-  List<SpotifyTrackSimple> _currentContextTracks = [];
-
-  SpotifyPlaybackProvider(
-      {required SpotifyAuthService authService,
-      required SpotifyApiService apiService})
-      : _authService = authService,
-        _apiService = apiService {
-    _logger.i("SpotifyPlaybackProvider initialized.");
-    // Callbacks are set up when _playerController.init is called by initializePlayer()
-  }
-
-  void _updateAndNotify() {
-    notifyListeners();
-  }
-
-  // This method is called by this provider's initializePlayer method
-  void _setupPlayerControllerCallbacks() {
-    _playerController.onPlayerReady = (deviceId) {
-      _logger.i("SDK Player Ready (Provider CB). Device ID: $deviceId");
-      _playerStatus = PlayerConnectionStatus.connected;
-      _playerConnectionErrorMsg = null;
-      _updateAndNotify();
-    };
-
-    _playerController.onPlayerStateChanged = (dynamic jsPlayerState) {
-      if (jsPlayerState == null) {
-        _logger.i("SDK State (Provider CB): Player state is null.");
-        if (_currentlyPlayingUri != null || !_isSdkPlayerPaused) {
-          _currentlyPlayingUri = null;
-          _isSdkPlayerPaused = true;
-          _currentSpotifyTrackDetails = null;
-          _spotifyPositionDataStreamController
-              .add(PositionData(Duration.zero, Duration.zero, Duration.zero));
-        }
-        if (_playerStatus == PlayerConnectionStatus.connected) {
-          _playerStatus = PlayerConnectionStatus.disconnected;
-          _playerConnectionErrorMsg =
-              "Player state became null (possibly disconnected).";
-        }
-        _updateAndNotify();
-        return;
-      }
-      try {
-        final trackWindow = js_util.getProperty(jsPlayerState, 'track_window');
-        final currentTrackJs =
-            js_util.getProperty(trackWindow, 'current_track');
-        String? sdkTrackUri;
-        int sdkDurationMs = 0;
-        String? newTrackName;
-
-        if (currentTrackJs != null) {
-          sdkTrackUri = js_util.getProperty(currentTrackJs, 'uri');
-          sdkDurationMs =
-              js_util.getProperty(currentTrackJs, 'duration_ms') ?? 0;
-          newTrackName = js_util.getProperty(currentTrackJs, 'name');
-          if (_currentlyPlayingUri != sdkTrackUri ||
-              _currentSpotifyTrackDetails == null ||
-              _currentSpotifyTrackDetails!.uri != sdkTrackUri) {
-            _updateCurrentSpotifyTrackDetails(sdkTrackUri, currentTrackJs);
-          }
-        } else {
-          _currentSpotifyTrackDetails = null;
-        }
-
-        final bool sdkIsPaused = js_util.getProperty(jsPlayerState, 'paused');
-        final int sdkPositionMs =
-            js_util.getProperty(jsPlayerState, 'position') ?? 0;
-        _spotifyPositionDataStreamController.add(PositionData(
-            Duration(milliseconds: sdkPositionMs),
-            Duration.zero,
-            Duration(milliseconds: sdkDurationMs)));
-
-        bool changed = false;
-        if (_currentlyPlayingUri != sdkTrackUri) {
-          _currentlyPlayingUri = sdkTrackUri;
-          changed = true;
-        }
-        if (_isSdkPlayerPaused != sdkIsPaused) {
-          _isSdkPlayerPaused = sdkIsPaused;
-          changed = true;
-        }
-        if (_playerStatus != PlayerConnectionStatus.connected &&
-            sdkTrackUri != null) {
-          _playerStatus = PlayerConnectionStatus.connected;
-          _playerConnectionErrorMsg = null;
-          changed = true;
-        }
-        if (changed) {
-          _logger.d(
-              "SDK State Updated (Provider CB): URI: $sdkTrackUri, Name: $newTrackName, Paused: $sdkIsPaused, Pos: $sdkPositionMs");
-          _updateAndNotify();
-        }
-      } catch (e, stacktrace) {
-        _logger.e("Error parsing player state in provider CB: $e",
-            stackTrace: stacktrace);
-      }
-    };
-
-    _playerController.onPlayerError = (errorMsg) {
-      _logger.e("SDK Player ERROR (Provider CB): $errorMsg");
-      _playerStatus = PlayerConnectionStatus.error;
-      _playerConnectionErrorMsg = errorMsg ?? "Unknown player error";
-      _updateAndNotify();
-    };
-
-    _playerController.onPlayerNotReady = (deviceId) {
-      _logger.w("SDK Player NOT READY (Provider CB) for device: $deviceId.");
-      if (_playerStatus == PlayerConnectionStatus.connected ||
-          _playerStatus == PlayerConnectionStatus.connecting) {
-        _playerStatus = PlayerConnectionStatus.disconnected;
-      }
-      _playerConnectionErrorMsg = "Player $deviceId went offline.";
-      _isSdkPlayerPaused = true;
-      _currentlyPlayingUri = null;
-      _currentSpotifyTrackDetails = null;
-      _spotifyPositionDataStreamController
-          .add(PositionData(Duration.zero, Duration.zero, Duration.zero));
-      _updateAndNotify();
-    };
-  }
-  @override 
-  DisplayTrackInfo? get currentDisplayTrackInfo {
-    return null;
-  }
+  factory SpotifyPlayerDisplayState.initial() =>
+      const SpotifyPlayerDisplayState(
+        playerStatus: PlayerConnectionStatus.none,
+        currentTrack: null,
+        isPaused: true,
+        errorMessage: null,
+        currentlyPlayingUri: null,
+        isPlaying: false,
+      );
 
   @override
-  Stream<PositionData> get positionDataStream =>
-      _spotifyPositionDataStreamController.stream;
+  List<Object?> get props => [
+        playerStatus,
+        currentTrack,
+        isPaused,
+        errorMessage,
+        currentlyPlayingUri,
+        isPlaying
+      ];
+}
 
-  Future<void> _updateCurrentSpotifyTrackDetails(
-      String? trackUri, dynamic currentTrackJs) async {
-    // ... (implementation remains the same)
-    if (trackUri == null) {
-      _currentSpotifyTrackDetails = null;
-      return;
+class SpotifyPlaybackController implements AbstractAudioController {
+  final SpotifyAuthService _authService;
+  final SpotifyApiService _apiService;
+  final player.SpotifyWebPlayerController _playerController =
+      player.SpotifyWebPlayerController();
+  final _logger = getLogger('SpotifyPlaybackController');
+
+  // ---------------------------------------------------------------------------
+  //  Player-connection state
+  // ---------------------------------------------------------------------------
+  PlayerConnectionStatus _playerStatus = PlayerConnectionStatus.none;
+  String? _playerConnectionErrorMsg;
+
+  String? _currentlyPlayingUri;
+  bool _isSdkPlayerPaused = true;
+  SpotifyTrackSimple? _currentSpotifyTrackDetails;
+
+  // ---------------------------------------------------------------------------
+  //  Cached playlists & tracks
+  // ---------------------------------------------------------------------------
+  List<SpotifyPlaylistSimple>? _cachedUserPlaylists;
+  final Map<String, List<SpotifyTrackSimple>> _playlistTracksCache = {};
+
+  /// Read-only getters for UI
+  List<SpotifyPlaylistSimple>? get cachedUserPlaylists => _cachedUserPlaylists;
+  List<SpotifyTrackSimple>? getCachedPlaylistTracks(String playlistId) =>
+      _playlistTracksCache[playlistId];
+
+  // ---------------------------------------------------------------------------
+  //  Streams for outsiders
+  // ---------------------------------------------------------------------------
+  final StreamController<PositionData> _positionStreamController =
+      StreamController<PositionData>.broadcast();
+  final BehaviorSubject<bool> _isPlayingController =
+      BehaviorSubject<bool>.seeded(false);
+  final BehaviorSubject<bool> _isBufferingController =
+      BehaviorSubject<bool>.seeded(false);
+  final BehaviorSubject<SpotifyPlayerDisplayState> _displayStateController =
+      BehaviorSubject<SpotifyPlayerDisplayState>.seeded(
+          SpotifyPlayerDisplayState.initial());
+
+  /// Observable stream of player/UI state for widgets such as AudioSourceSwitcher.
+  Stream<SpotifyPlayerDisplayState> get displayStateStream =>
+      _displayStateController.stream;
+
+  // ---------------------------------------------------------------------------
+  //  Misc
+  // ---------------------------------------------------------------------------
+  List<SpotifyTrackSimple> _currentContextTracks = [];
+
+  /// Index of the currently playing item within [_currentContextTracks].
+  /// -1 means “no track selected yet”.
+  int _currentIndex = -1;
+
+  // ---------------------------------------------------------------------------
+  //  Progress timer (keeps seek bar moving & detects end-of-track)
+  // ---------------------------------------------------------------------------
+  Timer? _progressTimer;
+  int _lastPositionMs = 0;
+  int _currentTrackDurationMs = 0;
+  DateTime? _lastPositionTimestamp;
+  bool _autoNextTriggered = false;
+
+  SpotifyPlaybackController({
+    required SpotifyAuthService authService,
+    required SpotifyApiService apiService,
+  })  : _authService = authService,
+        _apiService = apiService {
+    _logger.i("SpotifyPlaybackController initialized.");
+  }
+
+  // ===========================================================================
+  //  Library helpers
+  // ===========================================================================
+
+  bool _isAuthed() =>
+      _authService.isAuthenticated && _authService.accessToken != null;
+
+  Future<List<SpotifyPlaylistSimple>?> fetchUserPlaylists(
+      {bool forceRefresh = false}) async {
+    if (_cachedUserPlaylists != null && !forceRefresh) {
+      return _cachedUserPlaylists;
     }
+    if (!_isAuthed()) return null;
+
     try {
-      _currentSpotifyTrackDetails =
-          _currentContextTracks.firstWhere((t) => t.uri == trackUri);
-    } catch (e) {
-      // Catch StateError if not found
-      _currentSpotifyTrackDetails = null;
-    }
-
-    if (_currentSpotifyTrackDetails == null && currentTrackJs != null) {
-      try {
-        String id = js_util.getProperty(currentTrackJs, 'id') ??
-            trackUri.split(':').last;
-        String name =
-            js_util.getProperty(currentTrackJs, 'name') ?? 'Unknown Track';
-        List<dynamic>? artistsJs =
-            js_util.getProperty(currentTrackJs, 'artists');
-        String artists = artistsJs
-                ?.map((a) => js_util.getProperty(a, 'name') as String)
-                .join(', ') ??
-            'Unknown Artist';
-        dynamic albumJs = js_util.getProperty(currentTrackJs, 'album');
-        String? albumName;
-        String? albumImageUrl;
-        if (albumJs != null) {
-          albumName = js_util.getProperty(albumJs, 'name');
-          List<dynamic>? imagesJs = js_util.getProperty(albumJs, 'images');
-          if (imagesJs != null && imagesJs.isNotEmpty) {
-            albumImageUrl = js_util.getProperty(imagesJs[0], 'url');
-          }
-        }
-        int durationMs =
-            js_util.getProperty(currentTrackJs, 'duration_ms') ?? 0;
-
-        _currentSpotifyTrackDetails = SpotifyTrackSimple(
-            id: id,
-            name: name,
-            artists: artists,
-            albumName: albumName,
-            albumImageUrl: albumImageUrl,
-            uri: trackUri,
-            durationMs: durationMs);
-        _logger.i("Updated track details from JS Player State: ${name}");
-      } catch (e) {
-        _logger.e("Error parsing track details from JS Player State: $e");
-        _currentSpotifyTrackDetails = SpotifyTrackSimple(
-            id: trackUri.split(':').last,
-            name: "Loading info...",
-            artists: "...",
-            uri: trackUri,
-            durationMs: 0);
-      }
-    } else if (_currentSpotifyTrackDetails == null) {
-      _logger.w(
-          "Details for playing Spotify URI $trackUri not found in cache and no JS object provided. Creating placeholder.");
-      _currentSpotifyTrackDetails = SpotifyTrackSimple(
-          id: trackUri.split(':').last,
-          name: "Track Information",
-          artists: "Loading...",
-          uri: trackUri,
-          durationMs: 0);
+      final data = await _apiService.getUserPlaylists(_authService.accessToken!,
+          limit: 50);
+      final items = (data?['items'] ?? []) as List<dynamic>;
+      _cachedUserPlaylists =
+          items.map((e) => _parsePlaylist(e)).toList(growable: false);
+      _logger.i("Cached ${_cachedUserPlaylists!.length} playlists.");
+      return _cachedUserPlaylists;
+    } catch (e, st) {
+      _logger.e('fetchUserPlaylists error', error: e, stackTrace: st);
+      return null;
     }
   }
 
+  Future<List<SpotifyTrackSimple>?> fetchPlaylistTracks(
+    String playlistId, {
+    bool forceRefresh = false,
+  }) async {
+    if (_playlistTracksCache.containsKey(playlistId) && !forceRefresh) {
+      return _playlistTracksCache[playlistId];
+    }
+    if (!_isAuthed()) return null;
+
+    try {
+      final data = await _apiService.getPlaylistTracks(
+        _authService.accessToken!,
+        playlistId,
+        limit: 100,
+      );
+      final items = (data?['items'] ?? []) as List<dynamic>;
+      final tracks = items
+          .map((e) => _parseTrack(e))
+          .whereType<SpotifyTrackSimple>()
+          .toList(growable: false);
+      _playlistTracksCache[playlistId] = tracks;
+      _logger.i("Cached ${tracks.length} tracks for playlist $playlistId.");
+      return tracks;
+    } catch (e, st) {
+      _logger.e('fetchPlaylistTracks error', error: e, stackTrace: st);
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  //  Local parsers
+  // ---------------------------------------------------------------------------
+  SpotifyPlaylistSimple _parsePlaylist(Map<String, dynamic> item) {
+    return SpotifyPlaylistSimple(
+      id: item['id'] ?? '',
+      name: item['name'] ?? 'Unknown Playlist',
+      imageUrl: (item['images'] as List?)?.isNotEmpty == true
+          ? item['images'][0]['url']
+          : null,
+      totalTracks: item['tracks']?['total'] ?? 0,
+    );
+  }
+
+  SpotifyTrackSimple? _parseTrack(Map<String, dynamic> item) {
+    final track = item['track'];
+    if (track == null ||
+        track['id'] == null ||
+        track['uri'] == null ||
+        track['is_local'] == true) {
+      return null;
+    }
+    final artists = (track['artists'] as List<dynamic>?)
+            ?.map((a) => a['name'] as String)
+            .join(', ') ??
+        'Unknown Artist';
+    final imageUrl = (track['album']?['images'] as List?)?.isNotEmpty == true
+        ? track['album']['images'][0]['url']
+        : null;
+    return SpotifyTrackSimple(
+      id: track['id'],
+      name: track['name'] ?? 'Unknown Track',
+      artists: artists,
+      albumName: track['album']?['name'],
+      albumImageUrl: imageUrl,
+      uri: track['uri'],
+      durationMs: track['duration_ms'] ?? 0,
+    );
+  }
+
+  // ===========================================================================
+  //  Player bootstrap / callbacks
+  // ===========================================================================
+
+  @override
+  Future<void> init() async => initializePlayer();
+
   Future<void> initializePlayer() async {
-    if (!_authService.isAuthenticated || _authService.accessToken == null) {
-      _logger.w("Cannot initialize player: User not authenticated.");
+    if (!_isAuthed()) {
       _playerStatus = PlayerConnectionStatus.error;
       _playerConnectionErrorMsg = "Authentication required.";
-      _updateAndNotify();
+      _update();
       return;
     }
+
     if (_playerController.isPlayerInitializedAndReady ||
         _playerStatus == PlayerConnectionStatus.connecting) {
-      _logger.i("Player already initialized or connecting.");
       if (_playerController.isPlayerInitializedAndReady &&
           _playerStatus != PlayerConnectionStatus.connected) {
-        // Correct status if controller is ready but provider status isn't
         _playerStatus = PlayerConnectionStatus.connected;
-        _updateAndNotify();
+        _update();
       }
       return;
     }
-    _logger.i("Initializing Spotify Web Player via Provider...");
+
     _playerStatus = PlayerConnectionStatus.connecting;
-    _playerConnectionErrorMsg = null;
-    _updateAndNotify();
+    _update();
 
-    // Setup the callbacks that the _playerController's init method will use.
-    // These callbacks will update this provider's state.
     _setupPlayerControllerCallbacks();
-
-    // Now call init on the controller. It will use the callbacks we just set on it.
     _playerController.init(
         _authService.accessToken!, "StudyBeats Web Player (Provider)");
   }
 
-  Future<void> playTrack(String trackUri,
-      {List<SpotifyTrackSimple>? contextTracks}) async {
-    // ... (implementation remains the same)
-    _logger.i("Provider: playTrack called for URI: $trackUri");
-    if (contextTracks != null) {
-      _currentContextTracks = List.from(contextTracks);
-    } else {
-      bool foundInCache = false;
-      for (var cachedList in _playlistTracksCache.values) {
-        var trackDetail = cachedList.firstWhere(
-          (t) => t.uri == trackUri,
-          orElse: () => SpotifyTrackSimple(
-            id: trackUri.split(':').last,
-            name: "Unknown Track",
-            artists: "Unknown Artist",
-            uri: trackUri,
-            durationMs: 0,
-          ),
-        );
-        if (trackDetail != null) {
-          _currentContextTracks = [trackDetail];
-          foundInCache = true;
-          break;
-        }
-      }
-      if (!foundInCache) _currentContextTracks = [];
-    }
-    await _updateCurrentSpotifyTrackDetails(trackUri, null);
+  void _setupPlayerControllerCallbacks() {
+    _playerController.onPlayerReady = (deviceId) {
+      _playerStatus = PlayerConnectionStatus.connected;
+      _playerConnectionErrorMsg = null;
+      _update();
+    };
 
-    if (!_playerController.isPlayerInitializedAndReady) {
-      _logger
-          .w("Player not ready for playTrack. Attempting to initialize first.");
-      await initializePlayer();
-      if (!_playerController.isPlayerInitializedAndReady) {
-        await Future.delayed(const Duration(milliseconds: 1500));
+    _playerController.onPlayerStateChanged = (dynamic jsState) {
+      if (jsState == null) {
+        _currentlyPlayingUri = null;
+        _isSdkPlayerPaused = true;
+        _currentSpotifyTrackDetails = null;
+        _positionStreamController
+            .add(PositionData(Duration.zero, Duration.zero, Duration.zero));
+        _stopProgressTimer();
+        _update();
+        return;
       }
-    }
 
-    if (!_playerController.isPlayerInitializedAndReady ||
-        _authService.accessToken == null) {
-      _logger.e("Cannot play track: Player not ready or no access token.");
+      final trackWindow = js_util.getProperty(jsState, 'track_window');
+      final currentTrackJs = js_util.getProperty(trackWindow, 'current_track');
+      final uri = js_util.getProperty(currentTrackJs, 'uri');
+      final durationMs =
+          js_util.getProperty(currentTrackJs, 'duration_ms') ?? 0;
+      final paused = js_util.getProperty(jsState, 'paused');
+      final positionMs = js_util.getProperty(jsState, 'position') ?? 0;
+
+      _currentlyPlayingUri = uri;
+      _isSdkPlayerPaused = paused;
+      // If the player just paused naturally at (or extremely near) the end
+      // of the track, trigger auto‑next as a fallback. This handles cases
+      // where the final SDK progress callback arrives *after* the pause,
+      // so our periodic timer never fires the wrap‑around.
+      if (paused &&
+          !_autoNextTriggered &&
+          _currentTrackDurationMs > 0 &&
+          positionMs >= _currentTrackDurationMs - 500 &&
+          _currentContextTracks.isNotEmpty) {
+        _autoNextTriggered = true;
+        next();
+      }
+      _positionStreamController.add(PositionData(
+          Duration(milliseconds: positionMs),
+          Duration.zero,
+          Duration(milliseconds: durationMs)));
+
+      _currentTrackDurationMs = durationMs;
+
+      if (!paused) {
+        _lastPositionMs = positionMs;
+        _lastPositionTimestamp = DateTime.now();
+        _autoNextTriggered = false;
+        _startProgressTimer();
+      } else {
+        _stopProgressTimer();
+        _autoNextTriggered = false;
+      }
+
+      _updateCurrentSpotifyTrackDetails(uri, currentTrackJs);
+      _update();
+    };
+
+    _playerController.onPlayerError = (msg) {
       _playerStatus = PlayerConnectionStatus.error;
-      _playerConnectionErrorMsg = "Player not ready or authentication error.";
-      _updateAndNotify();
-      return;
-    }
+      _playerConnectionErrorMsg = msg ?? "Unknown player error";
+      _update();
+    };
 
-    final sdkDeviceId = _playerController.getCurrentSdkDeviceId();
-    if (sdkDeviceId != null && sdkDeviceId.isNotEmpty) {
-      _logger.i("Playing track via SDK on device: $sdkDeviceId");
-      try {
-        final result = await _apiService.playItems(_authService.accessToken!,
-            deviceId: sdkDeviceId, trackUris: [trackUri]);
-        if (result == 'SUCCESS') {
-          _logger.i("Playback command successful for $trackUri");
-        } else {
-          _logger.w("Playback command failed for $trackUri: $result");
-          _playerStatus = PlayerConnectionStatus.error;
-          _playerConnectionErrorMsg = "Playback failed: $result";
-          _updateAndNotify();
-        }
-      } catch (e) {
-        _logger.e("Exception during playTrack: $e");
-        _playerStatus = PlayerConnectionStatus.error;
-        _playerConnectionErrorMsg = "Error starting playback.";
-        _updateAndNotify();
+    _playerController.onPlayerNotReady = (deviceId) {
+      _playerStatus = PlayerConnectionStatus.disconnected;
+      _playerConnectionErrorMsg = "Player $deviceId went offline.";
+      _currentlyPlayingUri = null;
+      _isSdkPlayerPaused = true;
+      _currentSpotifyTrackDetails = null;
+      _stopProgressTimer();
+      _update();
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  //  Progress timer helpers
+  // ---------------------------------------------------------------------------
+  void _startProgressTimer() {
+    if (_progressTimer != null && _progressTimer!.isActive) return;
+    _progressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_playerStatus != PlayerConnectionStatus.connected ||
+          _isSdkPlayerPaused) {
+        _stopProgressTimer();
+        return;
       }
-    } else {
-      _logger.w("No SDK device ID available to play track.");
-      _playerStatus = PlayerConnectionStatus.error;
-      _playerConnectionErrorMsg = "No active player device.";
-      _updateAndNotify();
+      if (_currentTrackDurationMs <= 0) return;
+
+      final now = DateTime.now();
+      final elapsed =
+          now.difference(_lastPositionTimestamp ?? now).inMilliseconds;
+      final newPos =
+          (_lastPositionMs + elapsed).clamp(0, _currentTrackDurationMs).toInt();
+
+      _positionStreamController.add(PositionData(Duration(milliseconds: newPos),
+          Duration.zero, Duration(milliseconds: _currentTrackDurationMs)));
+
+      // Auto-advance when within 500 ms of track end
+      if (!_autoNextTriggered &&
+          newPos >= _currentTrackDurationMs - 500 &&
+          _currentContextTracks.isNotEmpty) {
+        _autoNextTriggered = true;
+        next(); // wrap handled inside next()
+      }
+    });
+  }
+
+  void _stopProgressTimer() {
+    _progressTimer?.cancel();
+    _progressTimer = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  //  Private helpers
+  // ---------------------------------------------------------------------------
+  void _updatePlayerStateStreams() {
+    final playing = _playerStatus == PlayerConnectionStatus.connected &&
+        !_isSdkPlayerPaused;
+    if (_isPlayingController.value != playing)
+      _isPlayingController.add(playing);
+
+    final buffering = _playerStatus == PlayerConnectionStatus.connecting;
+    if (_isBufferingController.value != buffering) {
+      _isBufferingController.add(buffering);
     }
   }
 
-  // --- AbstractAudioController Implementation ---
+  void _update() {
+    _updatePlayerStateStreams();
+    final newState = SpotifyPlayerDisplayState(
+      playerStatus: _playerStatus,
+      currentTrack: _currentSpotifyTrackDetails,
+      isPaused: isPaused,
+      errorMessage: _playerConnectionErrorMsg,
+      currentlyPlayingUri: _currentlyPlayingUri,
+      isPlaying: isPlaying,
+    );
+    if (!_displayStateController.isClosed &&
+        _displayStateController.value != newState) {
+      _displayStateController.add(newState);
+    }
+  }
+
+  Future<void> _updateCurrentSpotifyTrackDetails(
+      String? trackUri, dynamic currentTrackJs) async {
+    if (trackUri == null) {
+      _currentSpotifyTrackDetails = null;
+      return;
+    }
+
+    // Try queue cache first
+    try {
+      _currentSpotifyTrackDetails =
+          _currentContextTracks.firstWhere((t) => t.uri == trackUri);
+    } catch (_) {
+      _currentSpotifyTrackDetails = null;
+    }
+
+    // Fallback: parse JS object if cache miss
+    if (_currentSpotifyTrackDetails == null && currentTrackJs != null) {
+      try {
+        final id = js_util.getProperty(currentTrackJs, 'id') ??
+            trackUri.split(':').last;
+        final name = js_util.getProperty(currentTrackJs, 'name') ?? 'Unknown';
+        final artistsJs = js_util.getProperty(currentTrackJs, 'artists');
+        final artists = (artistsJs as List<dynamic>?)
+                ?.map((a) => js_util.getProperty(a, 'name') as String)
+                .join(', ') ??
+            'Unknown Artist';
+        final albumJs = js_util.getProperty(currentTrackJs, 'album');
+        String? albumName;
+        String? albumImageUrl;
+        if (albumJs != null) {
+          albumName = js_util.getProperty(albumJs, 'name');
+          final images = js_util.getProperty(albumJs, 'images');
+          if (images is List && images.isNotEmpty) {
+            albumImageUrl = js_util.getProperty(images[0], 'url');
+          }
+        }
+        final durationMs =
+            js_util.getProperty(currentTrackJs, 'duration_ms') ?? 0;
+
+        _currentSpotifyTrackDetails = SpotifyTrackSimple(
+          id: id,
+          name: name,
+          artists: artists,
+          albumName: albumName,
+          albumImageUrl: albumImageUrl,
+          uri: trackUri,
+          durationMs: durationMs,
+        );
+      } catch (e) {
+        _logger.e("Error parsing JS track details: $e");
+      }
+    }
+  }
+
+  // ===========================================================================
+  //  Queue management
+  // ===========================================================================
+  /// Replace the current play queue without starting playback.
+  void setQueue(List<SpotifyTrackSimple> tracks, {int startIndex = 0}) {
+    if (tracks.isEmpty) return;
+    _currentContextTracks = List.from(tracks, growable: false);
+    _currentIndex = startIndex.clamp(0, _currentContextTracks.length - 1);
+    _logger.i(
+        "Queue set with ${_currentContextTracks.length} tracks (cursor=$_currentIndex).");
+  }
+
+  // ===========================================================================
+  //  Public playback API
+  // ===========================================================================
+  Future<void> playTrack(
+    String trackUri, {
+    List<SpotifyTrackSimple>? contextTracks,
+    bool updateQueue = true,
+  }) async {
+    if (updateQueue && contextTracks != null && contextTracks.isNotEmpty) {
+      // (Re)build queue and set cursor to the requested track.
+      final idx = contextTracks.indexWhere((t) => t.uri == trackUri);
+      setQueue(contextTracks, startIndex: idx >= 0 ? idx : 0);
+    } else if (_currentContextTracks.isNotEmpty) {
+      // Keep existing queue; adjust cursor.
+      final idx = _currentContextTracks.indexWhere((t) => t.uri == trackUri);
+      if (idx >= 0) _currentIndex = idx;
+    }
+    await _updateCurrentSpotifyTrackDetails(trackUri, null);
+    _autoNextTriggered = false; // reset for new track
+
+    if (!_playerController.isPlayerInitializedAndReady) {
+      await initializePlayer();
+      if (!_playerController.isPlayerInitializedAndReady) return;
+    }
+
+    final deviceId = _playerController.getCurrentSdkDeviceId();
+    if (deviceId == null || deviceId.isEmpty) {
+      _playerConnectionErrorMsg = "No active player device.";
+      _playerStatus = PlayerConnectionStatus.error;
+      _update();
+      return;
+    }
+
+    final result = await _apiService.playItems(
+      _authService.accessToken!,
+      deviceId: deviceId,
+      trackUris: [trackUri],
+    );
+
+    if (result != 'SUCCESS') {
+      _playerStatus = PlayerConnectionStatus.error;
+      _playerConnectionErrorMsg = "Playback failed: $result";
+      _update();
+    }
+  }
+
+  void togglePlayPause() {
+    if (_playerController.isPlayerInitializedAndReady) {
+      _playerController.togglePlay();
+    }
+  }
+
+  // ===========================================================================
+  //  AbstractAudioController implementation
+  // ===========================================================================
   @override
   bool get isPlaying =>
       _playerStatus == PlayerConnectionStatus.connected && !_isSdkPlayerPaused;
@@ -362,180 +533,104 @@ class SpotifyPlaybackProvider
       _playerStatus == PlayerConnectionStatus.connected && _isSdkPlayerPaused;
 
   @override
-  Future<void> play() async {
-    _logger.i(
-        "Provider: play() called (from AbstractAudioController). Is paused: $_isSdkPlayerPaused, URI: $_currentlyPlayingUri");
-    if (_playerController.isPlayerInitializedAndReady) {
-      if (_isSdkPlayerPaused && _currentlyPlayingUri != null) {
-        // If paused and there's a track, resume
-        _playerController.togglePlay(); // This is playerTogglePlay() from JS
-      } else if (_currentlyPlayingUri == null) {
-        // If no current URI, this play might mean "play something default" or "resume last known"
-        // This logic might need to be more sophisticated depending on desired behavior.
-        // For now, if there's no URI, we can't just call togglePlay.
-        // Perhaps play the first track from _currentContextTracks if available?
-        if (_currentContextTracks.isNotEmpty) {
-          await playTrack(_currentContextTracks.first.uri,
-              contextTracks: _currentContextTracks);
-        } else {
-          _logger.w("Play called but no current URI and no context tracks.");
-        }
-      }
-      // If already playing, do nothing.
-    } else {
-      _logger.w("Cannot play: Player not ready.");
-      if (!_authService.isAuthenticated) {
-        _playerStatus = PlayerConnectionStatus.error;
-        _playerConnectionErrorMsg = "Please login to Spotify.";
-        _updateAndNotify();
-      } else {
-        await initializePlayer();
-      }
-    }
-  }
+  Stream<bool> get isPlayingStream => _isPlayingController.stream;
 
   @override
-  Future<void> pause() async {
-    _logger.i(
-        "Provider: pause() called (from AbstractAudioController). Is playing: $isPlaying");
-    if (_playerController.isPlayerInitializedAndReady && isPlaying) {
-      // Only pause if actually playing
-      _playerController.togglePlay(); // This is playerTogglePlay() from JS
-    } else {
-      _logger.w("Cannot pause: Player not ready or already paused.");
-    }
-  }
+  Stream<bool> get isBufferingStream => _isBufferingController.stream;
 
-  // This method maps to the existing togglePlayPause for simplicity if called from UI
-  // The abstract play() and pause() are more explicit.
-  void togglePlayPause() {
-    _logger.i(
-        "Provider: togglePlayPause called. Is player ready: ${_playerController.isPlayerInitializedAndReady}");
-    if (_playerController.isPlayerInitializedAndReady) {
-      playerTogglePlay(); // Call the global JS interop function
-    } else {
-      _logger.w("Cannot toggle play/pause: Player not ready.");
-      if (!_authService.isAuthenticated) {
-        _playerStatus = PlayerConnectionStatus.error;
-        _playerConnectionErrorMsg = "Please login to Spotify.";
-        _updateAndNotify();
-      } else {
-        initializePlayer();
-      }
+  @override
+  Stream<PositionData> get positionDataStream =>
+      _positionStreamController.stream;
+
+  @override
+  DisplayTrackInfo? get currentDisplayTrackInfo =>
+      _currentSpotifyTrackDetails == null
+          ? null
+          : DisplayTrackInfo.fromSpotifyTrack(_currentSpotifyTrackDetails!);
+
+  @override
+  Future<void> play() async => togglePlayPause();
+
+  @override
+  Future<void> pause() async => togglePlayPause();
+
+  @override
+  Future<void> stop() async {
+    if (_playerController.isPlayerInitializedAndReady && isPlaying) {
+      _playerController.togglePlay();
     }
   }
 
   @override
   Future<void> next() async {
-    _logger.i("Provider: next() called (from AbstractAudioController).");
-    if (_playerController.isPlayerInitializedAndReady) {
-      playerNextTrack(); // Call the global JS interop function
-    }
+    if (_currentContextTracks.isEmpty) return;
+    _currentIndex = (_currentIndex + 1) % _currentContextTracks.length;
+    await playTrack(
+      _currentContextTracks[_currentIndex].uri,
+      updateQueue: false,
+    );
   }
 
   @override
   Future<void> previous() async {
-    _logger.i("Provider: previous() called (from AbstractAudioController).");
-    if (_playerController.isPlayerInitializedAndReady) {
-      playerPreviousTrack(); // Call the global JS interop function
-    }
+    if (_currentContextTracks.isEmpty) return;
+    _currentIndex = (_currentIndex - 1 + _currentContextTracks.length) %
+        _currentContextTracks.length;
+    await playTrack(
+      _currentContextTracks[_currentIndex].uri,
+      updateQueue: false,
+    );
   }
 
   @override
   Future<void> seek(Duration position) async {
-    _logger.i(
-        "Provider: seek called to ${position.inMilliseconds}ms (from AbstractAudioController)");
     if (_playerController.isPlayerInitializedAndReady &&
-        spotifyPlayerInstance != null) {
+        player.spotifyPlayerInstance != null) {
+      _lastPositionMs = position.inMilliseconds;
+      _lastPositionTimestamp = DateTime.now();
+      _autoNextTriggered = false;
       js_util.callMethod(
-          spotifyPlayerInstance!, 'seek', [position.inMilliseconds]);
-    } else {
-      _logger.w("Seek failed: Player not ready or instance is null.");
+          player.spotifyPlayerInstance!, 'seek', [position.inMilliseconds]);
     }
   }
 
-  // This is a new public method for volume, not from AbstractAudioController
-  // If AbstractAudioController needs volume, add it there.
-  @override 
+  @override
   Future<void> setVolume(double volume) async {
-    _logger.i("Provider: setVolume called to $volume");
     if (_playerController.isPlayerInitializedAndReady &&
-        spotifyPlayerInstance != null) {
+        player.spotifyPlayerInstance != null) {
       js_util.callMethod(
-          spotifyPlayerInstance!, 'setVolume', [volume.clamp(0.0, 1.0)]);
-    } else {
-      _logger.w("SetVolume failed: Player not ready or instance is null.");
+          player.spotifyPlayerInstance!, 'setVolume', [volume.clamp(0.0, 1.0)]);
     }
   }
 
   @override
   Future<void> shuffle() async {
-    _logger.i("Provider: shuffle() called (from AbstractAudioController).");
-    // Spotify SDK shuffle is typically a mode set via API, not a simple "play shuffled next"
-    // This requires calling the Spotify API to toggle shuffle mode for the current device.
-    if (_playerController.isPlayerInitializedAndReady &&
-        _authService.isAuthenticated &&
-        _authService.accessToken != null) {
-      final deviceId = _playerController.getCurrentSdkDeviceId();
-      if (deviceId != null) {
-        try {
-          // First, get current player state to find out current shuffle state
-          final playerStateResponse = await js_util.promiseToFuture(js_util
-              .callMethod(spotifyPlayerInstance!, 'getCurrentState', []));
-          if (playerStateResponse != null) {
-            bool currentShuffleState =
-                js_util.getProperty(playerStateResponse, 'shuffle') ?? false;
-            _logger
-                .i("Current shuffle state: $currentShuffleState. Toggling...");
-            // Call API to toggle shuffle
-            // Note: The http.put method for shuffle is not in your SpotifyApiService,
-            // you'd need to add it or use a generic request method.
-            // Example: await _apiService.setShuffle(!currentShuffleState, _authService.accessToken!, deviceId);
-            _logger.w(
-                "Shuffle API call not fully implemented in provider. Needs API service method.");
-            // For now, just log and notify. UI won't reflect actual shuffle state from SDK without API call.
-            notifyListeners(); // If you had a shuffle state variable
-          } else {
-            _logger.w("Could not get current player state to toggle shuffle.");
-          }
-        } catch (e) {
-          _logger.e("Error toggling shuffle: $e");
-        }
-      } else {
-        _logger.w("Cannot toggle shuffle: No device ID.");
-      }
-    } else {
-      _logger
-          .w("Cannot toggle shuffle: Player not ready or not authenticated.");
-    }
+    _logger.w("Shuffle not yet implemented.");
   }
 
-  void disposePlayer() {
-    _logger.i("Provider: disposePlayer called.");
+  // ---------------------------------------------------------------------------
+  //  Disposal
+  // ---------------------------------------------------------------------------
+  Future<void> disposePlayer() async {
     if (_playerController.isPlayerInitializedAndReady) {
-      _playerController
-          .dispose(); // This calls the global disconnectSpotifyPlayer()
+      _playerController.dispose();
     }
     _playerStatus = PlayerConnectionStatus.none;
     _currentlyPlayingUri = null;
-    _isSdkPlayerPaused = true;
     _currentSpotifyTrackDetails = null;
-    _playerConnectionErrorMsg = null;
-    _spotifyPositionDataStreamController
-        .add(PositionData(Duration.zero, Duration.zero, Duration.zero));
+    _isSdkPlayerPaused = true;
     _currentContextTracks = [];
-    _updateAndNotify();
+    _stopProgressTimer();
+    _update();
   }
 
   @override
   void dispose() {
-    _logger.i("SpotifyPlaybackProvider disposing.");
     _playerController.dispose();
-    _spotifyPositionDataStreamController.close();
-    super.dispose();
+    _stopProgressTimer();
+    _positionStreamController.close();
+    _isPlayingController.close();
+    _isBufferingController.close();
+    _displayStateController.close();
   }
-
-  // Placeholder for _playlistTracksCache if _updateCurrentSpotifyTrackDetails needs broader access
-  // This should ideally be managed more centrally if the provider needs to look up any track.
-  Map<String, List<SpotifyTrackSimple>> get _playlistTracksCache => {};
 }

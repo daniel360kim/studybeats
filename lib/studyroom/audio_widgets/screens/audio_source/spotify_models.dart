@@ -1,34 +1,27 @@
+import 'package:equatable/equatable.dart';
+
 // For @required if needed, though often implicit
 
 /// Data model for a simplified Spotify Playlist representation.
-class SpotifyPlaylistSimple {
+class SpotifyPlaylistSimple extends Equatable {
   final String id;
   final String name;
   final String? imageUrl;
   final int totalTracks; // Number of tracks in the playlist
 
-  SpotifyPlaylistSimple({
+  const SpotifyPlaylistSimple({
     required this.id,
     required this.name,
     this.imageUrl,
     this.totalTracks = 0,
   });
 
-  // Optional: Factory constructor for parsing from JSON if needed elsewhere
-  // factory SpotifyPlaylistSimple.fromJson(Map<String, dynamic> json) {
-  //   return SpotifyPlaylistSimple(
-  //     id: json['id'] ?? 'unknown_id_${DateTime.now().millisecondsSinceEpoch}',
-  //     name: json['name'] ?? 'Unknown Playlist',
-  //     imageUrl: (json['images'] != null && (json['images'] as List).isNotEmpty)
-  //         ? json['images'][0]['url']
-  //         : null,
-  //     totalTracks: json['tracks']?['total'] ?? 0,
-  //   );
-  // }
+  @override
+  List<Object?> get props => [id, name, imageUrl, totalTracks];
 }
 
 /// Data model for a simplified Spotify Track representation.
-class SpotifyTrackSimple {
+class SpotifyTrackSimple extends Equatable {
   final String id;
   final String name;
   final String artists; // Combined artist names
@@ -37,7 +30,7 @@ class SpotifyTrackSimple {
   final String uri; // Spotify URI for playback
   final int durationMs;
 
-  SpotifyTrackSimple({
+  const SpotifyTrackSimple({
     required this.id,
     required this.name,
     required this.artists,
@@ -46,6 +39,17 @@ class SpotifyTrackSimple {
     required this.uri,
     required this.durationMs,
   });
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        artists,
+        albumName,
+        albumImageUrl,
+        uri,
+        durationMs,
+      ];
 
   /// Formats duration from milliseconds to a "MM:SS" string.
   String get formattedDuration {
@@ -78,4 +82,3 @@ class SpotifyTrackSimple {
   //     );
   // }
 }
-

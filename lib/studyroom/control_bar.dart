@@ -1,22 +1,22 @@
+import 'dart:async';
 import 'dart:ui';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
-import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
 import 'package:studybeats/studyroom/audio/lofi_controller.dart';
+import 'package:studybeats/studyroom/audio/spotify_controller.dart';
+import 'package:studybeats/studyroom/audio/audio_controller.dart';
+import 'package:studybeats/api/spotify/spotify_auth_service.dart';
+import 'package:studybeats/api/spotify/spotify_api_service.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/playlist_controls.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/songinfo.dart';
 import 'package:studybeats/studyroom/audio_widgets/controls/volume.dart';
-
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/audio_source_switcher.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/background_sounds.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/equalizer.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shimmer/shimmer.dart';
@@ -39,10 +39,16 @@ class PlayerWidget extends StatefulWidget {
 
 class PlayerWidgetState extends State<PlayerWidget>
     with WidgetsBindingObserver {
-  late final LofiAudioController _audio;
+  late final LofiAudioController _lofiController;
+  late final SpotifyPlaybackController _spotifyController;
+  AbstractAudioController? _currentAudioController;
+  AudioSourceType _currentAudioSource = AudioSourceType.lofi;
+  StreamSubscription? _spotifyStatusSubscription;
+  // Fires whenever SpotifyPlaybackController’s display state (current track, etc.) changes.
+  StreamSubscription? _spotifyDisplayStateSubscription;
+
   DisplayTrackInfo? currentSongInfo;
   List<DisplayTrackInfo> songQueue = [];
-  List<DisplayTrackInfo> songOrder = [];
   final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
 
   bool verticalLayout = false;
@@ -61,30 +67,109 @@ class PlayerWidgetState extends State<PlayerWidget>
   @override
   void initState() {
     super.initState();
-    _audio = LofiAudioController(
+    _lofiController = LofiAudioController(
       playlistId: widget.playlistId,
       onError: _showError,
     );
-    initAudio();
 
-    _audio.isLoaded.addListener(() {
-      if (_audio.isLoaded.value) {
-        updateSong();
-      }
+    _spotifyController = SpotifyPlaybackController(
+      authService: Provider.of<SpotifyAuthService>(context, listen: false),
+      apiService: SpotifyApiService(),
+    );
+
+    final audioSourceProvider =
+        Provider.of<AudioSourceSelectionProvider>(context, listen: false);
+    _currentAudioSource = audioSourceProvider.currentSource;
+
+    // Add listener for AudioSourceSelectionProvider
+    audioSourceProvider.addListener(_handleAudioSourceChange);
+
+    _setActiveController(_currentAudioSource); // Set initial controller
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateSongState();
     });
   }
 
-  void initAudio() async {
-    try {
-      await _audio.initPlayer();
-      await _songCloudInfoService.init();
-    } catch (e) {
-      if (mounted) _showError();
+  // Listener for Lofi controller's isLoaded state
+  void _handleLofiLoaded() {
+    if (_lofiController.isLoaded.value &&
+        mounted &&
+        _currentAudioSource == AudioSourceType.lofi) {
+      _updateSongState();
+    }
+  }
+
+  void _handleAudioSourceChange() {
+    final newSource =
+        Provider.of<AudioSourceSelectionProvider>(context, listen: false)
+            .currentSource;
+    if (newSource != _currentAudioSource) {
+      // Clean up listeners and stop the outgoing controller
+      if (_currentAudioSource == AudioSourceType.lofi) {
+        _lofiController.isLoaded.removeListener(_handleLofiLoaded);
+      } else if (_currentAudioSource == AudioSourceType.spotify) {
+        _spotifyStatusSubscription?.cancel();
+        _spotifyStatusSubscription = null;
+        _spotifyDisplayStateSubscription?.cancel();
+        _spotifyDisplayStateSubscription = null;
+      }
+      _currentAudioController?.stop();
+
+      // Set new source and controller
       setState(() {
-        _audioPlayerError = true;
+        _currentAudioSource = newSource;
+        _audioPlayerError = false;
+        currentSongInfo = null;
+        songQueue = [];
+      });
+      _setActiveController(newSource);
+      _updateSongState();
+    }
+  }
+
+  void _setActiveController(AudioSourceType source) {
+    // Defensive removal of any existing listeners before setting new ones
+    _lofiController.isLoaded.removeListener(_handleLofiLoaded);
+    _spotifyStatusSubscription?.cancel();
+    _spotifyStatusSubscription = null;
+    _spotifyDisplayStateSubscription?.cancel();
+    _spotifyDisplayStateSubscription = null;
+
+    if (source == AudioSourceType.lofi) {
+      _currentAudioController = _lofiController;
+      _lofiController.init().then((_) {
+        _lofiController.isLoaded.addListener(_handleLofiLoaded); // Add listener
+        if (_lofiController.isLoaded.value && mounted) {
+          // Check initial state
+          _updateSongState();
+        }
+      }).catchError((e) {
+        _showError('Failed to initialize Lofi player.');
+        if (mounted) setState(() => _audioPlayerError = true);
+      });
+    } else if (source == AudioSourceType.spotify) {
+      _currentAudioController = _spotifyController;
+      _spotifyController.init().then((_) {
+        _spotifyStatusSubscription =
+            _spotifyController.isPlayingStream.listen((_) {
+          if (mounted && _currentAudioSource == AudioSourceType.spotify) {
+            _updateSongState();
+          }
+        });
+        _spotifyDisplayStateSubscription =
+            _spotifyController.displayStateStream.listen((_) {
+          if (mounted && _currentAudioSource == AudioSourceType.spotify) {
+            _updateSongState();
+          }
+        });
+        if (mounted) _updateSongState(); // Initial update
+      }).catchError((e) {
+        _showError('Failed to initialize Spotify player.');
+        if (mounted) setState(() => _audioPlayerError = true);
       });
     }
-    updateSong();
+    if (mounted) setState(() {}); // Rebuild if necessary
   }
 
   void closeAllWidgets() {
@@ -97,11 +182,13 @@ class PlayerWidgetState extends State<PlayerWidget>
     _iconControlsKey.currentState!.closeAll();
   }
 
-  void _showError() {
+  void _showError(
+      [String message = 'Something went wrong. Please try again later.']) {
+    if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again later'),
+        SnackBar(
+          content: Text(message),
         ),
       );
     });
@@ -109,26 +196,53 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   @override
   void dispose() {
-    _audio.dispose();
+    // Remove listener for AudioSourceSelectionProvider
+    Provider.of<AudioSourceSelectionProvider>(context, listen: false)
+        .removeListener(_handleAudioSourceChange);
+
+    // Remove listener for Lofi controller
+    _lofiController.isLoaded.removeListener(_handleLofiLoaded);
+
+    // Cancel Spotify stream subscription
+    _spotifyStatusSubscription?.cancel();
+    _spotifyDisplayStateSubscription?.cancel();
+
+    _lofiController.dispose();
+    _spotifyController.dispose();
     super.dispose();
   }
 
-  Future<void> updateSong() async {
-    final songInfo = _audio.getCurrentSongInfo();
-    if (songInfo == null) return;
-    final isCurrentSongFavorite =
-        await _songCloudInfoService.isSongFavorite(widget.playlistId, songInfo);
+  Future<void> _updateSongState() async {
+    if (_currentAudioController == null || !mounted) return;
+
+    final newSongInfo = _currentAudioController!.currentDisplayTrackInfo;
+    bool newIsFavorite = false;
+    List<DisplayTrackInfo> newSongQueue = [];
+
+    if (_currentAudioSource == AudioSourceType.lofi) {
+      final lofiSongInfo = _lofiController.getCurrentSongInfo();
+      if (lofiSongInfo != null) {
+        newIsFavorite = await _songCloudInfoService.isSongFavorite(
+            widget.playlistId, lofiSongInfo);
+      }
+      newSongQueue = _lofiController.getSongOrder();
+    } else if (_currentAudioSource == AudioSourceType.spotify) {
+      newIsFavorite = false;
+      newSongQueue = [];
+    }
+
+    if (!mounted) return;
     setState(() {
-      currentSongInfo = songInfo;
-      _isCurrentSongFavorite = isCurrentSongFavorite;
-      songQueue = _audio.getSongOrder();
-      songOrder = _audio.getSongOrder();
+      currentSongInfo = newSongInfo;
+      _isCurrentSongFavorite = newIsFavorite;
+      songQueue = newSongQueue;
+      _audioPlayerError = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_audioPlayerError) {
+    if (_currentAudioController == null || _audioPlayerError) {
       return Align(
         alignment: Alignment.bottomCenter,
         child: Shimmer.fromColors(
@@ -144,12 +258,9 @@ class PlayerWidgetState extends State<PlayerWidget>
     }
     return Stack(
       children: [
-        // PlayerWidget content is placed above the barrier.
         Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // Top row for sub-widgets.
-            // Wrap in a detector to absorb taps.
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -160,59 +271,36 @@ class PlayerWidgetState extends State<PlayerWidget>
                     _showAudioSource)
                   const Spacer(),
                 /*
-                _showQueue
-                    ? Align(
-                        alignment: Alignment.bottomRight,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {},
-                          child: SongQueue(
-                            songOrder: _audio.audioPlayer.sequence!
-                                    .map((audioSource) =>
-                                        audioSource.tag as LofiSongMetadata)
-                                    .toList()
-                                    .isEmpty
-                                ? null
-                                : _audio.audioPlayer.sequence!
-                                    .map((audioSource) =>
-                                        audioSource.tag as LofiSongMetadata)
-                                    .toList(),
-                            currentSong: currentSongInfo,
-                            queue: songQueue.isEmpty ? null : songQueue,
-                            onSongSelected: (index) async {
-                              await _audio.play();
-                              _audio.seekToIndex(index).then((_) {
-                                updateSong();
-                              });
-                            },
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-                    */
-                    /*
-                _showEqualizer
-                    ? Align(
-                        alignment: Alignment.bottomRight,
-                        child: StreamBuilder<PositionData>(
-                            stream: _audio.positionDataStream,
-                            builder: (context, snapshot) {
-                              final elapsedDuration =
-                                  snapshot.data?.position ?? Duration.zero;
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {},
-                                child: EqualizerControls(
-                                  song: currentSongInfo,
-                                  elapsedDuration: elapsedDuration,
-                                  onSpeedChange: (value) =>
-                                      _audio.setSpeed(value),
-                                ),
-                              );
-                            }),
-                      )
-                    : const SizedBox.shrink(),
-                    */
+                if (_currentAudioSource == AudioSourceType.lofi && _showQueue)
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      child: SongQueue(
+                        songOrder: _lofiController.audioPlayer.sequence
+                                ?.map((audioSource) =>
+                                    audioSource.tag as LofiSongMetadata)
+                                .toList()
+                                .isEmpty ?? true
+                            ? null
+                            : _lofiController.audioPlayer.sequence!
+                                .map((audioSource) =>
+                                    audioSource.tag as LofiSongMetadata)
+                                .toList(),
+                        currentSong: currentSongInfo,
+                        queue: songQueue.isEmpty ? null : songQueue,
+                        onSongSelected: (index) async {
+                          await _lofiController.play();
+                          _lofiController.seekToIndex(index).then((_) {
+                            _updateSongState();
+                          });
+                        },
+                      ),
+                    ),
+                  )
+                  */
+                if (_showQueue) const SizedBox.shrink(),
                 _showAudioSource
                     ? Align(
                         alignment: Alignment.bottomRight,
@@ -220,10 +308,9 @@ class PlayerWidgetState extends State<PlayerWidget>
                             behavior: HitTestBehavior.opaque,
                             onTap: () {},
                             child: AudioSourceSwitcher(
-                              initialAudioSource: AudioSourceType.spotify,
-                              onAudioSourceChanged: (source) {
-                                // Handle audio source change
-                              },
+                              initialAudioSource: _currentAudioSource,
+                              onAudioSourceChanged: (source) {},
+                              spotifyController: _spotifyController, // Pass instance
                             )),
                       )
                     : const SizedBox.shrink(),
@@ -231,7 +318,9 @@ class PlayerWidgetState extends State<PlayerWidget>
                   visible: _showBackgroundSound,
                   maintainState: true,
                   child: StreamBuilder<PositionData>(
-                      stream: _audio.positionDataStream,
+                      stream: _currentAudioController?.positionDataStream ??
+                          Stream.value(PositionData(
+                              Duration.zero, Duration.zero, Duration.zero)),
                       builder: (context, snapshot) {
                         return GestureDetector(
                           behavior: HitTestBehavior.opaque,
@@ -242,8 +331,6 @@ class PlayerWidgetState extends State<PlayerWidget>
                 )
               ],
             ),
-            // Main controls area.
-            // Wrap with detector to absorb taps inside controls.
             Align(
               alignment: Alignment.bottomCenter,
               child: SizedBox(
@@ -303,29 +390,30 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   Widget buildMiniControlWidgets() {
     return Center(
-      child: StreamBuilder<PlayerState>(
-        stream: _audio.audioPlayer.playerStateStream,
+      child: StreamBuilder<bool>(
+        stream: _currentAudioController?.isPlayingStream ?? Stream.value(false),
         builder: (context, snapshot) {
-          final playerState = snapshot.data;
-          final playing = playerState?.playing;
-          if (playing != null) {
-            return Controls(
-              onShuffle: _audio.shuffle,
-              onPrevious: _previousSong,
-              onPlay: _audio.play,
-              onPause: _audio.pause,
-              onNext: _nextSong,
-              onFavorite: (value) {
+          final playing = snapshot.data ?? false;
+
+          return Controls(
+            onShuffle: _shuffle,
+            onPrevious: _previousSong,
+            onPlay: _play,
+            onPause: _pause,
+            onNext: _nextSong,
+            onFavorite: (value) {
+              if (_currentAudioSource == AudioSourceType.lofi) {
                 _authService.isUserLoggedIn()
                     ? _toggleFavorite(value)
                     : context.goNamed(AppRoute.loginPage.name);
-              },
-              isPlaying: playing,
-              isFavorite: _isCurrentSongFavorite,
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
+              }
+            },
+            isPlaying: playing,
+            isFavorite: _currentAudioSource == AudioSourceType.lofi
+                ? _isCurrentSongFavorite
+                : false,
+            // isFavoriteEnabled: _currentAudioSource == AudioSourceType.lofi,
+          );
         },
       ),
     );
@@ -334,39 +422,50 @@ class PlayerWidgetState extends State<PlayerWidget>
   List<Widget> buildControlWidgets() {
     return [
       Center(
-        child: StreamBuilder<PlayerState>(
-          stream: _audio.audioPlayer.playerStateStream,
+        child: StreamBuilder<bool>(
+          stream:
+              _currentAudioController?.isPlayingStream ?? Stream.value(false),
           builder: (context, snapshot) {
-            final playerState = snapshot.data;
-            final playing = playerState?.playing;
-            if (playing != null) {
-              return Controls(
-                onShuffle: () => _audio.shuffle(),
-                onPrevious: _previousSong,
-                onPlay: _audio.play,
-                onPause: _audio.pause,
-                onNext: _nextSong,
-                onFavorite: (value) {
+            final playing = snapshot.data ?? false;
+
+            return Controls(
+              onShuffle: _shuffle,
+              onPrevious: _previousSong,
+              onPlay: _play,
+              onPause: _pause,
+              onNext: _nextSong,
+              onFavorite: (value) {
+                if (_currentAudioSource == AudioSourceType.lofi) {
                   _authService.isUserLoggedIn()
                       ? _toggleFavorite(value)
                       : context.goNamed(AppRoute.loginPage.name);
-                },
-                isPlaying: playing,
-                isFavorite: _isCurrentSongFavorite,
-              );
-            } else {
-              return const SizedBox.shrink();
-            }
+                }
+              },
+              isPlaying: playing,
+              isFavorite: _currentAudioSource == AudioSourceType.lofi
+                  ? _isCurrentSongFavorite
+                  : false,
+              //isFavoriteEnabled: _currentAudioSource == AudioSourceType.lofi,
+            );
           },
         ),
       ),
-      SongInfo(
-        song: currentSongInfo,
-        positionStream: _audio.positionDataStream,
-        onSeekRequested: (newPosition) => _audio.seek(newPosition),
-      ),
-      VolumeSlider(
-        volumeChanged: (volume) => _audio.setVolume(volume),
+      Row(
+        children: [
+          SongInfo(
+            song: currentSongInfo,
+            positionStream: _currentAudioController?.positionDataStream ??
+                Stream.value(
+                    PositionData(Duration.zero, Duration.zero, Duration.zero)),
+            onSeekRequested: (newPosition) =>
+                _currentAudioController?.seek(newPosition),
+          ),
+          const SizedBox(width: 20),
+          VolumeSlider(
+            volumeChanged: (volume) =>
+                _currentAudioController?.setVolume(volume),
+          ),
+        ],
       ),
       IconControls(
         key: _iconControlsKey,
@@ -375,12 +474,22 @@ class PlayerWidgetState extends State<PlayerWidget>
             _showAudioSource = enabled;
           });
         },
-        onListPressed: (enabled) {},
-        onEqualizerPressed: (enabled) {
-          setState(() {
-            _showEqualizer = enabled;
-          });
+        onListPressed: (enabled) {
+          if (_currentAudioSource == AudioSourceType.lofi) {
+            setState(() {
+              _showQueue = enabled;
+            });
+          }
         },
+        // isListEnabled: _currentAudioSource == AudioSourceType.lofi,
+        onEqualizerPressed: (enabled) {
+          if (_currentAudioSource == AudioSourceType.lofi) {
+            setState(() {
+              _showEqualizer = enabled;
+            });
+          }
+        },
+        //isEqualizerEnabled: _currentAudioSource == AudioSourceType.lofi,
         onBackgroundSoundPressed: (enabled) {
           setState(() {
             _showBackgroundSound = enabled;
@@ -391,32 +500,53 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   void _toggleFavorite(bool isFavorite) async {
-    if (!_authService.isUserLoggedIn()) return;
+    if (_currentAudioSource != AudioSourceType.lofi ||
+        !_authService.isUserLoggedIn() ||
+        currentSongInfo == null) return;
+
+    final lofiSongInfoForFavorite = _lofiController.getCurrentSongInfo();
+    if (lofiSongInfoForFavorite == null) return;
+
     setState(() => _isCurrentSongFavorite = isFavorite);
     try {
       await _songCloudInfoService.markSongFavorite(
-          widget.playlistId, currentSongInfo!, isFavorite);
+          widget.playlistId, lofiSongInfoForFavorite, isFavorite);
     } catch (e) {
-      setState(() => _isCurrentSongFavorite = !isFavorite);
+      if (mounted) {
+        setState(() => _isCurrentSongFavorite = !isFavorite);
+        _showError('Could not update favorite status.');
+      }
     }
+  }
+
+  void _play() async {
+    await _currentAudioController?.play();
+  }
+
+  void _pause() async {
+    await _currentAudioController?.pause();
+  }
+
+  void _shuffle() async {
+    await _currentAudioController?.shuffle();
+    _updateSongState();
   }
 
   void _nextSong() async {
     try {
-      await _audio.next();
-      updateSong();
+      await _currentAudioController?.next();
+      _updateSongState();
     } catch (e) {
-      // Handle error as needed.
+      _showError('Could not play next song.');
     }
   }
 
   void _previousSong() async {
-
     try {
-      await _audio.previous();
-      updateSong();
+      await _currentAudioController?.previous();
+      _updateSongState();
     } catch (e) {
-      // Handle error as needed.
+      _showError('Could not play previous song.');
     }
   }
 }
