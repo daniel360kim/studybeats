@@ -3,6 +3,8 @@
 /// Manages the access token state (in-memory for this simple version).
 library;
 
+
+
 import 'dart:async';
 import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
@@ -12,6 +14,8 @@ import 'package:crypto/crypto.dart' show Digest, sha256;
 import 'package:flutter/foundation.dart'; // For kIsWeb and ChangeNotifier
 import 'package:http/http.dart' as http;
 import 'package:studybeats/secrets.dart';
+
+const SPOTIFY_CLIENT_ID = 'acc81880af9f4d3fbc51be242528b818';
 
 class SpotifyAuthService extends ChangeNotifier {
   /// The Redirect URI configured in your Spotify Developer Dashboard.
