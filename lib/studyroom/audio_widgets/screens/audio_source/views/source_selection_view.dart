@@ -5,9 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
+import 'package:url_launcher/url_launcher.dart'; // Required for launching URL
 
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/widgets/source_card_widget.dart';
+// For spotifyGreen
 
 class SourceSelectionView extends StatelessWidget {
   final AudioSourceType selectedSource;
@@ -82,12 +84,17 @@ class SourceSelectionView extends StatelessWidget {
     _logger.v(
         "Building widget. PlayerConnecting: $isSpotifyPlayerConnecting, PlayerConnected: $isSpotifyPlayerConnected");
 
+    // Enhanced Spotify icon widget with proper branding
     Widget spotifyIconWidget = CircleAvatar(
-      radius: 18,
-      backgroundColor:
-          isSpotifyAuthenticated ? Colors.green.shade600 : Colors.grey.shade400,
-      child: Image.asset('assets/brand/spotify.png',
-          width: 20, height: 20, color: Colors.white),
+      radius: 24,
+      backgroundColor: Colors.white,
+      child: Image.asset(
+        'assets/brand/spotify.png', // Spotify icon only
+        width: 40, // Ensure proper size for compact spaces
+        height: 40,
+        fit: BoxFit.contain,
+        semanticLabel: 'Spotify Icon',
+      ),
     );
 
     Widget? spotifyMainActionWidget;
@@ -157,20 +164,31 @@ class SourceSelectionView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Choose your audio source',
-                style: GoogleFonts.inter(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Choose your audio source',
+                  style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: kFlourishBlackish)),
-            if (onClosePanel != null)
-              IconButton(
+                    color: kFlourishBlackish,
+                  ),
+                ),
+              ),
+              if (onClosePanel != null)
+                IconButton(
                   icon: Icon(Icons.close_rounded,
                       color: kFlourishBlackish.withOpacity(0.7), size: 24),
                   onPressed: onClosePanel,
-                  tooltip: 'Close Panel'),
-          ]),
-          const SizedBox(height: 28),
+                  tooltip: 'Close Panel',
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const SizedBox(height: 18),
           SourceCardWidget(
             title: 'Lofi Radio',
             iconData: Icons.radio_rounded,
@@ -213,6 +231,28 @@ class SourceSelectionView extends StatelessWidget {
             trailing: spotifyTrailingWidget,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSpotifyAttribution() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Center(
+        child: GestureDetector(
+          onTap: () async {
+            final Uri url = Uri.parse('https://www.spotify.com');
+            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+              _logger.w("Could not launch ${url.toString()}");
+            }
+          },
+          child: Image.asset(
+            'assets/brand/spotify_logo_full_black.png',
+            height: 20, // Standardized height for consistency
+            fit: BoxFit.contain,
+            semanticLabel: 'Powered by Spotify. Links to Spotify.com',
+          ),
+        ),
       ),
     );
   }

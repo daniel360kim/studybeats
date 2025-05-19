@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
 import 'package:studybeats/studyroom/audio/seekbar.dart';
 import 'package:flutter/material.dart';
@@ -144,13 +146,54 @@ class _SongInfoState extends State<SongInfo> {
   }
 
   Widget _buildShimmerTextPlaceholder() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Container(
+    final audioSourceProvider =
+        Provider.of<AudioSourceSelectionProvider>(context, listen: false);
+    final currentSource = audioSourceProvider.currentSource;
+    if (currentSource == AudioSourceType.lofi) {
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Container(
+          width: 400,
+          color: Colors.white,
+        ),
+      );
+    } else {
+      return Container(
         width: 400,
-        color: Colors.white,
-      ),
-    );
+        height: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100.withOpacity(0.65),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.center, // Ensure vertical alignment
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.music_off_rounded,
+                  size: 20, color: Colors.grey.shade500),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'No song selected',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

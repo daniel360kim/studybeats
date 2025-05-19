@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
+import 'package:url_launcher/url_launcher.dart'; // Required for launching URL
+
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/widgets/shimmer_list_widget.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/views/spotify_tracks_view.dart'; // For spotifyGreen and spotifyBlack
 
 class SpotifyPlaylistView extends StatelessWidget {
   final List<SpotifyPlaylistSimple>? playlists;
@@ -38,37 +41,44 @@ class SpotifyPlaylistView extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              16.0, 16.0, 16.0, 12.0), // Consistent padding
-          child: Row(children: [
-            IconButton(
+              16.0, 16.0, 16.0, 12.0), // Restored original padding
+          child: Row(
+            children: [
+              IconButton(
                 icon: Icon(Icons.arrow_back_ios_new_rounded,
                     color: kFlourishBlackish.withOpacity(0.9), size: 22),
                 onPressed: onBack,
-                tooltip: 'Back to Sources'),
-            Expanded(
-                child: Text("Your Playlists",
-                    style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: kFlourishBlackish),
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis)),
-            if (onClosePanel != null)
-              IconButton(
-                  icon: Icon(Icons.close_rounded,
-                      color: kFlourishBlackish.withOpacity(0.7), size: 24),
-                  onPressed: onClosePanel,
-                  tooltip: 'Close Panel')
-            else
-              const SizedBox(width: 48), // Keep for alignment
-          ]),
+                tooltip: 'Back to Sources',
+              ),
+              Expanded(
+                child: Text(
+                  "Your Playlists",
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: SpotifyTracksView.spotifyBlack,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (onClosePanel != null)
+                IconButton(
+                    icon: Icon(Icons.close_rounded,
+                        color: kFlourishBlackish.withOpacity(0.7), size: 24),
+                    onPressed: onClosePanel,
+                    tooltip: 'Close Panel')
+              else
+                const SizedBox(width: 48), // Keep for alignment
+            ],
+          ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: 16.0), // Main horizontal padding for the list area
             child: RefreshIndicator(
-              color: kFlourishAdobe,
+              color: SpotifyTracksView.accentColor, // Changed to spotifyGreen
               backgroundColor: Colors.white,
               onRefresh: onRefresh,
               child: (playlists == null && isLoading)
@@ -112,23 +122,23 @@ class SpotifyPlaylistView extends StatelessWidget {
                             ),
                           ),
                         )
-                      : ListView.builder(
+                      : ListView.separated(
                           padding: const EdgeInsets.only(
                               top: 8,
                               bottom: 24), // Padding for the list itself
                           itemCount: playlists!.length,
+                          separatorBuilder: (context, index) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Divider(
+                              color: Colors.grey.withOpacity(0.13),
+                              thickness: 1,
+                              height: 18,
+                            ),
+                          ),
                           itemBuilder: (context, index) {
                             final playlist = playlists![index];
-                            return Card(
-                              color: kFlourishAliceBlue,
-                              elevation: 5,
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 12.0, horizontal: 16.0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              shadowColor: Colors.black.withOpacity(0.15),
-                              clipBehavior: Clip.antiAlias,
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
                               child: InkWell(
                                 onTap: () {
                                   _logger
@@ -136,70 +146,83 @@ class SpotifyPlaylistView extends StatelessWidget {
                                   HapticFeedback.lightImpact();
                                   onPlaylistTap(playlist);
                                 },
-                                borderRadius: BorderRadius.circular(16),
-                                hoverColor: Theme.of(context)
-                                    .primaryColorLight
-                                    .withOpacity(0.12),
-                                splashColor: Theme.of(context)
-                                    .primaryColor
-                                    .withOpacity(0.25),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image.network(
-                                          playlist.imageUrl ?? '',
-                                          width: 70,
-                                          height: 70,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Container(
-                                            width: 70,
-                                            height: 70,
-                                            color: Colors.grey[300],
-                                            child: Icon(Icons.music_note,
-                                                color: Colors.white70,
-                                                size: 36),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 20),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              playlist.name,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.inter(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w700,
-                                                color: kFlourishBlackish,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              '${playlist.totalTracks} tracks',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 14,
-                                                color: Colors.grey[600],
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        size: 22,
-                                        color: Colors.grey.shade400,
+                                borderRadius: BorderRadius.circular(12),
+                                splashColor: Colors.black.withOpacity(0.05),
+                                highlightColor: Colors.transparent,
+                                child: Ink(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                        Border.all(color: Colors.grey.shade200),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
                                     ],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 14),
+                                    child: Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(4.0),
+                                          child: Image.network(
+                                            playlist.imageUrl ?? '',
+                                            width: 64,
+                                            height: 64,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                              width: 64,
+                                              height: 64,
+                                              color: Colors.grey[300],
+                                              child: Icon(Icons.music_note,
+                                                  color: Colors.white70,
+                                                  size: 30),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                playlist.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: SpotifyTracksView
+                                                      .spotifyBlack,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${playlist.totalTracks} tracks',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 20,
+                                            color: Colors.grey),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -209,7 +232,31 @@ class SpotifyPlaylistView extends StatelessWidget {
             ),
           ),
         ),
+        _buildSpotifyAttribution(), // Moved attribution to the bottom
       ],
+    );
+  }
+
+  Widget _buildSpotifyAttribution() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Center(
+        child: GestureDetector(
+          onTap: () async {
+            final Uri url = Uri.parse('https://www.spotify.com');
+            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+              _logger.w("Could not launch ${url.toString()}");
+            }
+          },
+          child: Image.asset(
+            'assets/brand/spotify_logo_full_black.png', // Full logo (icon + wordmark)
+            height:
+                24, // Ensure height maintains aspect ratio for >= 70px width
+            fit: BoxFit.contain,
+            semanticLabel: 'Powered by Spotify. Links to Spotify.com',
+          ),
+        ),
+      ),
     );
   }
 }

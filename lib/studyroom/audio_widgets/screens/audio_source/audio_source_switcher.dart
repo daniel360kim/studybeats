@@ -9,11 +9,12 @@ import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
 import 'package:studybeats/studyroom/audio/spotify_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Views
 import 'views/source_selection_view.dart';
 import 'views/spotify_playlist_view.dart';
-import 'views/spotify_tracks_view.dart';
+import 'views/spotify_tracks_view.dart'; // For SpotifyTracksView.spotifyGreen
 import 'views/loading_view.dart';
 import 'views/error_view.dart';
 
@@ -67,6 +68,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   SpotifyPlayerDisplayState _spotifyPlayerDisplayState =
       SpotifyPlayerDisplayState.initial();
   StreamSubscription? _spotifyDisplayStateSubscription;
+  StreamSubscription? _spotifyErrorSub;
 
   @override
   void initState() {
@@ -84,6 +86,11 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         setState(() => _spotifyPlayerDisplayState = newState);
       }
     });
+    _spotifyErrorSub = widget.spotifyController.errorStream.listen((msg) {
+      if (mounted) {
+        _setError(msg, _LastFailedAction.none);
+      }
+    });
   }
 
   @override
@@ -95,6 +102,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   @override
   void dispose() {
     _spotifyDisplayStateSubscription?.cancel();
+    _spotifyErrorSub?.cancel();
     super.dispose();
   }
 
@@ -107,8 +115,9 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   }
 
   void _setLoading(bool loading, {String message = 'Loading...'}) {
-    if (!mounted || (_isLoading == loading && _loadingMessage == message))
+    if (!mounted || (_isLoading == loading && _loadingMessage == message)) {
       return;
+    }
     setStateIfMounted(() {
       _isLoading = loading;
       if (loading) {
@@ -157,28 +166,51 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   // ---------------------------------------------------------------------------
 
   Future<void> _startPlayback(String trackUri) async {
-    widget.spotifyController.playTrack(
-      trackUri,
-      contextTracks: _selectedPlaylistForTracksView != null
-          ? widget.spotifyController
-              .getCachedPlaylistTracks(_selectedPlaylistForTracksView!.id)
-          : null,
-    );
+    try {
+      await widget.spotifyController.playTrack(
+        trackUri,
+        contextTracks: _selectedPlaylistForTracksView != null
+            ? widget.spotifyController
+                .getCachedPlaylistTracks(_selectedPlaylistForTracksView!.id)
+            : null,
+      );
+    } catch (e) {
+      _setError("Playback error. Please try again.", _LastFailedAction.none);
+    }
   }
 
-  void _toggleSdkPlayerPlayback() => widget.spotifyController.togglePlayPause();
+  void _toggleSdkPlayerPlayback() {
+    try {
+      widget.spotifyController.togglePlayPause();
+    } catch (e) {
+      _setError("Could not toggle play/pause.", _LastFailedAction.none);
+    }
+  }
 
-  void _handleRetryPlayerConnection() =>
+  void _handleRetryPlayerConnection() {
+    try {
       widget.spotifyController.initializePlayer();
+    } catch (e) {
+      _setError("Retrying connection failed.", _LastFailedAction.none);
+    }
+  }
 
   void _onAuthSuccess() {
-    widget.spotifyController.initializePlayer();
-    _fetchUserPlaylists();
+    try {
+      widget.spotifyController.initializePlayer();
+      _fetchUserPlaylists();
+    } catch (e) {
+      _setError("Post-login setup failed.", _LastFailedAction.none);
+    }
   }
 
   void _logoutSpotify() {
-    widget.spotifyController.disposePlayer();
-    _authService.logout();
+    try {
+      widget.spotifyController.disposePlayer();
+      _authService.logout();
+    } catch (e) {
+      _setError("Logout failed.", _LastFailedAction.none);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -312,7 +344,9 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
       context: context,
       builder: (context) => AlertDialog(
         title: Row(children: [
-          Icon(Icons.info_outline_rounded, color: Colors.green[700]),
+          Icon(Icons.info_outline_rounded,
+              color: const Color(0xFF1DB954), // Changed to spotifyGreen
+              ), // Changed to spotifyGreen
           const SizedBox(width: 10),
           Text('Spotify Login',
               style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
@@ -445,20 +479,73 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         context.watch<AudioSourceSelectionProvider>().currentSource;
 
     if (_isLoading && _currentView == _SwitcherView.spotifyLoading) {
-      return LoadingView(
-          key: const ValueKey('loading'), message: _loadingMessage);
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: GestureDetector(
+              onTap: () async {
+                final Uri url = Uri.parse('https://www.spotify.com');
+                if (!await launchUrl(url,
+                    mode: LaunchMode.externalApplication)) {
+                  _logger.w("Could not launch Spotify URL");
+                }
+              },
+              child: Image.asset(
+                'assets/brand/spotify_logo_full_black.png', // Full logo (icon + wordmark)
+                height:
+                    24, // Ensure height maintains aspect ratio for >= 70px width
+                fit: BoxFit.contain,
+                semanticLabel: 'Powered by Spotify. Links to Spotify.com',
+              ),
+            ),
+          ),
+          Expanded(
+            child: LoadingView(
+              key: const ValueKey('loading'),
+              message: _loadingMessage,
+            ),
+          ),
+        ],
+      );
     }
+
     if (_currentView == _SwitcherView.spotifyError &&
         _spotifyErrorMsg.isNotEmpty) {
-      return ErrorView(
-        key: ValueKey('error_$_spotifyErrorMsg'),
-        errorMessage: _spotifyErrorMsg,
-        canRetry: _lastFailedAction != _LastFailedAction.none,
-        onRetry: _retryLastAction,
-        onGoBack: () {
-          _clearSpotifyData(keepUserPlaylists: true);
-          setStateIfMounted(() => _currentView = _SwitcherView.selection);
-        },
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: GestureDetector(
+              onTap: () async {
+                final Uri url = Uri.parse('https://www.spotify.com');
+                if (!await launchUrl(url,
+                    mode: LaunchMode.externalApplication)) {
+                  _logger.w("Could not launch Spotify URL");
+                }
+              },
+              child: Image.asset(
+                'assets/brand/spotify_logo_full_black.png', // Full logo (icon + wordmark)
+                height:
+                    24, // Ensure height maintains aspect ratio for >= 70px width
+                fit: BoxFit.contain,
+                semanticLabel: 'Powered by Spotify. Links to Spotify.com',
+              ),
+            ),
+          ),
+          Expanded(
+            child: ErrorView(
+              key: ValueKey('error_$_spotifyErrorMsg'),
+              errorMessage: _spotifyErrorMsg,
+              canRetry: _lastFailedAction != _LastFailedAction.none,
+              onRetry: _retryLastAction,
+              onGoBack: () {
+                _clearSpotifyData(keepUserPlaylists: true);
+                setStateIfMounted(() => _currentView = _SwitcherView.selection);
+              },
+            ),
+          ),
+        ],
       );
     }
 

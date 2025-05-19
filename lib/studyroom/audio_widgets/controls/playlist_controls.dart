@@ -85,6 +85,7 @@ class IconControlsState extends State<IconControls> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          /*
           // Equalizer button.
           Container(
             width: 35,
@@ -103,6 +104,7 @@ class IconControlsState extends State<IconControls> {
               icon: const Icon(Icons.graphic_eq),
             ),
           ),
+          */
           const SizedBox(width: 10),
           // Background Sound button.
           Container(

@@ -37,11 +37,11 @@ class SourceCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     _logger.v("Building widget for '$title'");
     final Gradient cardGradient = sourceType == AudioSourceType.spotify
-        ? LinearGradient(
+        ? const LinearGradient(
+            // Ensured this is const
             colors: [
-              const Color(0xFF1DB954).withOpacity(
-                  isSelected ? 0.35 : 0.18), // Enhanced selected state
-              Colors.white.withOpacity(isSelected ? 0.95 : 0.90),
+              Colors.white,
+              Colors.white,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -59,7 +59,8 @@ class SourceCardWidget extends StatelessWidget {
 
     Color iconColor = isSelected
         ? (sourceType == AudioSourceType.spotify
-            ? Colors.white
+            ? Colors
+                .white // This is for the default Icon(iconData), Spotify uses iconWidget
             : Theme.of(context).primaryColorDark)
         : Colors.grey.shade700;
     Color titleColor = kFlourishBlackish;

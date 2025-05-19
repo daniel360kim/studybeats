@@ -48,6 +48,8 @@ class Controls extends StatelessWidget {
       required this.onFavorite,
       required this.isPlaying,
       required this.isFavorite,
+      required this.showFavorite,
+      required this.showShuffle,
       super.key});
 
   final void Function() onShuffle;
@@ -58,6 +60,8 @@ class Controls extends StatelessWidget {
   final ValueChanged<bool> onFavorite;
   final bool isFavorite;
   final bool isPlaying;
+  final bool showFavorite;
+  final bool showShuffle;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +74,7 @@ class Controls extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (showFavorite)
             MusicControlButton(
               icon: isFavorite ? Icons.favorite : Icons.favorite_border,
               iconSize: secondaryIconSize,
@@ -107,6 +112,7 @@ class Controls extends StatelessWidget {
               onPressed: () => onNext(),
             ),
             const SizedBox(width: 7.0),
+            if (showShuffle)
             MusicControlButton(
               icon: Icons.shuffle,
               iconSize: secondaryIconSize,

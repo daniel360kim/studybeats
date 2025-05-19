@@ -4,10 +4,12 @@ library;
 // Only needed if using _fetchSimpleUserProfile directly here
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:studybeats/api/spotify/spotify_api_service.dart';
 import 'package:studybeats/api/spotify/spotify_auth_service.dart';
+import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart'; // Only needed if using _fetchSimpleUserProfile directly here
 
 class SpotifyLoginPage extends StatefulWidget {
@@ -112,8 +114,18 @@ class _SpotifyLoginPageState extends State<SpotifyLoginPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Spotify Login & Profile Test'),
-            backgroundColor: Colors.green[700], // Spotify-ish green
+            backgroundColor: Colors.white,
+            elevation: 1,
+            title: Text(
+              'Spotify Login',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.black),
           ),
           body: Center(
             child: Padding(
@@ -125,13 +137,17 @@ class _SpotifyLoginPageState extends State<SpotifyLoginPage> {
                   // --- Login Button ---
                   if (!authService.isAuthenticated && !_isLoadingProfile)
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.login), // Simple login icon
+                      icon: const Icon(Icons.login_rounded, size: 20),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Spotify green
+                        backgroundColor: const Color(0xFF1DB954),
                         foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 15),
-                        textStyle: const TextStyle(fontSize: 16),
+                            horizontal: 24, vertical: 14),
+                        textStyle: GoogleFonts.inter(
+                            fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                       onPressed: () {
                         setState(() {
@@ -201,13 +217,17 @@ class _SpotifyLoginPageState extends State<SpotifyLoginPage> {
                     const SizedBox(height: 30),
                     // Logout Button
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.logout),
+                      icon: const Icon(Icons.logout_rounded, size: 20),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            Colors.redAccent, // Different color for logout
+                        backgroundColor: Colors.redAccent,
                         foregroundColor: Colors.white,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 15),
+                            horizontal: 24, vertical: 14),
+                        textStyle: GoogleFonts.inter(
+                            fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                       onPressed: () {
                         setState(() {
@@ -231,11 +251,14 @@ class _SpotifyLoginPageState extends State<SpotifyLoginPage> {
                       padding: const EdgeInsets.only(top: 20.0),
                       child: Text(
                         _statusMessage,
-                        style: TextStyle(
-                            color: _statusMessage.contains('Failed') ||
-                                    _statusMessage.contains('Error')
-                                ? Colors.red
-                                : Colors.black54),
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: _statusMessage.contains('Failed') ||
+                                  _statusMessage.contains('Error')
+                              ? Colors.redAccent
+                              : Colors.grey[600],
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -385,7 +408,9 @@ class _SpotifyCallbackScreenState extends State<SpotifyCallbackScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(
+              color: kFlourishAdobe,
+            ),
             SizedBox(height: 20),
             Text('Processing Spotify login...'),
           ],

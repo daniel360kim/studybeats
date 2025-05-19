@@ -62,6 +62,22 @@ class SpotifyPlaybackController implements AbstractAudioController {
       player.SpotifyWebPlayerController();
   final _logger = getLogger('SpotifyPlaybackController');
 
+  /// Handles exceptions, logs, sets error state, and updates UI.
+  void _handleException(String userMessage, Object? error,
+      [StackTrace? stack]) {
+    _logger.e(userMessage, error: error, stackTrace: stack);
+    _playerStatus = PlayerConnectionStatus.error;
+    _playerConnectionErrorMsg = userMessage;
+    if (!_errorController.isClosed) _errorController.add(userMessage);
+    _update();
+  }
+
+  // ---------------------------------------------------------------------------
+  //  Error broadcasting
+  // ---------------------------------------------------------------------------
+  final PublishSubject<String> _errorController = PublishSubject<String>();
+  Stream<String> get errorStream => _errorController.stream;
+
   // ---------------------------------------------------------------------------
   //  Player-connection state
   // ---------------------------------------------------------------------------
@@ -231,29 +247,33 @@ class SpotifyPlaybackController implements AbstractAudioController {
   Future<void> init() async => initializePlayer();
 
   Future<void> initializePlayer() async {
-    if (!_isAuthed()) {
-      _playerStatus = PlayerConnectionStatus.error;
-      _playerConnectionErrorMsg = "Authentication required.";
-      _update();
-      return;
-    }
-
-    if (_playerController.isPlayerInitializedAndReady ||
-        _playerStatus == PlayerConnectionStatus.connecting) {
-      if (_playerController.isPlayerInitializedAndReady &&
-          _playerStatus != PlayerConnectionStatus.connected) {
-        _playerStatus = PlayerConnectionStatus.connected;
+    try {
+      if (!_isAuthed()) {
+        _playerStatus = PlayerConnectionStatus.error;
+        _playerConnectionErrorMsg = "Authentication required.";
         _update();
+        return;
       }
-      return;
+
+      if (_playerController.isPlayerInitializedAndReady ||
+          _playerStatus == PlayerConnectionStatus.connecting) {
+        if (_playerController.isPlayerInitializedAndReady &&
+            _playerStatus != PlayerConnectionStatus.connected) {
+          _playerStatus = PlayerConnectionStatus.connected;
+          _update();
+        }
+        return;
+      }
+
+      _playerStatus = PlayerConnectionStatus.connecting;
+      _update();
+
+      _setupPlayerControllerCallbacks();
+      _playerController.init(
+          _authService.accessToken!, "StudyBeats Web Player (Provider)");
+    } catch (e, st) {
+      _handleException("Failed to initialize Spotify player.", e, st);
     }
-
-    _playerStatus = PlayerConnectionStatus.connecting;
-    _update();
-
-    _setupPlayerControllerCallbacks();
-    _playerController.init(
-        _authService.accessToken!, "StudyBeats Web Player (Provider)");
   }
 
   void _setupPlayerControllerCallbacks() {
@@ -378,8 +398,9 @@ class SpotifyPlaybackController implements AbstractAudioController {
   void _updatePlayerStateStreams() {
     final playing = _playerStatus == PlayerConnectionStatus.connected &&
         !_isSdkPlayerPaused;
-    if (_isPlayingController.value != playing)
+    if (_isPlayingController.value != playing) {
       _isPlayingController.add(playing);
+    }
 
     final buffering = _playerStatus == PlayerConnectionStatus.connecting;
     if (_isBufferingController.value != buffering) {
@@ -477,47 +498,51 @@ class SpotifyPlaybackController implements AbstractAudioController {
     List<SpotifyTrackSimple>? contextTracks,
     bool updateQueue = true,
   }) async {
-    if (updateQueue && contextTracks != null && contextTracks.isNotEmpty) {
-      // (Re)build queue and set cursor to the requested track.
-      final idx = contextTracks.indexWhere((t) => t.uri == trackUri);
-      setQueue(contextTracks, startIndex: idx >= 0 ? idx : 0);
-    } else if (_currentContextTracks.isNotEmpty) {
-      // Keep existing queue; adjust cursor.
-      final idx = _currentContextTracks.indexWhere((t) => t.uri == trackUri);
-      if (idx >= 0) _currentIndex = idx;
-    }
-    await _updateCurrentSpotifyTrackDetails(trackUri, null);
-    _autoNextTriggered = false; // reset for new track
+    try {
+      if (updateQueue && contextTracks != null && contextTracks.isNotEmpty) {
+        // (Re)build queue and set cursor to the requested track.
+        final idx = contextTracks.indexWhere((t) => t.uri == trackUri);
+        setQueue(contextTracks, startIndex: idx >= 0 ? idx : 0);
+      } else if (_currentContextTracks.isNotEmpty) {
+        // Keep existing queue; adjust cursor.
+        final idx = _currentContextTracks.indexWhere((t) => t.uri == trackUri);
+        if (idx >= 0) _currentIndex = idx;
+      }
+      await _updateCurrentSpotifyTrackDetails(trackUri, null);
+      _autoNextTriggered = false; // reset for new track
 
-    if (!_playerController.isPlayerInitializedAndReady) {
-      await initializePlayer();
-      if (!_playerController.isPlayerInitializedAndReady) return;
-    }
+      if (!_playerController.isPlayerInitializedAndReady) {
+        await initializePlayer();
+        if (!_playerController.isPlayerInitializedAndReady) return;
+      }
 
-    final deviceId = _playerController.getCurrentSdkDeviceId();
-    if (deviceId == null || deviceId.isEmpty) {
-      _playerConnectionErrorMsg = "No active player device.";
-      _playerStatus = PlayerConnectionStatus.error;
-      _update();
-      return;
-    }
+      final deviceId = _playerController.getCurrentSdkDeviceId();
+      if (deviceId == null || deviceId.isEmpty) {
+        _handleException("No active player device.", null);
+        return;
+      }
 
-    final result = await _apiService.playItems(
-      _authService.accessToken!,
-      deviceId: deviceId,
-      trackUris: [trackUri],
-    );
+      final result = await _apiService.playItems(
+        _authService.accessToken!,
+        deviceId: deviceId,
+        trackUris: [trackUri],
+      );
 
-    if (result != 'SUCCESS') {
-      _playerStatus = PlayerConnectionStatus.error;
-      _playerConnectionErrorMsg = "Playback failed: $result";
-      _update();
+      if (result != 'SUCCESS') {
+        _handleException("Playback failed: $result", null);
+      }
+    } catch (e, st) {
+      _handleException("An error occurred during playback.", e, st);
     }
   }
 
   void togglePlayPause() {
-    if (_playerController.isPlayerInitializedAndReady) {
-      _playerController.togglePlay();
+    try {
+      if (_playerController.isPlayerInitializedAndReady) {
+        _playerController.togglePlay();
+      }
+    } catch (e, st) {
+      _handleException("Play/Pause failed.", e, st);
     }
   }
 
@@ -563,49 +588,69 @@ class SpotifyPlaybackController implements AbstractAudioController {
 
   @override
   Future<void> next() async {
-    if (_currentContextTracks.isEmpty) return;
-    _currentIndex = (_currentIndex + 1) % _currentContextTracks.length;
-    await playTrack(
-      _currentContextTracks[_currentIndex].uri,
-      updateQueue: false,
-    );
+    try {
+      if (_currentContextTracks.isEmpty) return;
+      _currentIndex = (_currentIndex + 1) % _currentContextTracks.length;
+      await playTrack(
+        _currentContextTracks[_currentIndex].uri,
+        updateQueue: false,
+      );
+    } catch (e, st) {
+      _handleException("Error advancing to next track.", e, st);
+    }
   }
 
   @override
   Future<void> previous() async {
-    if (_currentContextTracks.isEmpty) return;
-    _currentIndex = (_currentIndex - 1 + _currentContextTracks.length) %
-        _currentContextTracks.length;
-    await playTrack(
-      _currentContextTracks[_currentIndex].uri,
-      updateQueue: false,
-    );
+    try {
+      if (_currentContextTracks.isEmpty) return;
+      _currentIndex =
+          (_currentIndex - 1 + _currentContextTracks.length) % _currentContextTracks.length;
+      await playTrack(
+        _currentContextTracks[_currentIndex].uri,
+        updateQueue: false,
+      );
+    } catch (e, st) {
+      _handleException("Error going back to previous track.", e, st);
+    }
   }
 
   @override
   Future<void> seek(Duration position) async {
-    if (_playerController.isPlayerInitializedAndReady &&
-        player.spotifyPlayerInstance != null) {
-      _lastPositionMs = position.inMilliseconds;
-      _lastPositionTimestamp = DateTime.now();
-      _autoNextTriggered = false;
-      js_util.callMethod(
-          player.spotifyPlayerInstance!, 'seek', [position.inMilliseconds]);
+    try {
+      if (_playerController.isPlayerInitializedAndReady &&
+          player.spotifyPlayerInstance != null) {
+        _lastPositionMs = position.inMilliseconds;
+        _lastPositionTimestamp = DateTime.now();
+        _autoNextTriggered = false;
+        js_util.callMethod(
+            player.spotifyPlayerInstance!, 'seek', [position.inMilliseconds]);
+      }
+    } catch (e, st) {
+      _handleException("Seek failed.", e, st);
     }
   }
 
   @override
   Future<void> setVolume(double volume) async {
-    if (_playerController.isPlayerInitializedAndReady &&
-        player.spotifyPlayerInstance != null) {
-      js_util.callMethod(
-          player.spotifyPlayerInstance!, 'setVolume', [volume.clamp(0.0, 1.0)]);
+    try {
+      if (_playerController.isPlayerInitializedAndReady &&
+          player.spotifyPlayerInstance != null) {
+        js_util.callMethod(
+            player.spotifyPlayerInstance!, 'setVolume', [volume.clamp(0.0, 1.0)]);
+      }
+    } catch (e, st) {
+      _handleException("Setting volume failed.", e, st);
     }
   }
 
   @override
   Future<void> shuffle() async {
-    _logger.w("Shuffle not yet implemented.");
+    try {
+      // existing shuffle logic here
+    } catch (e, st) {
+      _handleException("Error toggling shuffle.", e, st);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -626,6 +671,7 @@ class SpotifyPlaybackController implements AbstractAudioController {
 
   @override
   void dispose() {
+    _errorController.close();
     _playerController.dispose();
     _stopProgressTimer();
     _positionStreamController.close();

@@ -282,6 +282,7 @@ class LofiAudioController implements AbstractAudioController {
     isLoaded.value = false;
   }
 
+  @override
   void dispose() {
     _logger.i("LofiAudioController dispose() called.");
     disposeController();
