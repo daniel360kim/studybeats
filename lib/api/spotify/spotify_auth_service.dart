@@ -3,8 +3,6 @@
 /// Manages the access token state (in-memory for this simple version).
 library;
 
-
-
 import 'dart:async';
 import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
@@ -21,7 +19,8 @@ class SpotifyAuthService extends ChangeNotifier {
   /// The Redirect URI configured in your Spotify Developer Dashboard.
   /// Must use 127.0.0.1 for local development and match the dashboard exactly.
   /// Assumes you run the dev server on port 8080. Adjust if needed.
-  final String _redirectUri = 'https://app.studybeats.co/spotify_callback'; // Route path, no .html
+  final String _redirectUri =
+      'https://app.studybeats.co/spotify_callback'; // Route path, no .html
 
   // --- State Variables ---
   String? _accessToken;
@@ -80,9 +79,9 @@ class SpotifyAuthService extends ChangeNotifier {
       return;
     }
 
-
     // 3. Define required scopes
-    final String scopes = 'user-read-private user-read-email streaming'; // Added streaming scope
+    final String scopes =
+        'user-read-private user-read-email streaming'; // Added streaming scope
 
     // 4. Construct the authorization URL
     final authUrl = Uri.https('accounts.spotify.com', '/authorize', {
@@ -103,17 +102,18 @@ class SpotifyAuthService extends ChangeNotifier {
   /// Exchanges the authorization code (received on redirect) for an access token.
   /// This should be called from the callback route handler.
   Future<void> exchangeCodeForToken(String code, String returnedState) async {
-     if (!kIsWeb) return;
+    if (!kIsWeb) return;
 
     // 1. Retrieve PKCE values from sessionStorage
-    final String? storedState = html.window.sessionStorage['spotify_pkce_state'];
-    final String? storedVerifier = html.window.sessionStorage['spotify_code_verifier'];
+    final String? storedState =
+        html.window.sessionStorage['spotify_pkce_state'];
+    final String? storedVerifier =
+        html.window.sessionStorage['spotify_code_verifier'];
 
     // 2. Clean up storage immediately after retrieving
     html.window.sessionStorage.remove('spotify_code_verifier');
     html.window.sessionStorage.remove('spotify_pkce_state');
     print("Retrieved and cleared PKCE values from sessionStorage.");
-
 
     // 3. Validate state parameter (CSRF protection)
     if (storedState == null || storedState != returnedState) {
@@ -125,7 +125,8 @@ class SpotifyAuthService extends ChangeNotifier {
 
     // 4. Ensure code verifier was retrieved
     if (storedVerifier == null) {
-      print('Error: Code verifier not found in storage. Cannot exchange token.');
+      print(
+          'Error: Code verifier not found in storage. Cannot exchange token.');
       _resetState();
       notifyListeners();
       return;
@@ -135,7 +136,8 @@ class SpotifyAuthService extends ChangeNotifier {
     try {
       print("Exchanging authorization code for access token...");
       final response = await http.post(
-        Uri.parse('https://accounts.spotify.com/api/token'), // Spotify token endpoint
+        Uri.parse(
+            'https://accounts.spotify.com/api/token'), // Spotify token endpoint
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'grant_type': 'authorization_code', // Specify the grant type
@@ -151,20 +153,22 @@ class SpotifyAuthService extends ChangeNotifier {
         final Map<String, dynamic> tokenData = jsonDecode(response.body);
         _accessToken = tokenData['access_token'];
         // String? refreshToken = tokenData['refresh_token']; // Available but not used here
-        final int expiresIn = tokenData['expires_in'] ?? 3600; // Default to 1 hour
+        final int expiresIn =
+            tokenData['expires_in'] ?? 3600; // Default to 1 hour
         _expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
 
         print('Token exchange successful! Access Token acquired.');
         // In a real app: store accessToken, refreshToken, expiresAt securely (e.g., localStorage)
       } else {
-        print('Error exchanging code for token: ${response.statusCode} - ${response.body}');
+        print(
+            'Error exchanging code for token: ${response.statusCode} - ${response.body}');
         _resetState(); // Clear state on failure
       }
     } catch (e) {
       print('Exception during token exchange: $e');
       _resetState(); // Clear state on exception
     } finally {
-       notifyListeners(); // Notify listeners whether success or failure
+      notifyListeners(); // Notify listeners whether success or failure
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart'; // Required for launching URL
 
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/widgets/shimmer_list_widget.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/views/spotify_tracks_view.dart'; // For spotifyGreen and spotifyBlack
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SpotifyPlaylistView extends StatelessWidget {
   final List<SpotifyPlaylistSimple>? playlists;
@@ -171,18 +172,29 @@ class SpotifyPlaylistView extends StatelessWidget {
                                         ClipRRect(
                                           borderRadius:
                                               BorderRadius.circular(4.0),
-                                          child: Image.network(
-                                            playlist.imageUrl ?? '',
+                                          child: CachedNetworkImage(
+                                            imageUrl: playlist.imageUrl ?? '',
                                             width: 64,
                                             height: 64,
                                             fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) =>
+                                            placeholder: (context, url) =>
+                                                Container(
+                                              width: 64,
+                                              height: 64,
+                                              color: Colors.grey[200],
+                                              child: const Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 2)),
+                                            ),
+                                            errorWidget:
+                                                (context, url, error) =>
                                                     Container(
                                               width: 64,
                                               height: 64,
                                               color: Colors.grey[300],
-                                              child: Icon(Icons.music_note,
+                                              child: const Icon(
+                                                  Icons.music_note,
                                                   color: Colors.white70,
                                                   size: 30),
                                             ),

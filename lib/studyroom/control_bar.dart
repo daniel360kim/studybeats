@@ -48,6 +48,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   // Fires whenever SpotifyPlaybackController’s display state (current track, etc.) changes.
   StreamSubscription? _spotifyDisplayStateSubscription;
   StreamSubscription? _spotifyErrorSubscription;
+  StreamSubscription<PositionData>? _positionSubscription;
 
   late final PlaylistNotifier _playlistNotifier;
   int? _lastPlaylistId;
@@ -110,8 +111,6 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   void _handleAudioSourceChange() {
-
-
     final newSource = _audioSourceProvider.currentSource;
     if (newSource != _currentAudioSource) {
       // Clean up listeners and stop the outgoing controller
@@ -125,6 +124,8 @@ class PlayerWidgetState extends State<PlayerWidget>
         _spotifyErrorSubscription?.cancel();
         _spotifyErrorSubscription = null;
       }
+      _positionSubscription?.cancel();
+      _positionSubscription = null;
       _currentAudioController?.stop();
 
       // Set new source and controller
@@ -148,6 +149,8 @@ class PlayerWidgetState extends State<PlayerWidget>
     _spotifyDisplayStateSubscription = null;
     _spotifyErrorSubscription?.cancel();
     _spotifyErrorSubscription = null;
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
 
     if (source == AudioSourceType.lofi) {
       _currentAudioController = _lofiController;
@@ -157,6 +160,14 @@ class PlayerWidgetState extends State<PlayerWidget>
           // Check initial state
           _updateSongState();
         }
+        // Browser‑agnostic fallback: update song info on first non‑zero position
+        _positionSubscription?.cancel();
+        _positionSubscription =
+            _currentAudioController!.positionDataStream.listen((pos) {
+          if (pos.position > Duration.zero && currentSongInfo == null) {
+            _updateSongState();
+          }
+        });
       }).catchError((e) {
         _showError('Failed to initialize Lofi player.');
         if (mounted) setState(() => _audioPlayerError = true);
@@ -184,6 +195,14 @@ class PlayerWidgetState extends State<PlayerWidget>
           }
         });
         if (mounted) _updateSongState(); // Initial update
+        // Browser‑agnostic fallback: update song info on first non‑zero position
+        _positionSubscription?.cancel();
+        _positionSubscription =
+            _currentAudioController!.positionDataStream.listen((pos) {
+          if (pos.position > Duration.zero && currentSongInfo == null) {
+            _updateSongState();
+          }
+        });
       }).catchError((e) {
         _showError('Failed to initialize Spotify player.');
         if (mounted) setState(() => _audioPlayerError = true);
@@ -242,6 +261,7 @@ class PlayerWidgetState extends State<PlayerWidget>
     _spotifyStatusSubscription?.cancel();
     _spotifyDisplayStateSubscription?.cancel();
     _spotifyErrorSubscription?.cancel();
+    _positionSubscription?.cancel();
 
     _lofiController.dispose();
     _spotifyController.dispose();
@@ -436,10 +456,31 @@ class PlayerWidgetState extends State<PlayerWidget>
             showFavorite: _currentAudioSource == AudioSourceType.lofi,
             showShuffle: _currentAudioSource == AudioSourceType.lofi,
             onShuffle: _shuffle,
-            onPrevious: _previousSong,
-            onPlay: _play,
-            onPause: _pause,
-            onNext: _nextSong,
+            onPrevious: () {
+              if (currentSongInfo == null) {
+              } else {
+                _previousSong();
+              }
+            },
+            onPlay: () {
+              if (currentSongInfo == null) {
+                
+              } else {
+                _play();
+              }
+            },
+            onPause: () {
+              if (currentSongInfo == null) {
+              } else {
+                _pause();
+              }
+            },
+            onNext: () {
+              if (currentSongInfo == null) {
+              } else {
+                _nextSong();
+              }
+            },
             onFavorite: (value) {
               if (_currentAudioSource == AudioSourceType.lofi) {
                 _authService.isUserLoggedIn()
@@ -471,10 +512,30 @@ class PlayerWidgetState extends State<PlayerWidget>
               showFavorite: _currentAudioSource == AudioSourceType.lofi,
               showShuffle: _currentAudioSource == AudioSourceType.lofi,
               onShuffle: _shuffle,
-              onPrevious: _previousSong,
-              onPlay: _play,
-              onPause: _pause,
-              onNext: _nextSong,
+              onPrevious: () {
+                if (currentSongInfo == null) {
+                } else {
+                  _previousSong();
+                }
+              },
+              onPlay: () {
+                if (currentSongInfo == null) {
+                } else {
+                  _play();
+                }
+              },
+              onPause: () {
+                if (currentSongInfo == null) {
+                } else {
+                  _pause();
+                }
+              },
+              onNext: () {
+                if (currentSongInfo == null) {
+                } else {
+                  _nextSong();
+                }
+              },
               onFavorite: (value) {
                 if (_currentAudioSource == AudioSourceType.lofi) {
                   _authService.isUserLoggedIn()
