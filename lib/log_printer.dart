@@ -1,8 +1,20 @@
 import 'package:logger/logger.dart';
+class MyFilter extends LogFilter {
+  @override
+  bool shouldLog(LogEvent event) {
+    return true;
+  }
+}
 
 class SimpleLogPrinter extends LogPrinter {
   final String className;
   SimpleLogPrinter({required this.className});
+
+  @override
+  bool shouldLog(LogEvent event) {
+    return true;
+  }
+
   @override
   List<String> log(LogEvent event) {
     final time = event.time.toIso8601String();
@@ -23,5 +35,8 @@ class SimpleLogPrinter extends LogPrinter {
 }
 
 Logger getLogger(String className) {
-  return Logger(printer: SimpleLogPrinter(className: className));
+  return Logger(
+    filter: MyFilter(),
+    printer: SimpleLogPrinter(className: className),
+  );
 }
