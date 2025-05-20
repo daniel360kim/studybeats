@@ -305,6 +305,18 @@ class PlayerWidgetState extends State<PlayerWidget>
     }
 
     final newSongInfo = _currentAudioController!.currentDisplayTrackInfo;
+    if (newSongInfo == null &&
+        _currentAudioSource == AudioSourceType.lofi &&
+        !_lofiController.isLoaded.value) {
+      _logger.w('SongInfo null but Lofi not loaded yet — will retry.');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _lofiController.isLoaded.value) {
+          _logger.i('Retrying _updateSongState after delay (lofi ready).');
+          _updateSongState();
+        }
+      });
+      return;
+    }
     bool newIsFavorite = false;
     List<DisplayTrackInfo> newSongQueue = [];
 
