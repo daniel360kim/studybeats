@@ -25,6 +25,7 @@ class LofiAudioController implements AbstractAudioController {
   final void Function(String message) onError;
   final just_audio.AudioPlayer audioPlayer = just_audio.AudioPlayer();
   final ValueNotifier<bool> isLoaded = ValueNotifier<bool>(false);
+  bool _isInitializing = false; // Prevents concurrent init() calls
 
   TimerService songDurationTimer = TimerService();
   int currentSongIndex = 0; // This is the source of truth for the current index
@@ -184,6 +185,11 @@ class LofiAudioController implements AbstractAudioController {
 
   @override
   Future<void> init() async {
+    if (_isInitializing) {
+      _logger.w("init() called while another initialization is in progress.");
+      return;
+    }
+    _isInitializing = true;
     _logger.i("Lofi init() called.");
     // Ensure player is stopped and reset before re-initializing
     if (audioPlayer.playing ||
@@ -268,6 +274,8 @@ class LofiAudioController implements AbstractAudioController {
           stackTrace: stacktrace);
       isLoaded.value = false;
       onError('Lofi init() failed: $e');
+    } finally {
+      _isInitializing = false;
     }
   }
 
