@@ -9,6 +9,8 @@ import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/switch.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/volumebar.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/studyroom/audio/audio_state.dart';
 
 class BackgroundSoundControl extends StatefulWidget {
   const BackgroundSoundControl({
@@ -28,6 +30,7 @@ class BackgroundSoundControl extends StatefulWidget {
 
 class _BackgroundSoundControlState extends State<BackgroundSoundControl>
     with WidgetsBindingObserver {
+  late final AudioSourceSelectionProvider _audioSourceProvider;
   bool _loading = true;
   bool _selected = false;
   final _logger = getLogger('Background Sound Control Widget');
@@ -93,13 +96,27 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   void initState() {
     super.initState();
     _loadSoundControl();
+    _audioSourceProvider =
+        Provider.of<AudioSourceSelectionProvider>(context, listen: false);
+    _audioSourceProvider.addListener(_handleAudioSourceChanged);
   }
 
   @override
   void dispose() {
+    _audioSourceProvider.removeListener(_handleAudioSourceChanged);
     _player.dispose();
     volumeNotifier.dispose();
     super.dispose();
+  }
+
+  void _handleAudioSourceChanged() {
+    if (_audioSourceProvider.currentSource == AudioSourceType.spotify &&
+        _selected) {
+      setState(() {
+        _selected = false;
+      });
+      _player.pause();
+    }
   }
 
   @override

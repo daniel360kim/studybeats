@@ -324,7 +324,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       final lofiSongInfo = _lofiController.getCurrentSongInfo();
       if (lofiSongInfo != null) {
         //newIsFavorite = await _songCloudInfoService.isSongFavorite(
-          //  widget.playlistId, lofiSongInfo);
+        //  widget.playlistId, lofiSongInfo);
       }
       newSongQueue = _lofiController.getSongOrder();
     } else if (_currentAudioSource == AudioSourceType.spotify) {
@@ -418,7 +418,8 @@ class PlayerWidgetState extends State<PlayerWidget>
                       )
                     : const SizedBox.shrink(),
                 Visibility(
-                  visible: _showBackgroundSound,
+                  visible: _showBackgroundSound &&
+                      _currentAudioSource == AudioSourceType.lofi,
                   maintainState: true,
                   child: StreamBuilder<PositionData>(
                       stream: _currentAudioController?.positionDataStream ??
@@ -499,7 +500,7 @@ class PlayerWidgetState extends State<PlayerWidget>
           final playing = snapshot.data ?? false;
 
           return Controls(
-            showFavorite: _currentAudioSource == AudioSourceType.lofi,
+            showFavorite: false,
             showShuffle: _currentAudioSource == AudioSourceType.lofi,
             onShuffle: _shuffle,
             onPrevious: () {
@@ -651,6 +652,18 @@ class PlayerWidgetState extends State<PlayerWidget>
           setState(() {
             _showBackgroundSound = enabled;
           });
+          if (_currentAudioSource == AudioSourceType.spotify) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    "Background sounds are unavailable while using Spotify due to platform rules"),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.black87,
+              ),
+            );
+            return;
+          }
         },
       ),
     ];
@@ -669,7 +682,7 @@ class PlayerWidgetState extends State<PlayerWidget>
     setState(() => _isCurrentSongFavorite = isFavorite);
     try {
       //await _songCloudInfoService.markSongFavorite(
-        //  widget.playlistId, lofiSongInfoForFavorite, isFavorite);
+      //  widget.playlistId, lofiSongInfoForFavorite, isFavorite);
     } catch (e) {
       if (mounted) {
         setState(() => _isCurrentSongFavorite = !isFavorite);

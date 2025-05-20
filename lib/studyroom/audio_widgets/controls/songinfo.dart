@@ -27,12 +27,12 @@ class SongInfo extends StatefulWidget {
 class _SongInfoState extends State<SongInfo> {
   bool _isHovering = false;
   bool _showLoadingError = false;
-  Timer? _loadingCheckTimer;
+
 
   @override
   void initState() {
     super.initState();
-    _startLoadingCheckTimer();
+
   }
 
   @override
@@ -44,39 +44,13 @@ class _SongInfoState extends State<SongInfo> {
       setState(() {
         _showLoadingError = false;
       });
-      _loadingCheckTimer?.cancel();
+
     }
 
-    // If song became null, start checking timer
-    if (oldWidget.song != null && widget.song == null) {
-      _startLoadingCheckTimer();
-    }
+
   }
 
-  void _startLoadingCheckTimer() {
-    // Cancel any existing timer
-    _loadingCheckTimer?.cancel();
 
-    // Reset error state on new loading attempt
-    setState(() {
-      _showLoadingError = false;
-    });
-
-    // Set a timer to check if the song is still null after delay
-    _loadingCheckTimer = Timer(const Duration(seconds: 10), () {
-      if (mounted && widget.song == null) {
-        setState(() {
-          _showLoadingError = true;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _loadingCheckTimer?.cancel();
-    super.dispose();
-  }
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
