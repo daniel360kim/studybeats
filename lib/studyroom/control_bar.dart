@@ -49,6 +49,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   StreamSubscription? _spotifyDisplayStateSubscription;
   StreamSubscription? _spotifyErrorSubscription;
   StreamSubscription<PositionData>? _positionSubscription;
+  StreamSubscription<bool>? _lofiPlayingSubscription;
 
   late final PlaylistNotifier _playlistNotifier;
   int? _lastPlaylistId;
@@ -116,6 +117,8 @@ class PlayerWidgetState extends State<PlayerWidget>
       // Clean up listeners and stop the outgoing controller
       if (_currentAudioSource == AudioSourceType.lofi) {
         _lofiController.isLoaded.removeListener(_handleLofiLoaded);
+        _lofiPlayingSubscription?.cancel();
+        _lofiPlayingSubscription = null;
       } else if (_currentAudioSource == AudioSourceType.spotify) {
         _spotifyStatusSubscription?.cancel();
         _spotifyStatusSubscription = null;
@@ -143,6 +146,8 @@ class PlayerWidgetState extends State<PlayerWidget>
   void _setActiveController(AudioSourceType source) {
     // Defensive removal of any existing listeners before setting new ones
     _lofiController.isLoaded.removeListener(_handleLofiLoaded);
+    _lofiPlayingSubscription?.cancel();
+    _lofiPlayingSubscription = null;
     _spotifyStatusSubscription?.cancel();
     _spotifyStatusSubscription = null;
     _spotifyDisplayStateSubscription?.cancel();
@@ -156,18 +161,16 @@ class PlayerWidgetState extends State<PlayerWidget>
       _currentAudioController = _lofiController;
       _lofiController.init().then((_) {
         _lofiController.isLoaded.addListener(_handleLofiLoaded); // Add listener
+        // Update UI whenever play/pause changes
+        _lofiPlayingSubscription = _lofiController.isPlayingStream.listen((_) {
+          if (mounted && _currentAudioSource == AudioSourceType.lofi) {
+            _updateSongState();
+          }
+        });
         if (_lofiController.isLoaded.value && mounted) {
           // Check initial state
           _updateSongState();
         }
-        // Browser‑agnostic fallback: update song info on first non‑zero position
-        _positionSubscription?.cancel();
-        _positionSubscription =
-            _currentAudioController!.positionDataStream.listen((pos) {
-          if (pos.position > Duration.zero && currentSongInfo == null) {
-            _updateSongState();
-          }
-        });
       }).catchError((e) {
         _showError('Failed to initialize Lofi player.');
         if (mounted) setState(() => _audioPlayerError = true);
@@ -195,14 +198,6 @@ class PlayerWidgetState extends State<PlayerWidget>
           }
         });
         if (mounted) _updateSongState(); // Initial update
-        // Browser‑agnostic fallback: update song info on first non‑zero position
-        _positionSubscription?.cancel();
-        _positionSubscription =
-            _currentAudioController!.positionDataStream.listen((pos) {
-          if (pos.position > Duration.zero && currentSongInfo == null) {
-            _updateSongState();
-          }
-        });
       }).catchError((e) {
         _showError('Failed to initialize Spotify player.');
         if (mounted) setState(() => _audioPlayerError = true);
@@ -256,6 +251,7 @@ class PlayerWidgetState extends State<PlayerWidget>
 
     // Remove listener for Lofi controller
     _lofiController.isLoaded.removeListener(_handleLofiLoaded);
+    _lofiPlayingSubscription?.cancel();
 
     // Cancel Spotify stream subscription
     _spotifyStatusSubscription?.cancel();
@@ -464,7 +460,6 @@ class PlayerWidgetState extends State<PlayerWidget>
             },
             onPlay: () {
               if (currentSongInfo == null) {
-                
               } else {
                 _play();
               }
