@@ -43,7 +43,6 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (context) => StudySessionModel()),
           ChangeNotifierProvider(create: (_) => SpotifyAuthService()),
           ChangeNotifierProvider(create: (_) => AudioSourceSelectionProvider()),
-          
         ],
         child: const Studybeats(),
       ),

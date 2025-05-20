@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
+import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
@@ -55,6 +56,8 @@ class PlayerWidgetState extends State<PlayerWidget>
   late final PlaylistNotifier _playlistNotifier;
   int? _lastPlaylistId;
 
+  final _logger = getLogger('PlayerWidgetState');
+
   DisplayTrackInfo? currentSongInfo;
   List<DisplayTrackInfo> songQueue = [];
   final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
@@ -75,6 +78,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   @override
   void initState() {
     super.initState();
+    _logger.i('Initializing PlayerWidget for playlistId ${widget.playlistId}');
     _lofiController = LofiAudioController(
       playlistId: widget.playlistId,
       onError: _showError,
@@ -103,6 +107,7 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   // Listener for Lofi controller's isLoaded state
   void _handleLofiLoaded() {
+    _logger.d('Lofi controller reported isLoaded = true');
     if (_lofiController.isLoaded.value &&
         mounted &&
         _currentAudioSource == AudioSourceType.lofi) {
@@ -112,6 +117,7 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   void _handleAudioSourceChange() {
     final newSource = _audioSourceProvider.currentSource;
+    _logger.i('Audio source changed: $_currentAudioSource → $newSource');
     if (newSource != _currentAudioSource) {
       // Clean up listeners and stop the outgoing controller
       if (_currentAudioSource == AudioSourceType.lofi) {
@@ -145,6 +151,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   void _setActiveController(AudioSourceType source) {
+    _logger.i('Switching to audio source: $source');
     // Defensive removal of any existing listeners before setting new ones
     _lofiController.isLoaded.removeListener(_handleLofiLoaded);
     _lofiPlayingSubscription?.cancel();
@@ -161,7 +168,18 @@ class PlayerWidgetState extends State<PlayerWidget>
     _positionSubscription = null;
 
     if (source == AudioSourceType.lofi) {
+      _logger.d('Using LofiAudioController');
       _currentAudioController = _lofiController;
+      if (_lofiController.isLoaded.value) {
+        // Already initialised; just update state and attach listeners.
+        _lofiController.isLoaded.addListener(_handleLofiLoaded);
+        _lofiPlayingSubscription =
+            _lofiController.isPlayingStream.listen((_) => _updateSongState());
+        _lofiIndexSubscription = _lofiController.audioPlayer.currentIndexStream
+            .listen((_) => _updateSongState());
+        if (mounted) _updateSongState();
+        return;
+      }
       _lofiController.init().then((_) {
         _lofiController.isLoaded.addListener(_handleLofiLoaded); // Add listener
         // Update UI whenever play/pause changes
@@ -177,12 +195,15 @@ class PlayerWidgetState extends State<PlayerWidget>
             _updateSongState();
           }
         });
+        _logger.i('LofiAudioController initialized');
         if (mounted) _updateSongState(); // initial song info
       }).catchError((e) {
+        _logger.e('Failed to initialize Lofi player: $e');
         _showError('Failed to initialize Lofi player.');
         if (mounted) setState(() => _audioPlayerError = true);
       });
     } else if (source == AudioSourceType.spotify) {
+      _logger.d('Using SpotifyPlaybackController');
       _currentAudioController = _spotifyController;
       _spotifyController.init().then((_) {
         _spotifyStatusSubscription =
@@ -204,8 +225,10 @@ class PlayerWidgetState extends State<PlayerWidget>
             setState(() => _audioPlayerError = true);
           }
         });
+        _logger.i('SpotifyPlaybackController initialized');
         if (mounted) _updateSongState(); // Initial update
       }).catchError((e) {
+        _logger.e('Failed to initialize Spotify player: $e');
         _showError('Failed to initialize Spotify player.');
         if (mounted) setState(() => _audioPlayerError = true);
       });
@@ -236,6 +259,7 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   void stopAll() async {
+    _logger.w('Stopping all audio sources');
     try {
       // Pause whatever is currently active
       await _currentAudioController?.pause();
@@ -246,6 +270,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       // Fully dispose the Spotify SDK player so playback halts no matter what
       await _spotifyController.disposePlayer();
     } catch (_) {
+      _logger.e('Error during stopAll: $_');
       // Swallow errors during teardown – widget might be unmounted
     }
   }
@@ -273,7 +298,11 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   Future<void> _updateSongState() async {
-    if (_currentAudioController == null || !mounted) return;
+    _logger.d('Updating song state for $_currentAudioSource');
+    if (_currentAudioController == null) {
+      _logger.w('No active audio controller');
+      return;
+    }
 
     final newSongInfo = _currentAudioController!.currentDisplayTrackInfo;
     bool newIsFavorite = false;
@@ -291,6 +320,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       newSongQueue = [];
     }
 
+    _logger.v('New song: ${newSongInfo?.trackName}, favorite: $newIsFavorite');
     if (!mounted) return;
     setState(() {
       currentSongInfo = newSongInfo;

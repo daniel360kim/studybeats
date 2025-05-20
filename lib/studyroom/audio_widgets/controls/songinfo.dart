@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
@@ -25,6 +26,57 @@ class SongInfo extends StatefulWidget {
 
 class _SongInfoState extends State<SongInfo> {
   bool _isHovering = false;
+  bool _showLoadingError = false;
+  Timer? _loadingCheckTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startLoadingCheckTimer();
+  }
+
+  @override
+  void didUpdateWidget(SongInfo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // If song changed from null to non-null, reset error state
+    if (oldWidget.song == null && widget.song != null) {
+      setState(() {
+        _showLoadingError = false;
+      });
+      _loadingCheckTimer?.cancel();
+    }
+
+    // If song became null, start checking timer
+    if (oldWidget.song != null && widget.song == null) {
+      _startLoadingCheckTimer();
+    }
+  }
+
+  void _startLoadingCheckTimer() {
+    // Cancel any existing timer
+    _loadingCheckTimer?.cancel();
+
+    // Reset error state on new loading attempt
+    setState(() {
+      _showLoadingError = false;
+    });
+
+    // Set a timer to check if the song is still null after delay
+    _loadingCheckTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && widget.song == null) {
+        setState(() {
+          _showLoadingError = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _loadingCheckTimer?.cancel();
+    super.dispose();
+  }
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -108,7 +160,9 @@ class _SongInfoState extends State<SongInfo> {
                       );
                     }),
               )
-            : _buildShimmerTextPlaceholder());
+            : _showLoadingError
+                ? _buildErrorPlaceholder()
+                : _buildShimmerTextPlaceholder());
   }
 
   Widget _buildMarqueeText(String text,
@@ -142,6 +196,44 @@ class _SongInfoState extends State<SongInfo> {
                   fontSize: fontSize, fontWeight: fontWeight));
         }
       },
+    );
+  }
+
+  Widget _buildErrorPlaceholder() {
+    return Container(
+      width: 400,
+      height: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50.withOpacity(0.8),
+        border: Border.all(color: Colors.red.shade200),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.error_outline_rounded,
+                size: 20, color: Colors.red.shade700),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Unable to load audio. Try refreshing.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.red.shade800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
