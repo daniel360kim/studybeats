@@ -60,7 +60,7 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   DisplayTrackInfo? currentSongInfo;
   List<DisplayTrackInfo> songQueue = [];
-  final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
+  //final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
 
   bool verticalLayout = false;
   bool _showQueue = false;
@@ -323,8 +323,8 @@ class PlayerWidgetState extends State<PlayerWidget>
     if (_currentAudioSource == AudioSourceType.lofi) {
       final lofiSongInfo = _lofiController.getCurrentSongInfo();
       if (lofiSongInfo != null) {
-        newIsFavorite = await _songCloudInfoService.isSongFavorite(
-            widget.playlistId, lofiSongInfo);
+        //newIsFavorite = await _songCloudInfoService.isSongFavorite(
+          //  widget.playlistId, lofiSongInfo);
       }
       newSongQueue = _lofiController.getSongOrder();
     } else if (_currentAudioSource == AudioSourceType.spotify) {
@@ -668,8 +668,8 @@ class PlayerWidgetState extends State<PlayerWidget>
 
     setState(() => _isCurrentSongFavorite = isFavorite);
     try {
-      await _songCloudInfoService.markSongFavorite(
-          widget.playlistId, lofiSongInfoForFavorite, isFavorite);
+      //await _songCloudInfoService.markSongFavorite(
+        //  widget.playlistId, lofiSongInfoForFavorite, isFavorite);
     } catch (e) {
       if (mounted) {
         setState(() => _isCurrentSongFavorite = !isFavorite);
