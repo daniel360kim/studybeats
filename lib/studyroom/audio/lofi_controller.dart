@@ -22,7 +22,7 @@ class LofiAudioController implements AbstractAudioController {
   final _cloudInfoService = SongCloudInfoService();
 
   int playlistId;
-  final VoidCallback onError;
+  final void Function(String message) onError;
   final just_audio.AudioPlayer audioPlayer = just_audio.AudioPlayer();
   final ValueNotifier<bool> isLoaded = ValueNotifier<bool>(false);
 
@@ -44,8 +44,8 @@ class LofiAudioController implements AbstractAudioController {
   Stream<bool> get isPlayingStream => audioPlayer.playingStream;
 
   @override
-  Stream<bool> get isBufferingStream => audioPlayer.processingStateStream.map(
-      (state) =>
+  Stream<bool> get isBufferingStream =>
+      audioPlayer.processingStateStream.map((state) =>
           state == just_audio.ProcessingState.buffering ||
           state == just_audio.ProcessingState.loading);
 
@@ -56,7 +56,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.play();
     } catch (e) {
       _logger.e('Lofi audio play failed. $e');
-      onError();
+      onError('Lofi play() failed: $e');
     }
   }
 
@@ -68,7 +68,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.pause();
     } catch (e) {
       _logger.e('Lofi audio pause failed. $e');
-      onError();
+      onError('Lofi pause() failed: $e');
     }
   }
 
@@ -80,7 +80,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.stop();
     } catch (e) {
       _logger.e('Lofi audio stop failed. $e');
-      onError();
+      onError('Lofi stop() failed: $e');
     }
   }
 
@@ -96,7 +96,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.seekToNext();
     } catch (e) {
       _logger.e('Lofi nextSong failed: $e');
-      onError();
+      onError('Lofi next() failed: $e');
     }
   }
 
@@ -112,7 +112,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.seekToPrevious();
     } catch (e) {
       _logger.e('Lofi previousSong failed: $e');
-      onError();
+      onError('Lofi previous() failed: $e');
     }
   }
 
@@ -123,7 +123,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.seek(position);
     } catch (e) {
       _logger.e('Lofi audio seek to ${position.inMilliseconds} failed. $e');
-      onError();
+      onError('Lofi seek() failed: $e');
     }
   }
 
@@ -148,19 +148,17 @@ class LofiAudioController implements AbstractAudioController {
 
       if (audioPlayer.hasNext) {
         await audioPlayer.seekToNext();
-        _logger.i(
-            "Sought to the next track in the shuffled sequence.");
+        _logger.i("Sought to the next track in the shuffled sequence.");
       } else {
         await audioPlayer.seek(Duration.zero,
             index: audioPlayer.currentIndex ?? 0);
-        _logger.i(
-            "Sought to beginning of current/first track after shuffle.");
+        _logger.i("Sought to beginning of current/first track after shuffle.");
       }
     } catch (e, stacktrace) {
       _logger.e('Failed to execute shuffle operation: $e',
           stackTrace: stacktrace);
       isLoaded.value = true; // Reset on error to avoid inconsistent state
-      onError();
+      onError('Lofi shuffle() failed: $e');
     }
   }
 
@@ -176,20 +174,20 @@ class LofiAudioController implements AbstractAudioController {
       await updateAndResetDurationLog();
       isLoaded.value = false;
       await audioPlayer.seek(Duration.zero, index: index);
-      _logger.i(
-          "Seek to index $index initiated.");
+      _logger.i("Seek to index $index initiated.");
     } catch (e) {
       _logger.e('Lofi audio seek to index $index failed: $e');
       isLoaded.value = true; // Reset on error
-      onError();
+      onError('Lofi seekToIndex() failed: $e');
     }
   }
 
-  @override 
+  @override
   Future<void> init() async {
     _logger.i("Lofi init() called.");
     // Ensure player is stopped and reset before re-initializing
-    if (audioPlayer.playing || audioPlayer.processingState != just_audio.ProcessingState.idle) {
+    if (audioPlayer.playing ||
+        audioPlayer.processingState != just_audio.ProcessingState.idle) {
       await audioPlayer.stop();
     }
     await _playlist.clear(); // Clear existing playlist items
@@ -203,7 +201,8 @@ class LofiAudioController implements AbstractAudioController {
       if (audioSources.isEmpty) {
         _logger.w("No audio sources found for playlist ID: $playlistId");
         isLoaded.value = false;
-        onError();
+        onError(
+            'Lofi init() failed: No audio sources found for playlist ID: $playlistId');
         return;
       }
 
@@ -259,7 +258,7 @@ class LofiAudioController implements AbstractAudioController {
         (event) {},
         onError: (Object e, StackTrace stackTrace) {
           _logger.e('Lofi PlaybackEventStream error: $e');
-          onError();
+          onError('Lofi playback event error: $e');
         },
       );
 
@@ -268,7 +267,7 @@ class LofiAudioController implements AbstractAudioController {
       _logger.e('Error initializing Lofi audio player: $e',
           stackTrace: stacktrace);
       isLoaded.value = false;
-      onError();
+      onError('Lofi init() failed: $e');
     }
   }
 
@@ -333,7 +332,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.setSpeed(speed);
     } catch (e) {
       _logger.e('Lofi audio set speed to $speed failed');
-      onError();
+      onError('Lofi setSpeed() failed: $e');
     }
   }
 
@@ -343,7 +342,7 @@ class LofiAudioController implements AbstractAudioController {
       await audioPlayer.setVolume(volume);
     } catch (e) {
       _logger.e('Lofi audio set volume to $volume failed');
-      onError();
+      onError('Lofi setVolume() failed: $e');
     }
   }
 
