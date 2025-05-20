@@ -98,9 +98,7 @@ class PlayerWidgetState extends State<PlayerWidget>
 
     _setActiveController(_currentAudioSource); // Set initial controller
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateSongState();
-    });
+    _updateSongState();
   }
 
   // Listener for Lofi controller's isLoaded state
