@@ -18,6 +18,15 @@ class LofiAudioController implements AbstractAudioController {
     required this.onError,
   });
 
+  // --- Lofi player display state stream ---
+  final _lofiStatusStreamController =
+      StreamController<LofiPlayerDisplayState>.broadcast();
+  Stream<LofiPlayerDisplayState> get displayStateStream =>
+      _lofiStatusStreamController.stream;
+
+
+
+
   final _logger = getLogger('LofiAudioController');
   final _cloudInfoService = SongCloudInfoService();
 
@@ -32,6 +41,8 @@ class LofiAudioController implements AbstractAudioController {
 
   final _playlist = just_audio.ConcatenatingAudioSource(
       children: [], useLazyPreparation: false);
+
+  just_audio.ConcatenatingAudioSource get playlist => _playlist;
 
   @override
   bool get isPlaying => audioPlayer.playing;
@@ -72,6 +83,37 @@ class LofiAudioController implements AbstractAudioController {
       onError('Lofi pause() failed: $e');
     }
   }
+
+
+  Future<void> togglePlayPause() async {
+    _logger.i("Lofi togglePlayPause() called.");
+    try {
+      if (audioPlayer.playing) {
+        await pause();
+      } else {
+        await play();
+      }
+    } catch (e) {
+      _logger.e('Lofi audio togglePlayPause failed. $e');
+      onError('Lofi togglePlayPause() failed: $e');
+    }
+  }
+
+  /// Returns the current playback order (shuffle-aware).
+List<LofiSongMetadata> getOrderedQueue() {
+  final sequence = audioPlayer.sequence;
+  final indices = audioPlayer.shuffleModeEnabled && audioPlayer.shuffleIndices != null
+      ? audioPlayer.shuffleIndices!
+      : List<int>.generate(sequence?.length ?? 0, (i) => i);
+
+  if (sequence == null || sequence.isEmpty) return [];
+
+  return indices
+      .where((i) => i >= 0 && i < sequence.length)
+      .map((i) => sequence[i].tag)
+      .whereType<LofiSongMetadata>()
+      .toList();
+}
 
   @override
   Future<void> stop() async {
@@ -127,6 +169,38 @@ class LofiAudioController implements AbstractAudioController {
       onError('Lofi seek() failed: $e');
     }
   }
+
+
+  Future<void> seekToSongById(int id) async {
+  _logger.i("Lofi seekToSongById($id) called.");
+  final sequence = audioPlayer.sequence;
+  if (sequence == null || sequence.isEmpty) {
+    _logger.w("seekToSongById: Sequence is null or empty.");
+    return;
+  }
+
+  try {
+    final index = sequence.indexWhere((source) {
+      final tag = source.tag;
+      return tag is LofiSongMetadata && tag.id == id;
+    });
+
+    if (index == -1) {
+      _logger.w("seekToSongById: No song found with id $id.");
+      return;
+    }
+
+    _logger.i("seekToSongById: Found id at index $index, seeking...");
+    await updateAndResetDurationLog();
+    isLoaded.value = false;
+    await audioPlayer.seek(Duration.zero, index: index);
+    _logger.i("seekToSongById: Seek complete.");
+  } catch (e, stacktrace) {
+    _logger.e("seekToSongById failed: $e", stackTrace: stacktrace);
+    isLoaded.value = true; // Restore load state to avoid lock
+    onError("seekToSongById() failed: $e");
+  }
+}
 
   @override
   Future<void> shuffle() async {
@@ -229,6 +303,16 @@ class LofiAudioController implements AbstractAudioController {
         } else {
           songDurationTimer.stop();
         }
+        // --- Add display state push ---
+        _lofiStatusStreamController.add(
+          LofiPlayerDisplayState(
+            currentTrack: getCurrentMetadata(),
+            isPlaying: playerState.playing,
+            isPaused: !playerState.playing &&
+                playerState.processingState !=
+                    just_audio.ProcessingState.completed,
+          ),
+        );
       });
 
       audioPlayer.currentIndexStream.listen((index) async {
@@ -287,6 +371,19 @@ class LofiAudioController implements AbstractAudioController {
     songDurationTimer.stop();
     await audioPlayer.dispose();
     isLoaded.value = false;
+    _lofiStatusStreamController.close();
+  }
+  /// Returns the current LofiSongMetadata for the current index, or null if unavailable.
+  LofiSongMetadata? getCurrentMetadata() {
+    final sequence = audioPlayer.sequence;
+    if (sequence == null ||
+        sequence.isEmpty ||
+        currentSongIndex < 0 ||
+        currentSongIndex >= sequence.length) {
+      return null;
+    }
+    final tag = sequence[currentSongIndex].tag;
+    return tag is LofiSongMetadata ? tag : null;
   }
 
   @override
@@ -509,4 +606,23 @@ class BufferAudioSource extends just_audio.StreamAudioSource {
       stream: Stream.value(List<int>.from(_buffer.sublist(start, end))),
     );
   }
+}
+
+// --- LofiPlayerDisplayState ---
+class LofiPlayerDisplayState {
+  final LofiSongMetadata? currentTrack;
+  final bool isPlaying;
+  final bool isPaused;
+
+  const LofiPlayerDisplayState({
+    required this.currentTrack,
+    required this.isPlaying,
+    required this.isPaused,
+  });
+
+  factory LofiPlayerDisplayState.initial() => const LofiPlayerDisplayState(
+        currentTrack: null,
+        isPlaying: false,
+        isPaused: false,
+      );
 }

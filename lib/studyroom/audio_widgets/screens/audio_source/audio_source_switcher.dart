@@ -3,12 +3,17 @@ import 'dart:ui'; // For ImageFilter.blur
 import 'dart:async'; // StreamSubscription
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:studybeats/api/audio/audio_service.dart';
+import 'package:studybeats/api/audio/objects.dart';
 
 import 'package:studybeats/api/spotify/spotify_auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
+import 'package:studybeats/studyroom/audio/lofi_controller.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
 import 'package:studybeats/studyroom/audio/spotify_controller.dart';
+import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/views/lofi_tracks_view.dart';
+import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Views
@@ -25,6 +30,7 @@ enum _SwitcherView {
   spotifyPlaylists,
   spotifyPlaylistTracks,
   spotifyError,
+  lofiTracks,
 }
 
 // Tracks the last failed async action
@@ -35,6 +41,7 @@ class AudioSourceSwitcher extends StatefulWidget {
   final ValueChanged<AudioSourceType> onAudioSourceChanged;
   final VoidCallback? onClose;
   final SpotifyPlaybackController spotifyController;
+  final LofiAudioController lofiController;
 
   const AudioSourceSwitcher({
     super.key,
@@ -42,6 +49,7 @@ class AudioSourceSwitcher extends StatefulWidget {
     required this.onAudioSourceChanged,
     this.onClose,
     required this.spotifyController,
+    required this.lofiController,
   });
 
   @override
@@ -59,7 +67,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   String _loadingMessage = 'Loading...';
   String _spotifyErrorMsg = '';
   _LastFailedAction _lastFailedAction = _LastFailedAction.none;
-
+  Playlist? currentPlaylist;
   // Services & logger
   late SpotifyAuthService _authService; // set in didChangeDependencies
   final _logger = getLogger('AudioSourceSwitcher');
@@ -69,6 +77,10 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
       SpotifyPlayerDisplayState.initial();
   StreamSubscription? _spotifyDisplayStateSubscription;
   StreamSubscription? _spotifyErrorSub;
+  // Lofi player-display state and subscription
+  LofiPlayerDisplayState _lofiPlayerDisplayState =
+      LofiPlayerDisplayState.initial();
+  StreamSubscription<LofiPlayerDisplayState>? _lofiDisplayStateSubscription;
 
   @override
   void initState() {
@@ -91,6 +103,36 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         _setError(msg, _LastFailedAction.none);
       }
     });
+    _lofiDisplayStateSubscription =
+        widget.lofiController.displayStateStream.listen((state) {
+      if (mounted) {
+        setState(() => _lofiPlayerDisplayState = state);
+      }
+    });
+  }
+
+  void initCurrentPlaylistInfo() async {
+    try {
+      final playlistProvider =
+          Provider.of<PlaylistNotifier>(context, listen: false);
+
+      final currentPlaylistId = playlistProvider.playlistId;
+      if (currentPlaylistId == null) {
+        // TODO Handle the case when there is no current playlist
+      }
+
+      final audioService = AudioService();
+      final playlist = await audioService.getPlaylistInfo(currentPlaylistId!);
+
+      setState(() {
+        currentPlaylist = playlist;
+      });
+    } catch (e) {
+      _logger.e('Error fetching playlist info: $e');
+      setState(() {
+        currentPlaylist = null;
+      });
+    }
   }
 
   @override
@@ -103,6 +145,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
   void dispose() {
     _spotifyDisplayStateSubscription?.cancel();
     _spotifyErrorSub?.cancel();
+    _lofiDisplayStateSubscription?.cancel();
     super.dispose();
   }
 
@@ -344,9 +387,10 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
       context: context,
       builder: (context) => AlertDialog(
         title: Row(children: [
-          Icon(Icons.info_outline_rounded,
-              color: const Color(0xFF1DB954), // Changed to spotifyGreen
-              ), // Changed to spotifyGreen
+          Icon(
+            Icons.info_outline_rounded,
+            color: const Color(0xFF1DB954), // Changed to spotifyGreen
+          ), // Changed to spotifyGreen
           const SizedBox(width: 10),
           Text('Spotify Login',
               style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
@@ -404,6 +448,13 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
         _authService.isAuthenticated) {
       _handleRetryPlayerConnection();
     }
+  }
+
+  void _handleLofiSourceTap() {
+    setState(() {
+      _clearSpotifyData(clearSelection: true);
+      _currentView = _SwitcherView.lofiTracks;
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -566,6 +617,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
           spotifyPlayerErrorMessage: display.errorMessage,
           onClosePanel: widget.onClose,
           onSelectSource: _selectSource,
+          onLofiSourceTap: _handleLofiSourceTap,
           onSpotifyLoginTap: _handleSpotifyLoginTap,
           onSpotifyLogout: _logoutSpotify,
           onViewPlaylistsTap: _handleViewPlaylistsTap,
@@ -614,7 +666,31 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
           onTrackTapPlay: _startPlayback,
           onToggleCurrentTrackPlayback: _toggleSdkPlayerPlayback,
         );
-
+      case _SwitcherView.lofiTracks:
+        if (currentPlaylist == null) {
+          initCurrentPlaylistInfo();
+          return LoadingView(
+            key: ValueKey('loading_playlist'),
+            message: 'Loading playlist info...',
+          );
+        }
+        return LofiTracksView(
+          key: const ValueKey('lofi_tracks'),
+          tracks: widget.lofiController.getOrderedQueue(),
+          isLoading: _isLoading,
+          isPlayerPaused: _lofiPlayerDisplayState.isPaused,
+          onBack: () =>
+              setStateIfMounted(() => _currentView = _SwitcherView.selection),
+          onRefresh: () async {}, // implement refresh if needed
+          onTrackTapPlay: (track) {
+            widget.lofiController.seekToSongById(track);
+          },
+          onToggleCurrentTrackPlayback: () {
+            widget.lofiController.togglePlayPause();
+          },
+          currentlyPlayingId: widget.lofiController.getCurrentMetadata()?.id,
+          playlist: currentPlaylist!,
+        );
       default:
         return const SizedBox.shrink();
     }

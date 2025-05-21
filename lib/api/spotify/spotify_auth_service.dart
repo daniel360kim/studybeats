@@ -19,8 +19,10 @@ class SpotifyAuthService extends ChangeNotifier {
   /// The Redirect URI configured in your Spotify Developer Dashboard.
   /// Must use 127.0.0.1 for local development and match the dashboard exactly.
   /// Assumes you run the dev server on port 8080. Adjust if needed.
-  final String _redirectUri =
-      'https://app.studybeats.co/spotify_callback'; // Route path, no .html
+  // Use different redirect URIs for development and production
+  final String _redirectUri = kReleaseMode
+      ? 'https://app.studybeats.co/spotify_callback' // Production
+      : 'http://127.0.0.1:8080/spotify_callback'; // Development (local)
 
   // --- State Variables ---
   String? _accessToken;

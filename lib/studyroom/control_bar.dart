@@ -411,6 +411,7 @@ class PlayerWidgetState extends State<PlayerWidget>
                             onTap: () {},
                             child: AudioSourceSwitcher(
                               initialAudioSource: _currentAudioSource,
+                              lofiController: _lofiController,
                               onAudioSourceChanged: (source) {},
                               spotifyController:
                                   _spotifyController, // Pass instance
@@ -555,7 +556,7 @@ class PlayerWidgetState extends State<PlayerWidget>
             final playing = snapshot.data ?? false;
 
             return Controls(
-              showFavorite: _currentAudioSource == AudioSourceType.lofi,
+              showFavorite: false,
               showShuffle: _currentAudioSource == AudioSourceType.lofi,
               onShuffle: _shuffle,
               onPrevious: () {

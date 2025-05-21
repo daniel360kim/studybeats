@@ -26,6 +26,7 @@ class SourceSelectionView extends StatelessWidget {
   final VoidCallback onSpotifyLogout;
   final VoidCallback onViewPlaylistsTap;
   final VoidCallback onRetryPlayerConnection;
+  final VoidCallback onLofiSourceTap;
 
   final SpotifyTrackSimple? currentPlayingTrack;
   final bool isSdkPlayerPaused;
@@ -48,6 +49,7 @@ class SourceSelectionView extends StatelessWidget {
     required this.onSpotifyLogout,
     required this.onViewPlaylistsTap,
     required this.onRetryPlayerConnection,
+    required this.onLofiSourceTap,
     this.currentPlayingTrack,
     required this.isSdkPlayerPaused,
     required this.onToggleSdkPlayerPlayback,
@@ -154,7 +156,7 @@ class SourceSelectionView extends StatelessWidget {
           height: 22,
           child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white70)),
+              valueColor: AlwaysStoppedAnimation<Color>(kFlourishAdobe)),
         );
       }
     }
@@ -196,6 +198,17 @@ class SourceSelectionView extends StatelessWidget {
             isSelected: selectedSource == AudioSourceType.lofi,
             onTap: () => onSelectSource(AudioSourceType.lofi),
             isSpotifyAuthenticated: isSpotifyAuthenticated,
+            subtitleWidget: GestureDetector(
+              onTap: onLofiSourceTap,
+              child: Text(
+                "View Tracks",
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 18),
           SourceCardWidget(
