@@ -36,7 +36,6 @@ class SimpleLogPrinter extends LogPrinter {
 
 Logger getLogger(String className) {
   return Logger(
-    filter: MyFilter(),
     printer: SimpleLogPrinter(className: className),
   );
 }
