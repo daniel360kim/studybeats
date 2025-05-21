@@ -650,21 +650,13 @@ class PlayerWidgetState extends State<PlayerWidget>
         },
         //isEqualizerEnabled: _currentAudioSource == AudioSourceType.lofi,
         onBackgroundSoundPressed: (enabled) {
+          if (_currentAudioSource == AudioSourceType.spotify) {
+            
+            return;
+          }
           setState(() {
             _showBackgroundSound = enabled;
           });
-          if (_currentAudioSource == AudioSourceType.spotify) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    "Background sounds are unavailable while using Spotify due to platform rules"),
-                duration: Duration(seconds: 2),
-                
-                backgroundColor: Colors.black87,
-              ),
-            );
-            return;
-          }
         },
       ),
     ];

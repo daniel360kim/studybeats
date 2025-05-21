@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/studyroom/audio/audio_state.dart';
 
 class IconControls extends StatefulWidget {
   const IconControls({
@@ -120,7 +122,26 @@ class IconControlsState extends State<IconControls> {
               tooltip: 'Background Sounds',
               padding: EdgeInsets.zero,
               hoverColor: Colors.transparent,
-              onPressed: () => _toggleControl('background'),
+              onPressed: () {
+                final currentSource = Provider.of<AudioSourceSelectionProvider>(
+                  context,
+                  listen: false,
+                ).currentSource;
+
+                if (currentSource == AudioSourceType.spotify) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          "Background sounds are unavailable while using Spotify due to platform rules"),
+                      duration: Duration(seconds: 2),
+                      backgroundColor: Colors.black87,
+                    ),
+                  );
+                  return;
+                } else {
+                  _toggleControl('background');
+                }
+              },
               icon: const Icon(Icons.headphones),
             ),
           ),
