@@ -3,8 +3,9 @@ import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:studybeats/studyroom/side_widgets/aichat/profile.dart';
+import 'package:studybeats/studyroom/side_widgets/aichat/profile.dart'; // Assuming this is your PulsatingCircle
 
+// Assuming kStyleSheet is defined as in your original file
 final kStyleSheet = MarkdownStyleSheet(
   p: GoogleFonts.inter(
     fontSize: 15,
@@ -17,6 +18,18 @@ final kStyleSheet = MarkdownStyleSheet(
     fontSize: 22,
     fontWeight: FontWeight.w600,
   ),
+  // Add other styles as needed, e.g., for code blocks, links, etc.
+  code: GoogleFonts.sourceCodePro(
+    // Example for code blocks
+    backgroundColor: Colors.grey[200],
+
+    textStyle: const TextStyle(fontSize: 14),
+  ),
+  blockquoteDecoration: BoxDecoration(
+    // Example for blockquotes
+    color: Colors.blue[50],
+    border: Border(left: BorderSide(color: Colors.blue[200]!, width: 4)),
+  ),
 );
 
 class AiMessage extends StatelessWidget {
@@ -26,7 +39,7 @@ class AiMessage extends StatelessWidget {
       required this.profilePictureUrl,
       required this.onCopyIconPressed,
       required this.isLoadingResponse,
-      required this.imageUrl,
+      required this.imageUrl, // This is for user-uploaded images in the message
       super.key});
 
   final bool isUser;
@@ -39,88 +52,144 @@ class AiMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     late final String messageTitle;
-    late final Widget profileImage;
+    late final Widget profileImageWidget; // Renamed to avoid conflict
 
     if (isUser) {
       messageTitle = 'You';
       if (profilePictureUrl != null) {
-        profileImage = SizedBox(
-          height: 20,
-          width: 20,
+        profileImageWidget = SizedBox(
+          height: 30, // Slightly larger for better visibility
+          width: 30,
           child: CircleAvatar(
             backgroundImage: CachedNetworkImageProvider(profilePictureUrl!),
+            backgroundColor: Colors.grey[300], // Fallback color
           ),
         );
       } else {
-        profileImage = const SizedBox(
-          height: 20,
-          width: 20,
+        profileImageWidget = SizedBox(
+          height: 30,
+          width: 30,
           child: CircleAvatar(
-            backgroundImage: AssetImage('assets/brand/logo.png'),
+            backgroundImage:
+                AssetImage('assets/brand/logo.png'), // Ensure this asset exists
+            backgroundColor: Colors.grey[300],
           ),
         );
       }
     } else {
-      if (isLoadingResponse) {
-        profileImage = PulsatingCircle(size: 10, color: kFlourishAdobe);
-      } else {
-        profileImage = Container(
-          height: 10,
-          width: 10,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: kFlourishAdobe,
-          ),
-        );
-      }
+      // AI Bot
       messageTitle = 'Studybeats Bot';
+      if (isLoadingResponse) {
+        profileImageWidget = SizedBox(
+            height: 30,
+            width: 30,
+            child: Center(
+                child: PulsatingCircle(size: 15, color: kFlourishAdobe)));
+      } else {
+        profileImageWidget = Container(
+            height: 30,
+            width: 30,
+            child: Center(
+              child: CircleAvatar(
+                backgroundColor: kFlourishAdobe,
+                radius: 7, // Smaller solid circle
+              ),
+            ));
+      }
     }
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isUser
-            ? kFlourishAdobe.withOpacity(0.5)
-            : Colors.blue[100]!.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(10),
-      ),
+          color: isUser
+              ? kFlourishAdobe.withOpacity(0.08) // Softer user message color
+              : Colors.white, // AI messages on white for contrast
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            )
+          ]),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.center, // Align items vertically
             children: [
-              profileImage,
-              const SizedBox(width: 5),
-              SelectableText(
-                messageTitle,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: kFlourishBlackish,
-                  fontWeight: FontWeight.w600,
+              profileImageWidget,
+              const SizedBox(width: 8),
+              // Wrap SelectableText with Expanded to prevent overflow if messageTitle is long
+              Expanded(
+                child: SelectableText(
+                  messageTitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 14, // Slightly smaller title
+                    color: kFlourishBlackish.withOpacity(0.8),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              )
+              ),
+              // Keep copy button at the end of this row if it's for the title,
+              // or move it to the message content row if it's for the message.
+              // Assuming it's for the main message, it's in the correct place below.
             ],
           ),
+          const SizedBox(height: 8), // Spacing after title row
           if (isUser && imageUrl != null)
-            Container(
-              height: 140,
-              width: 140,
-              alignment: Alignment.centerLeft,
-              child: CachedNetworkImage(imageUrl: imageUrl!),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: 200, // Max height for inline images
+                    maxWidth:
+                        MediaQuery.of(context).size.width * 0.6, // Max width
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                        height: 100,
+                        width: 100,
+                        child: Center(
+                            child: CircularProgressIndicator(
+                                color: kFlourishAdobe.withOpacity(0.5)))),
+                    errorWidget: (context, url, error) => Container(
+                        height: 100,
+                        width: 100,
+                        child:
+                            Icon(Icons.broken_image, color: Colors.grey[400])),
+                  ),
+                ),
+              ),
             ),
           Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Align copy icon with top of message
             children: [
               Expanded(
                 child: isUser
                     ? SelectableText(
                         message,
-                        style: GoogleFonts.inter(fontSize: 16),
+                        style: GoogleFonts.inter(
+                            fontSize: 15, color: kFlourishBlackish),
                       )
-                    : AiParser(message),
+                    : AiParser(message), // AiParser handles Markdown
               ),
-              IconButton(
-                icon: const Icon(Icons.copy, size: 16),
-                onPressed: () => onCopyIconPressed(message),
-              ),
+              if (!isLoadingResponse) // Only show copy icon if not a loading placeholder
+                IconButton(
+                  icon: Icon(Icons.copy_outlined,
+                      size: 18, color: Colors.grey[600]),
+                  tooltip: "Copy message",
+                  padding: const EdgeInsets.all(4), // Reduce padding
+                  constraints: const BoxConstraints(), // Reduce constraints
+                  onPressed: () => onCopyIconPressed(message),
+                ),
             ],
           ),
         ],
@@ -136,69 +205,80 @@ class AiParser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> widgets = [];
-    // Regex to match LaTeX equations wrapped in \[...\] or \(...\)
-    final regex = RegExp(r'(\\\[.+?\\\]|\\\(.+?\\\))', dotAll: true);
-    final segments = input.split(regex);
-
-    final matches = regex.allMatches(input).toList();
-    int segmentIndex = 0;
-
-    for (var match in matches) {
-      // Add plain text before the match
-      if (segmentIndex < segments.length) {
-        final segment = segments[segmentIndex];
-        if (segment.isNotEmpty) {
-          widgets.add(MarkdownBody(
-            data: segment,
-            selectable: true,
-            styleSheet: kStyleSheet,
-          ));
-        }
-        segmentIndex++;
-      }
-
-      // Add LaTeX equation
-      final latex = match.group(0);
-      if (latex != null) {
-        ScrollController scrollController = ScrollController();
-        final content = latex.substring(
-            2, latex.length - 2); // Remove \[ and \] or \( and \)
-        widgets.add(
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Scrollbar(
-              controller: scrollController,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                controller: scrollController,
-                child: MarkdownBody(
-                  data: content,
-                  selectable: true,
-                  styleSheet: kStyleSheet,
-                ),
-              ),
-            ),
-          ),
-        );
-
-        scrollController.dispose();
-      }
+    if (input.trim().isEmpty) {
+      // Handle empty input gracefully, perhaps show a placeholder or nothing
+      return SelectableText(" ",
+          style: kStyleSheet.p); // Render empty space to maintain structure
     }
 
-    // Add any remaining plain text after the last match
-    if (segmentIndex < segments.length) {
-      final segment = segments[segmentIndex];
-      if (segment.isNotEmpty) {
+    List<Widget> widgets = [];
+    // Regex to match LaTeX equations wrapped in $...$, $$...$$, \[...\], or \(...\)
+    // This regex is simplified; a more robust one might be needed for complex cases.
+    final regex = RegExp(
+        r'(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$|\\\[[\s\S]+?\\\]|\\\(.+?\\\))',
+        dotAll: true);
+    final segments = input.split(regex);
+    final matches = regex.allMatches(input).toList();
+
+    int currentSegment = 0;
+    for (int i = 0; i < segments.length; i++) {
+      // Add plain text segment
+      if (segments[i].isNotEmpty) {
         widgets.add(MarkdownBody(
-          data: segment,
+          data: segments[i],
           selectable: true,
           styleSheet: kStyleSheet,
+          softLineBreak: true, // Ensure line breaks are rendered
+        ));
+      }
+      // Add matched LaTeX segment if it exists
+      if (i < matches.length) {
+        final latexMatch = matches[i].group(0)!;
+        String latexContent = latexMatch;
+        // Remove delimiters for rendering, assuming flutter_markdown handles LaTeX with them
+        // Or, if you have a specific LaTeX rendering widget, prepare content for it.
+        // For flutter_markdown, it might expect $...$ or $$...$$ directly.
+
+        // Example: if it's for katex rendering, you might strip delimiters
+        // if (latexContent.startsWith(r'\(') && latexContent.endsWith(r'\)')) {
+        //   latexContent = latexContent.substring(2, latexContent.length - 2);
+        // } else if (latexContent.startsWith(r'\[') && latexContent.endsWith(r'\]')) {
+        //   latexContent = latexContent.substring(2, latexContent.length - 2);
+        // } else if (latexContent.startsWith(r'$$') && latexContent.endsWith(r'$$')) {
+        //   latexContent = latexContent.substring(2, latexContent.length - 2);
+        // } else if (latexContent.startsWith(r'$') && latexContent.endsWith(r'$')) {
+        //   latexContent = latexContent.substring(1, latexContent.length - 1);
+        // }
+
+        widgets.add(Padding(
+          // Add some padding around LaTeX blocks
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: SingleChildScrollView(
+            // For potentially wide LaTeX
+            scrollDirection: Axis.horizontal,
+            child: MarkdownBody(
+              data: latexMatch, // Pass the original match with delimiters
+              selectable: true,
+              styleSheet: kStyleSheet,
+            ),
+          ),
         ));
       }
     }
 
+    if (widgets.isEmpty && input.isNotEmpty) {
+      // Fallback if regex splitting results in no widgets but input exists
+      widgets.add(MarkdownBody(
+          data: input,
+          selectable: true,
+          styleSheet: kStyleSheet,
+          softLineBreak: true));
+    }
+
     return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start, // Important for children alignment
+      mainAxisSize: MainAxisSize.min, // Take only necessary vertical space
       children: widgets,
     );
   }

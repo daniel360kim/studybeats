@@ -7,6 +7,8 @@ import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/secrets.dart';
+// Assuming tokenizer.dart is in the same directory or accessible via package import
+import 'package:studybeats/studyroom/side_widgets/aichat/tokenizer.dart';
 
 enum MessageType {
   aiResponse,
@@ -22,7 +24,7 @@ class AiStorageMessage {
   AiStorageMessage({
     required this.messageType,
     required this.message,
-    required this.imageUrl,
+    this.imageUrl,
   });
 }
 
@@ -45,99 +47,158 @@ class Usage {
       };
 }
 
+// New class to represent chat metadata
+class ChatMetadata {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final DateTime lastModifiedAt;
+  final String modelId; // OpenAI model ID like "gpt-4o-mini"
+
+  ChatMetadata({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.lastModifiedAt,
+    required this.modelId,
+  });
+
+  factory ChatMetadata.fromFirestore(
+      DocumentSnapshot<Map<String, dynamic>> doc) {
+    Map<String, dynamic> data = doc.data()!;
+    return ChatMetadata(
+      id: doc.id,
+      title: data['title'] ?? 'Untitled Chat',
+      createdAt: (data['createdAt'] as Timestamp? ?? Timestamp.now()).toDate(),
+      lastModifiedAt:
+          (data['lastModifiedAt'] as Timestamp? ?? Timestamp.now()).toDate(),
+      modelId: data['model_id'] ?? 'gpt-4o-mini', // Default model
+    );
+  }
+}
+
 class OpenaiService {
   final _logger = getLogger('OpenAI Firebase Service');
   final _stripeSubscriptionService = StripeSubscriptionService();
   final client = OpenAIClient(apiKey: OPENAI_PROJECT_API_KEY);
+  // Made tokenizer public
+  final Tokenizer tokenizer = Tokenizer();
 
   final _authService = AuthService();
+  String? _userEmail; // Store user email after login
 
-  late final String _uid;
+  // References to user-specific Firestore paths
+  DocumentReference? _userDocumentRef;
+  DocumentReference?
+      _tokenUsageSummaryDoc; // Points to users/{email}/openai_token_data/usage_summary
 
-  late final CollectionReference _openAiCollection;
-  late final CollectionReference _conversationHistoryCollection;
-  late final DocumentReference _tokenLimitDoc;
-
-  int _tokenLimit = 10000; //set to the minimum limit by default
+  int _tokenLimit = 10000; // Set to the minimum limit by default
   bool _tokenLimitExceeded = false;
   bool get tokenLimitExceeded => _tokenLimitExceeded;
 
   Future<void> init() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _logger.e('User is not logged in');
-      throw Exception('User is not logged in');
+    if (user == null || user.email == null) {
+      _logger.e('User is not logged in or email is null');
+      throw Exception('User is not logged in or email is null');
     }
+    _userEmail = user.email!;
 
-    _openAiCollection = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.email)
-        .collection('openai');
+    _userDocumentRef =
+        FirebaseFirestore.instance.collection('users').doc(_userEmail);
+    // _tokenUsageSummaryDoc now correctly points to the document under which 'daily_logs' will be a subcollection
+    _tokenUsageSummaryDoc =
+        _userDocumentRef!.collection('openai_token_data').doc('usage_summary');
 
-    _conversationHistoryCollection =
-        _openAiCollection.doc('initialConversation').collection('messages');
+    await updateTokenLimit(); // Fetches limit based on new structure
+    await checkTokenUsage(); // Checks usage based on new structure
 
-    _tokenLimitDoc = _openAiCollection.doc('initialConversation');
+    _logger
+        .i('OpenAI Service initialized for multi-chat for user: $_userEmail');
+  }
 
-    await updateTokenLimit(); // Update token limit
-    await checkTokenUsage(); // Check token usage
+  // Helper to get the messages subcollection for a specific chat
+  CollectionReference _messagesCollectionForChat(String chatId) {
+    if (_userDocumentRef == null) {
+      throw Exception("OpenaiService not initialized or user not logged in.");
+    }
+    return _userDocumentRef!
+        .collection('openai_chats')
+        .doc(chatId)
+        .collection('messages');
+  }
 
-    _uid = await _authService
-        .getCurrentUserUid(); // TODO handle not being logged in exception
-
-    _logger.i('OpenAI Firebase Service initialized');
+  // Helper to get the chat document reference
+  DocumentReference _chatDocumentRef(String chatId) {
+    if (_userDocumentRef == null) {
+      throw Exception("OpenaiService not initialized or user not logged in.");
+    }
+    return _userDocumentRef!.collection('openai_chats').doc(chatId);
   }
 
   Future<void> updateTokenLimit() async {
     _logger.i('Updating token limit');
+    if (_tokenUsageSummaryDoc == null) {
+      _logger.e(
+          "Token usage summary document reference is null. Service not initialized?");
+      return;
+    }
     try {
       final product = await _stripeSubscriptionService.getActiveProduct();
       if (product.tokenLimit == null) {
-        _logger.w('Token limit not found');
-        _tokenLimit = 1000;
+        _logger.w('Token limit not found in product');
+        _tokenLimit = 1000; // Default fallback
       } else {
-        _logger.i('Token limit: ${product.tokenLimit}');
+        _logger.i('Token limit from product: ${product.tokenLimit}');
         _tokenLimit = product.tokenLimit!;
       }
-
-      _logger.i('Token limit sent to Firestore');
+      _logger.i('Token limit updated: $_tokenLimit');
     } catch (e) {
       _logger.e('Failed to update token limit: $e');
-      rethrow;
     }
   }
 
-  Future<void> addToConversationHistory(Map<String, dynamic> message) async {
+  Future<void> addToConversationHistory(
+      String chatId, Map<String, dynamic> messageData) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
     try {
-      await updateTokenLimit(); // Update token limit
-      _logger.i('Adding message to conversation history');
-      // Add message to conversation history
-      final aiMessage = convertMessage(message);
-      await _addMessageToFirestore(aiMessage);
+      _logger.i('Adding message to conversation history for chat $chatId');
+      final messagesCol = _messagesCollectionForChat(chatId);
+      final aiMessage = convertMessage(messageData);
 
-      _logger.i('Message added to conversation history');
+      await messagesCol.add({
+        'timestamp': FieldValue.serverTimestamp(),
+        'role': messageData['role'],
+        'content': aiMessage.message,
+        if (aiMessage.imageUrl != null) 'image_url': aiMessage.imageUrl,
+      });
+
+      await _chatDocumentRef(chatId)
+          .update({'lastModifiedAt': FieldValue.serverTimestamp()});
+      _logger.i('Message added to conversation history for chat $chatId');
     } catch (e) {
-      _logger.e('Failed to add message to conversation history: $e');
+      _logger.e(
+          'Failed to add message to conversation history for chat $chatId: $e');
       rethrow;
     }
   }
 
-  Future<List<Map<String, dynamic>>> getConversationHistory() async {
+  Future<List<Map<String, dynamic>>> getConversationHistory(
+      String chatId) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
     try {
-      _logger.i('Getting conversation history');
-      // Get conversation history
-      final querySnapshot = await _conversationHistoryCollection
+      _logger.i('Getting conversation history for chat $chatId');
+      final querySnapshot = await _messagesCollectionForChat(chatId)
           .orderBy('timestamp', descending: false)
           .get();
 
       if (querySnapshot.docs.isEmpty) {
-        _logger.i('No conversation history found');
+        _logger.i('No conversation history found for chat $chatId');
         return [];
       } else {
         final List<Map<String, dynamic>> conversationHistory = [];
         for (var doc in querySnapshot.docs) {
           final data = doc.data() as Map<String, dynamic>;
-          // add the data to the conversation history list except the timestamp
           late final Map<String, dynamic> message;
           if (data['image_url'] == null) {
             message = {
@@ -148,40 +209,32 @@ class OpenaiService {
             message = {
               'role': data['role'],
               'content': [
-                {
-                  'type': 'text',
-                  'text': data['content'] ?? ' ',
-                },
+                {'type': 'text', 'text': data['content'] ?? ' '},
                 {
                   'type': 'image_url',
-                  'image_url': {
-                    'url': data['image_url'],
-                  },
+                  'image_url': {'url': data['image_url']}
                 },
               ],
             };
           }
           conversationHistory.add(message);
         }
-        _logger.i('Successfully retrieved conversation history');
+        _logger
+            .i('Successfully retrieved conversation history for chat $chatId');
         return conversationHistory;
       }
     } catch (e) {
-      _logger.e('Failed to get conversation history: $e');
+      _logger.e('Failed to get conversation history for chat $chatId: $e');
       rethrow;
     }
   }
 
-// Converts the map from conversation history to an AiStorageMessage object that can be sent to firestore
   AiStorageMessage convertMessage(Map<String, dynamic> message) {
     switch (message['role']) {
       case 'user':
         if (message['content'] is List) {
-          // Initialize variables to store the extracted text and image URL
           String textContent = ' ';
           String? imageUrl;
-
-          // Iterate over the list to extract text and image URL
           for (var contentItem in message['content']) {
             if (contentItem['type'] == 'text') {
               textContent = contentItem['text'] ?? ' ';
@@ -189,8 +242,6 @@ class OpenaiService {
               imageUrl = contentItem['image_url']['url'];
             }
           }
-
-          // Determine the message type based on the presence of text and image URL
           if (imageUrl != null) {
             return AiStorageMessage(
               messageType: MessageType.userMessageWithImage,
@@ -198,7 +249,6 @@ class OpenaiService {
               imageUrl: imageUrl,
             );
           } else {
-            _logger.w('Image URL not found in user image message');
             return AiStorageMessage(
               messageType: MessageType.userMessageTextOnly,
               message: textContent,
@@ -206,7 +256,7 @@ class OpenaiService {
             );
           }
         } else {
-          final textContent = message['content'];
+          final textContent = message['content'] as String? ?? '';
           return AiStorageMessage(
             messageType: MessageType.userMessageTextOnly,
             message: textContent,
@@ -214,262 +264,236 @@ class OpenaiService {
           );
         }
       case 'assistant':
+        final textContent = message['content'] as String? ?? '';
         return AiStorageMessage(
           messageType: MessageType.aiResponse,
-          message: message['content'],
+          message: textContent,
           imageUrl: null,
         );
       default:
-        _logger.e('Unknown message role');
+        _logger.e('Unknown message role: ${message['role']}');
         throw Exception('Unknown message role');
     }
   }
 
-// Sends the AiStorageMessage object to Firestore
-  Future<void> _addMessageToFirestore(AiStorageMessage message) async {
+  Future<void> clearConversationHistory(String chatId) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
     try {
-      late final String role;
-      switch (message.messageType) {
-        case MessageType.aiResponse:
-          role = 'assistant';
-          break;
-        case MessageType.userMessageTextOnly:
-        case MessageType.userMessageWithImage:
-          role = 'user';
-          break;
-        default:
-          _logger.e('Unknown message type');
-          throw Exception('Unknown message type');
-      }
-
-      _conversationHistoryCollection.add({
-        'timestamp': FieldValue.serverTimestamp(),
-        'role': role,
-        'content': message.message,
-        if (message.imageUrl != null) 'image_url': message.imageUrl,
-      });
-    } catch (e) {
-      _logger.e('Failed to add message to Firestore: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> clearConversationHistory() async {
-    try {
-      _logger.i('Clearing conversation history');
-      // Clear conversation history
-      final querySnapshot = await _conversationHistoryCollection.get();
+      _logger.i('Clearing conversation history for chat $chatId');
+      final messagesCol = _messagesCollectionForChat(chatId);
+      final querySnapshot = await messagesCol.get();
+      WriteBatch batch = FirebaseFirestore.instance.batch();
       for (var doc in querySnapshot.docs) {
-        await doc.reference.delete();
+        batch.delete(doc.reference);
       }
-      _logger.i('Conversation history cleared');
+      await batch.commit();
+      await _chatDocumentRef(chatId)
+          .update({'lastModifiedAt': FieldValue.serverTimestamp()});
+      _logger.i('Conversation history cleared for chat $chatId');
     } catch (e) {
-      _logger.e('Failed to clear conversation history: $e');
+      _logger.e('Failed to clear conversation history for chat $chatId: $e');
       rethrow;
     }
   }
 
-  List<ChatCompletionMessage> convertMessages(
+  List<ChatCompletionMessage> convertMessagesToOpenAIFormat(
       List<Map<String, dynamic>> messages) {
     final List<ChatCompletionMessage> chatMessages = [];
     for (var message in messages) {
-      switch (message['role']) {
+      final role = message['role'] as String;
+      final content = message['content'];
+
+      switch (role) {
         case 'user':
-          if (message['content'] is List) {
+          if (content is List) {
             final List<ChatCompletionMessageContentPart> contentParts = [];
-            for (var contentItem in message['content']) {
+            for (var contentItem in content) {
               if (contentItem['type'] == 'text') {
                 contentParts.add(
                   ChatCompletionMessageContentPart.text(
-                      text: contentItem['text']),
+                      text: contentItem['text'] as String? ?? ''),
                 );
               } else if (contentItem['type'] == 'image_url') {
                 contentParts.add(
                   ChatCompletionMessageContentPart.image(
                     imageUrl: ChatCompletionMessageImageUrl(
-                      url: contentItem['image_url']['url'],
-                    ),
+                        url: contentItem['image_url']['url'] as String),
                   ),
                 );
               }
             }
             chatMessages.add(
               ChatCompletionMessage.user(
-                content: ChatCompletionUserMessageContent.parts(contentParts),
-              ),
+                  content:
+                      ChatCompletionUserMessageContent.parts(contentParts)),
             );
-          } else {
+          } else if (content is String) {
             chatMessages.add(
               ChatCompletionMessage.user(
-                content:
-                    ChatCompletionUserMessageContent.string(message['content']),
-              ),
+                  content: ChatCompletionUserMessageContent.string(content)),
             );
+          } else {
+            _logger.w('User message content is not a List or String: $content');
           }
           break;
         case 'assistant':
-          chatMessages.add(
-            ChatCompletionMessage.system(
-              content: message['content'],
-            ),
-          );
+          if (content is String) {
+            chatMessages.add(ChatCompletionMessage.assistant(content: content));
+          } else {
+            _logger.w('Assistant message content is not a String: $content');
+            chatMessages.add(ChatCompletionMessage.assistant(content: ''));
+          }
           break;
         default:
-          _logger.e('Unknown message role');
-          throw Exception('Unknown message role');
+          _logger.e('Unknown message role during OpenAI conversion: $role');
       }
     }
     return chatMessages;
   }
 
-  Future<String> getAPIResponse(List<Map<String, dynamic>> messages) async {
+  Future<ChatMetadata?> getChatMetadata(String chatId) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
     try {
-      _logger.i('Starting request to OpenAI API');
-
-      final List<ChatCompletionMessage> chatMessages =
-          convertMessages(messages);
-
-      final response = await client.createChatCompletion(
-        request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId('gpt-4o-mini'),
-          messages: chatMessages,
-          temperature: 0,
-        ),
-      );
-
-      if (response.choices.isEmpty) {
-        _logger.w('No response found in API');
-        throw Exception('No response found in API');
+      final docSnapshot = await _chatDocumentRef(chatId).get()
+          as DocumentSnapshot<Map<String, dynamic>>;
+      if (docSnapshot.exists) {
+        return ChatMetadata.fromFirestore(docSnapshot);
       }
-      return response.choices.first.message.content!;
+      return null;
     } catch (e) {
-      _logger.e('Unexpected error sending message to API: $e');
-      throw Exception('Failed to send message to OpenAI API: $e');
+      _logger.e("Error fetching chat metadata for $chatId: $e");
+      return null;
     }
   }
 
+  Stream<CreateChatCompletionStreamResponse> getCompletionStream(
+      String chatId, List<Map<String, dynamic>> messagesHistory) async* {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
+    _logger.i('Starting streaming request to OpenAI API for chat $chatId');
+
+    final chatMeta = await getChatMetadata(chatId);
+    final modelId = chatMeta?.modelId ?? 'gpt-4o-mini';
+
+    final List<ChatCompletionMessage> chatMessages =
+        convertMessagesToOpenAIFormat(messagesHistory);
+
+    if (chatMessages.isEmpty && messagesHistory.isNotEmpty) {
+      _logger.w(
+          "Conversion to OpenAI format resulted in empty messages, but history was not empty. Check conversion logic.");
+      return;
+    }
+    if (chatMessages.isEmpty && messagesHistory.isEmpty) {
+      _logger.i("Message history is empty, not sending request to OpenAI.");
+      return;
+    }
+
+    final stream = client.createChatCompletionStream(
+      request: CreateChatCompletionRequest(
+        model: ChatCompletionModel.modelId(modelId),
+        messages: chatMessages,
+      ),
+    );
+    yield* stream;
+  }
+
   Future<void> updateAndCheckTokenUsage(Usage tokenUsage) async {
+    if (_userDocumentRef == null || _tokenUsageSummaryDoc == null) {
+      _logger.e("Service not initialized for token updates.");
+      return;
+    }
     try {
       _logger.i('Updating token logs');
-      // Update token usage for the conversation all time
-      Usage currentTokenUsage = Usage(0, 0, 0);
-      final tokenSnapshot =
-          await _conversationHistoryCollection.doc('initialConversation').get();
-      if (tokenSnapshot.exists) {
-        final tokenData = tokenSnapshot.data() as Map<String, dynamic>;
-        currentTokenUsage = Usage.fromJson(tokenData['tokenUsage']);
-      } else {
-        currentTokenUsage = Usage(0, 0, 0);
-      }
-
-      final updatedTokenUsage = Usage(
-        currentTokenUsage.promptTokens! + tokenUsage.promptTokens!,
-        currentTokenUsage.completionTokens! + tokenUsage.completionTokens!,
-        currentTokenUsage.totalTokens! + tokenUsage.totalTokens!,
-      );
-
-      await _tokenLimitDoc.set({
-        'tokenUsage': updatedTokenUsage.toJson(),
-      }, SetOptions(merge: true));
-
-      // Update token usage for the current day
       final today = DateTime.now();
-      final todayTokenUsage = await _tokenLimitDoc
-          .collection('tokenLogs')
-          .doc(today.toString().substring(0, 10))
-          .get();
+      final dateString =
+          "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+      final dailyLogDocRef =
+          _tokenUsageSummaryDoc!.collection('daily_logs').doc(dateString);
 
-      if (todayTokenUsage.exists) {
-        final todayTokenData = todayTokenUsage.data() as Map<String, dynamic>;
-        final todayTokenUsageData =
-            Usage.fromJson(todayTokenData['tokenUsage']);
-        final updatedTodayTokenUsage = Usage(
-          todayTokenUsageData.promptTokens! + tokenUsage.promptTokens!,
-          todayTokenUsageData.completionTokens! + tokenUsage.completionTokens!,
-          todayTokenUsageData.totalTokens! + tokenUsage.totalTokens!,
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot dailySnapshot = await transaction.get(dailyLogDocRef);
+        Usage currentDailyUsage =
+            dailySnapshot.exists && dailySnapshot.data() != null
+                ? Usage.fromJson(dailySnapshot.data()! as Map<String, dynamic>)
+                : Usage(0, 0, 0);
+
+        final updatedDailyUsage = Usage(
+          (currentDailyUsage.promptTokens ?? 0) +
+              (tokenUsage.promptTokens ?? 0),
+          (currentDailyUsage.completionTokens ?? 0) +
+              (tokenUsage.completionTokens ?? 0),
+          (currentDailyUsage.totalTokens ?? 0) + (tokenUsage.totalTokens ?? 0),
         );
-
-        await _tokenLimitDoc
-            .collection('tokenLogs')
-            .doc(today.toString().substring(0, 10))
-            .set({
-          'tokenUsage': updatedTodayTokenUsage.toJson(),
-        });
+        transaction.set(dailyLogDocRef, updatedDailyUsage.toJson());
 
         if (_tokenLimit == 0) {
           _tokenLimitExceeded = false;
-        } else if (updatedTodayTokenUsage.totalTokens! > _tokenLimit) {
-          _tokenLimitExceeded = true; // User has exceeded the token limit
+        } else if (updatedDailyUsage.totalTokens! > _tokenLimit) {
+          _tokenLimitExceeded = true;
         } else {
-          _tokenLimitExceeded = false; // User has not exceeded the token limit
+          _tokenLimitExceeded = false;
         }
-      } else {
-        // If there is no token usage data for the current day, create a new document
-        await _tokenLimitDoc
-            .collection('tokenLogs')
-            .doc(today.toString().substring(0, 10))
-            .set({
-          'tokenUsage': tokenUsage.toJson(),
-        });
-
-        _tokenLimitExceeded =
-            false; // User has not exceeded the token limit because there is no token usage data for the current day
-      }
+      });
+      _logger.i('Token usage updated. Exceeded: $_tokenLimitExceeded');
     } catch (e) {
       _logger.e('Failed to update token logs: $e');
-      rethrow;
     }
   }
 
   Future<void> checkTokenUsage() async {
+    if (_userDocumentRef == null || _tokenUsageSummaryDoc == null) {
+      _logger.e("Service not initialized for checking token usage.");
+      return;
+    }
     try {
       final today = DateTime.now();
-      final todayTokenUsage = await _tokenLimitDoc
-          .collection('tokenLogs')
-          .doc(today.toString().substring(0, 10))
+      final dateString =
+          "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+      final dailyLogDoc = await _tokenUsageSummaryDoc!
+          .collection('daily_logs')
+          .doc(dateString)
           .get();
 
-      if (todayTokenUsage.exists) {
-        final todayTokenData = todayTokenUsage.data() as Map<String, dynamic>;
-        final todayTokenUsageData =
-            Usage.fromJson(todayTokenData['tokenUsage']);
-        // 0 represents infinite tokens
+      if (dailyLogDoc.exists && dailyLogDoc.data() != null) {
+        final dailyUsageData = Usage.fromJson(dailyLogDoc.data()!);
         if (_tokenLimit == 0) {
           _tokenLimitExceeded = false;
-        } else if (todayTokenUsageData.totalTokens! > _tokenLimit) {
-          _tokenLimitExceeded = true; // User has exceeded the token limit
+        } else if ((dailyUsageData.totalTokens ?? 0) > _tokenLimit) {
+          _tokenLimitExceeded = true;
         } else {
-          _tokenLimitExceeded = false; // User has not exceeded the token limit
+          _tokenLimitExceeded = false;
         }
       } else {
-        _tokenLimitExceeded = false; // User has not exceeded the token limit
+        _tokenLimitExceeded = false;
       }
+      _logger.i('Token usage check. Exceeded: $_tokenLimitExceeded');
     } catch (e) {
       _logger.e('Failed to check token usage: $e');
-      rethrow;
     }
   }
 
   Future<int> getTokensUsedToday() async {
+    if (_userDocumentRef == null || _tokenUsageSummaryDoc == null) {
+      _logger.e("Service not initialized for getting tokens used today.");
+      return 0;
+    }
     try {
       final today = DateTime.now();
-      final todayTokenUsage = await _tokenLimitDoc
-          .collection('tokenLogs')
-          .doc(today.toString().substring(0, 10))
+      final dateString =
+          "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+      final dailyLogDoc = await _tokenUsageSummaryDoc!
+          .collection('daily_logs')
+          .doc(dateString)
           .get();
 
-      if (todayTokenUsage.exists) {
-        final todayTokenData = todayTokenUsage.data() as Map<String, dynamic>;
-        final todayTokenUsageData =
-            Usage.fromJson(todayTokenData['tokenUsage']);
-
-        return todayTokenUsageData.totalTokens!;
+      if (dailyLogDoc.exists && dailyLogDoc.data() != null) {
+        final dailyUsageData = Usage.fromJson(dailyLogDoc.data()!);
+        return dailyUsageData.totalTokens ?? 0;
       } else {
         return 0;
       }
     } catch (e) {
       _logger.e('Failed to get tokens used today: $e');
-      rethrow;
+      return 0;
     }
   }
 
@@ -477,19 +501,152 @@ class OpenaiService {
     return _tokenLimit;
   }
 
-  Stream<CreateChatCompletionStreamResponse> getCompletionStream(
-      List<Map<String, dynamic>> messages) {
-    _logger.i('Starting streaming request to OpenAI API');
+  Future<String> createNewChat(
+      {required String title, required String modelId}) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
+    try {
+      _logger.i("Creating new chat with title: '$title', model: '$modelId'");
+      final newChatRef = _userDocumentRef!.collection('openai_chats').doc();
+      await newChatRef.set({
+        'title': title,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastModifiedAt': FieldValue.serverTimestamp(),
+        'model_id': modelId,
+      });
+      _logger.i("New chat created with ID: ${newChatRef.id}");
+      return newChatRef.id;
+    } catch (e) {
+      _logger.e("Failed to create new chat: $e");
+      rethrow;
+    }
+  }
 
-    final List<ChatCompletionMessage> chatMessages = convertMessages(messages);
+  Future<List<ChatMetadata>> listUserChats() async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
+    try {
+      _logger.i("Listing user chats");
+      final querySnapshot = await _userDocumentRef!
+          .collection('openai_chats')
+          .orderBy('lastModifiedAt', descending: true)
+          .get();
 
-    final stream = client.createChatCompletionStream(
-      request: CreateChatCompletionRequest(
-        model: ChatCompletionModel.modelId('gpt-4o'),
-        messages: chatMessages,
-      ),
-    );
+      final chats = querySnapshot.docs
+          .map((doc) => ChatMetadata.fromFirestore(
+              doc as DocumentSnapshot<Map<String, dynamic>>))
+          .toList();
+      _logger.i("Found ${chats.length} chats");
+      return chats;
+    } catch (e) {
+      _logger.e("Failed to list user chats: $e");
+      rethrow;
+    }
+  }
 
-    return stream;
+  Future<void> updateChatTitle(String chatId, String newTitle) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
+    try {
+      _logger.i("Updating title for chat $chatId to '$newTitle'");
+      await _chatDocumentRef(chatId).update({
+        'title': newTitle,
+        'lastModifiedAt':
+            FieldValue.serverTimestamp(), // Also update last modified
+      });
+      _logger.i("Chat title updated for $chatId");
+    } catch (e) {
+      _logger.e("Failed to update chat title for $chatId: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> generateAndSaveChatTitle(
+      String chatId, List<Map<String, dynamic>> conversationSample) async {
+    if (conversationSample.isEmpty) {
+      _logger.i(
+          "Conversation sample is empty, cannot generate title for chat $chatId.");
+      return;
+    }
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
+
+    _logger.i("Generating title for chat $chatId...");
+
+    String promptContent =
+        "Summarize the following conversation with a short, descriptive title (5 words or less). Title only, no preamble.\n\n";
+    for (var message in conversationSample) {
+      String role = message['role'] == 'user' ? 'User' : 'Assistant';
+      String textContent = "";
+      if (message['content'] is String) {
+        textContent = message['content'];
+      } else if (message['content'] is List) {
+        // Extract text part from list for multimodal messages
+        var textPart = (message['content'] as List)
+            .firstWhere((part) => part['type'] == 'text', orElse: () => null);
+        if (textPart != null) {
+          textContent = textPart['text'] ?? '';
+        }
+      }
+      promptContent += "$role: ${textContent.trim()}\n";
+    }
+    promptContent += "\nTitle:";
+
+    try {
+      final request = CreateChatCompletionRequest(
+        model: ChatCompletionModel.modelId(
+            'gpt-3.5-turbo'), // Use a fast and cheap model for titles
+        messages: [
+          ChatCompletionMessage.user(
+              content: ChatCompletionUserMessageContent.string(promptContent))
+        ],
+        maxTokens: 15, // Limit tokens for the title
+        temperature: 0.3, // Lower temperature for more deterministic titles
+      );
+      final response = await client.createChatCompletion(request: request);
+
+      if (response.choices.isNotEmpty &&
+          response.choices.first.message.content != null) {
+        String generatedTitle = response.choices.first.message.content!.trim();
+        // Basic cleanup: remove quotes if any, ensure it's not empty
+        generatedTitle = generatedTitle.replaceAll('"', '').replaceAll("'", "");
+        if (generatedTitle.toLowerCase().startsWith("title:")) {
+          generatedTitle = generatedTitle.substring("title:".length).trim();
+        }
+        if (generatedTitle.isNotEmpty) {
+          _logger.i("Generated title for chat $chatId: '$generatedTitle'");
+          await updateChatTitle(chatId, generatedTitle);
+        } else {
+          _logger.w("Generated title was empty for chat $chatId.");
+        }
+      } else {
+        _logger
+            .w("Could not generate title for chat $chatId from API response.");
+      }
+    } catch (e) {
+      _logger.e("Error generating chat title for $chatId: $e");
+      // Don't rethrow, allow chat to continue with default title
+    }
+  }
+
+  Future<void> deleteChat(String chatId) async {
+    if (_userDocumentRef == null) throw Exception("Service not initialized.");
+    try {
+      _logger.i("Deleting chat $chatId");
+      final messagesCol = _messagesCollectionForChat(chatId);
+      final messagesSnapshot = await messagesCol.limit(500).get();
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      if (messagesSnapshot.docs.isNotEmpty) {
+        for (var doc in messagesSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        if (messagesSnapshot.docs.length == 500) {
+          _logger.w(
+              "Chat $chatId had many messages, more might need deletion if over 500.");
+        }
+      }
+      await _chatDocumentRef(chatId).delete();
+      _logger.i("Chat $chatId deleted");
+    } catch (e) {
+      _logger.e("Failed to delete chat $chatId: $e");
+      rethrow;
+    }
   }
 }
