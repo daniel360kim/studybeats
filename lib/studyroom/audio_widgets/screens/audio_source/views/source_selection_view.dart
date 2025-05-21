@@ -67,13 +67,16 @@ class SourceSelectionView extends StatelessWidget {
               color: Colors.redAccent.shade100, size: 16),
           const SizedBox(width: 6),
           Expanded(
-              child: Text(spotifyPlayerErrorMessage ?? "Player Error",
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.redAccent.shade100,
-                      fontWeight: FontWeight.w500))),
+              child: Tooltip(
+                message: 'Make sure you have Spotify Premium',
+                child: Text(spotifyPlayerErrorMessage ?? "Player Error",
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.redAccent.shade100,
+                        fontWeight: FontWeight.w500)),
+              )),
         ],
       );
     }
