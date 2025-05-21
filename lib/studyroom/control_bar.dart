@@ -659,7 +659,7 @@ class PlayerWidgetState extends State<PlayerWidget>
                 content: Text(
                     "Background sounds are unavailable while using Spotify due to platform rules"),
                 duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
+                
                 backgroundColor: Colors.black87,
               ),
             );
