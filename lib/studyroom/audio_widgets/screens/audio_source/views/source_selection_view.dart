@@ -116,12 +116,15 @@ class SourceSelectionView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            "View Playlists",
-            style: GoogleFonts.inter(
-              fontSize: 14, // Slightly larger for the main action
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
+          GestureDetector(
+            onTap: onViewPlaylistsTap,
+            child: Text(
+              "View Playlists",
+              style: GoogleFonts.inter(
+                fontSize: 14, // Slightly larger for the main action
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
             ),
           ),
           const SizedBox(height: 4),
@@ -224,20 +227,6 @@ class SourceSelectionView extends StatelessWidget {
               onSelectSource(AudioSourceType.spotify); // Select first
               if (!isSpotifyAuthenticated) {
                 onSpotifyLoginTap(); // Trigger login dialog
-              } else {
-                // If authenticated, tapping the card should primarily lead to playlists
-                // or retry connection if there's an issue.
-                if (isSpotifyPlayerConnected ||
-                    isSpotifyPlayerConnecting ||
-                    currentPlayingTrack != null /* or userPlaylists exist */) {
-                  onViewPlaylistsTap();
-                } else if (isSpotifyPlayerError ||
-                    isSpotifyPlayerDisconnected) {
-                  onRetryPlayerConnection();
-                } else {
-                  // Initial state after auth, or if player is 'none'
-                  onViewPlaylistsTap(); // Default to viewing playlists, which might also trigger player init
-                }
               }
             },
             isSpotifyAuthenticated: isSpotifyAuthenticated,
