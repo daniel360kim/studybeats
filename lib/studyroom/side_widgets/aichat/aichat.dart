@@ -793,34 +793,68 @@ class _AiChatState extends State<AiChat> {
                         itemBuilder: (context, index) {
                           final chat = _userChats[index];
                           final bool isSelected = chat.id == _currentChatId;
-                          return Material(
-                            color: isSelected
-                                ? kAppSelectedItemBackground
-                                : Colors.transparent,
-                            child: ListTile(
-                              leading: Icon(Icons.chat_bubble_outline,
-                                  color: isSelected
-                                      ? kPrimaryAppColor
-                                      : Colors.grey[700]),
-                              title: Text(chat.title,
-                                  style: GoogleFonts.inter(
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: isSelected
-                                          ? kPrimaryAppColor
-                                          : kAppDarkTextColor),
-                                  overflow: TextOverflow.ellipsis),
-                              subtitle: Text(
-                                "Model: ${chat.modelId}\nLast active: ${DateFormat.yMd().add_jm().format(chat.lastModifiedAt.toLocal())}",
-                                style: GoogleFonts.inter(
-                                    fontSize: 10, color: Colors.grey[600]),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0, vertical: 6.0),
+                            child: Material(
+                              color: isSelected
+                                  ? kAppSelectedItemBackground
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              elevation: isSelected ? 2 : 0,
+                              child: InkWell(
+                                onTap: () => _selectChat(chat),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12.0, horizontal: 12.0),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(Icons.chat_bubble_outline,
+                                          color: isSelected
+                                              ? kPrimaryAppColor
+                                              : Colors.grey[600],
+                                          size: 22),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(chat.title,
+                                                  style: GoogleFonts.inter(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 14,
+                                                      color: kAppDarkTextColor),
+                                                  overflow:
+                                                      TextOverflow.ellipsis),
+                                              const SizedBox(height: 4),
+                                              Row(children: [
+                                                Text("Model: ${chat.modelId}",
+                                                    style: GoogleFonts.inter(
+                                                        fontSize: 11,
+                                                        color:
+                                                            Colors.grey[600])),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                    DateFormat('M/d/y h:mm a')
+                                                        .format(chat
+                                                            .lastModifiedAt
+                                                            .toLocal()),
+                                                    style: GoogleFonts.inter(
+                                                        fontSize: 11,
+                                                        color:
+                                                            Colors.grey[600])),
+                                              ]),
+                                            ]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              onTap: () => _selectChat(chat),
-                              selected: isSelected,
-                              selectedTileColor: kAppSelectedItemBackground,
                             ),
                           );
                         },
@@ -1086,7 +1120,6 @@ class _AiChatState extends State<AiChat> {
                                           kAppDarkTextColor.withOpacity(0.9))),
                           ])),
                   actions: [
-                    
                     ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pop();
