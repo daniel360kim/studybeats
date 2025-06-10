@@ -57,7 +57,7 @@ class AudioSourceSwitcher extends StatefulWidget {
 }
 
 class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
-  _SwitcherView _currentView = _SwitcherView.selection;
+  _SwitcherView _currentView = _SwitcherView.lofiTracks;
 
   // Spotify state
   SpotifyPlaylistSimple? _selectedPlaylistForTracksView;

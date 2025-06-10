@@ -53,6 +53,7 @@ class LofiTracksView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          /*
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
@@ -65,6 +66,7 @@ class LofiTracksView extends StatelessWidget {
               tooltip: "Back to Playlists",
             ),
           ),
+          */
           if (hasTracks) _buildPlaylistInfo(context),
           Expanded(
             child: Padding(
@@ -513,30 +515,6 @@ class LofiTracksView extends StatelessWidget {
 
   // Update footer to avoid redundancy
   Widget _buildListFooter() {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Center(
-        child: GestureDetector(
-          onTap: () async {
-            final Uri url = Uri.parse('https://www.spotify.com');
-            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-              _logger.w("Could not launch ${url.toString()}");
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(6.0),
-            child: Text(
-              'Open in Spotify',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return Container();
   }
 }
