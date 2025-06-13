@@ -179,7 +179,7 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
                     style: GoogleFonts.inter(
                       color: kFlourishBlackish,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 14,
                     ),
                   ),
                 ),
