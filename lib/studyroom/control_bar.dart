@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:provider/provider.dart';
-import 'package:studybeats/api/audio/cloud_info/cloud_info_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/router.dart';
@@ -22,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
+import 'package:intl/intl.dart';
 import 'audio_widgets/controls/music_controls.dart';
 
 class PlayerWidget extends StatefulWidget {
@@ -72,6 +72,8 @@ class PlayerWidgetState extends State<PlayerWidget>
   final _authService = AuthService();
   bool _audioPlayerError = false;
 
+  int _streakCount = 0;
+
   final GlobalKey<IconControlsState> _iconControlsKey =
       GlobalKey<IconControlsState>();
 
@@ -103,6 +105,18 @@ class PlayerWidgetState extends State<PlayerWidget>
     _setActiveController(_currentAudioSource); // Set initial controller
 
     _updateSongState();
+    _loadStreak();
+  }
+
+  void _loadStreak() async {
+    try {
+      if (_authService.isUserLoggedIn()) {
+        final count = await _authService.getStreakLength();
+        if (mounted) setState(() => _streakCount = count);
+      }
+    } catch (e) {
+      _logger.e('Failed to load streak count: $e');
+    }
   }
 
   // Listener for Lofi controller's isLoaded state
@@ -402,22 +416,24 @@ class PlayerWidgetState extends State<PlayerWidget>
                     ),
                   )
                   */
-                if (_showQueue) const SizedBox.shrink(),
-                _showAudioSource
-                    ? Align(
-                        alignment: Alignment.bottomRight,
-                        child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {},
-                            child: AudioSourceSwitcher(
-                              initialAudioSource: _currentAudioSource,
-                              lofiController: _lofiController,
-                              onAudioSourceChanged: (source) {},
-                              spotifyController:
-                                  _spotifyController, // Pass instance
-                            )),
-                      )
-                    : const SizedBox.shrink(),
+
+                Visibility(
+                  visible: _showAudioSource,
+                  maintainState: true,
+                  child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      child: AudioSourceSwitcher(
+                        initialAudioSource: _currentAudioSource,
+                        lofiController: _lofiController,
+                        onAudioSourceChanged: (source) {},
+                        spotifyController: _spotifyController, // Pass instance
+                      ),
+                    ),
+                  ),
+                ),
                 Visibility(
                   visible: _showBackgroundSound &&
                       _currentAudioSource == AudioSourceType.lofi,
@@ -472,9 +488,26 @@ class PlayerWidgetState extends State<PlayerWidget>
       onTap: () {},
       child: LayoutBuilder(builder: (context, constraints) {
         if (constraints.maxWidth > 1050) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: buildControlWidgets(),
+          // Center controls, streak/time widgets right, vertically centered
+          return Stack(
+            children: [
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: buildControlWidgets().sublist(0, 3),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: buildControlWidgets().sublist(3),
+                  ),
+                ),
+              ),
+            ],
           );
         } else if (constraints.maxWidth < 1050 && constraints.maxWidth > 850) {
           return Row(
@@ -494,54 +527,63 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 
   Widget buildMiniControlWidgets() {
-    return Center(
-      child: StreamBuilder<bool>(
-        stream: _currentAudioController?.isPlayingStream ?? Stream.value(false),
-        builder: (context, snapshot) {
-          final playing = snapshot.data ?? false;
+    return Align(
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StreamBuilder<bool>(
+            stream:
+                _currentAudioController?.isPlayingStream ?? Stream.value(false),
+            builder: (context, snapshot) {
+              final playing = snapshot.data ?? false;
 
-          return Controls(
-            showFavorite: false,
-            showShuffle: _currentAudioSource == AudioSourceType.lofi,
-            onShuffle: _shuffle,
-            onPrevious: () {
-              if (currentSongInfo == null) {
-              } else {
-                _previousSong();
-              }
+              return Controls(
+                showFavorite: false,
+                showShuffle: _currentAudioSource == AudioSourceType.lofi,
+                onShuffle: _shuffle,
+                onPrevious: () {
+                  if (currentSongInfo == null) {
+                  } else {
+                    _previousSong();
+                  }
+                },
+                onPlay: () {
+                  if (currentSongInfo == null) {
+                  } else {
+                    _play();
+                  }
+                },
+                onPause: () {
+                  if (currentSongInfo == null) {
+                  } else {
+                    _pause();
+                  }
+                },
+                onNext: () {
+                  if (currentSongInfo == null) {
+                  } else {
+                    _nextSong();
+                  }
+                },
+                onFavorite: (value) {
+                  if (_currentAudioSource == AudioSourceType.lofi) {
+                    _authService.isUserLoggedIn()
+                        ? _toggleFavorite(value)
+                        : context.goNamed(AppRoute.loginPage.name);
+                  }
+                },
+                isPlaying: playing,
+                isFavorite: _currentAudioSource == AudioSourceType.lofi
+                    ? _isCurrentSongFavorite
+                    : false,
+                // isFavoriteEnabled: _currentAudioSource == AudioSourceType.lofi,
+              );
             },
-            onPlay: () {
-              if (currentSongInfo == null) {
-              } else {
-                _play();
-              }
-            },
-            onPause: () {
-              if (currentSongInfo == null) {
-              } else {
-                _pause();
-              }
-            },
-            onNext: () {
-              if (currentSongInfo == null) {
-              } else {
-                _nextSong();
-              }
-            },
-            onFavorite: (value) {
-              if (_currentAudioSource == AudioSourceType.lofi) {
-                _authService.isUserLoggedIn()
-                    ? _toggleFavorite(value)
-                    : context.goNamed(AppRoute.loginPage.name);
-              }
-            },
-            isPlaying: playing,
-            isFavorite: _currentAudioSource == AudioSourceType.lofi
-                ? _isCurrentSongFavorite
-                : false,
-            // isFavoriteEnabled: _currentAudioSource == AudioSourceType.lofi,
-          );
-        },
+          ),
+          if (_authService.isUserLoggedIn())
+            StreakWidget(streakCount: _streakCount),
+        ],
       ),
     );
   }
@@ -633,32 +675,17 @@ class PlayerWidgetState extends State<PlayerWidget>
             _showAudioSource = enabled;
           });
         },
-        onListPressed: (enabled) {
-          if (_currentAudioSource == AudioSourceType.lofi) {
-            setState(() {
-              _showQueue = enabled;
-            });
-          }
-        },
-        // isListEnabled: _currentAudioSource == AudioSourceType.lofi,
-        onEqualizerPressed: (enabled) {
-          if (_currentAudioSource == AudioSourceType.lofi) {
-            setState(() {
-              _showEqualizer = enabled;
-            });
-          }
-        },
+
         //isEqualizerEnabled: _currentAudioSource == AudioSourceType.lofi,
         onBackgroundSoundPressed: (enabled) {
-          if (_currentAudioSource == AudioSourceType.spotify) {
-            
-            return;
-          }
           setState(() {
             _showBackgroundSound = enabled;
           });
         },
       ),
+      if (_streakCount > 0) StreakWidget(streakCount: _streakCount),
+      const SizedBox(width: 12),
+      const DateTimeWidget(),
     ];
   }
 
@@ -725,5 +752,98 @@ class PlayerWidgetState extends State<PlayerWidget>
     } catch (e) {
       _showError('Could not play previous song.');
     }
+  }
+}
+
+class StreakWidget extends StatelessWidget {
+  final int streakCount;
+
+  const StreakWidget({Key? key, required this.streakCount}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message:
+          'You’ve used Studybeats $streakCount day${streakCount == 1 ? '' : 's'} in a row!',
+      textStyle: const TextStyle(color: Colors.white),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.orange.shade400, Colors.deepOrange.shade400],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withOpacity(0.4),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.local_fire_department,
+                color: Colors.white, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              '$streakCount',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DateTimeWidget extends StatelessWidget {
+  const DateTimeWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final timeString = DateFormat('h:mm a').format(now);
+    final dateString = DateFormat('EEE, MMM d').format(now);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            timeString,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+            ),
+          ),
+          Text(
+            dateString,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

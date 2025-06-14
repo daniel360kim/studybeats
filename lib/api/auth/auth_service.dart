@@ -43,6 +43,10 @@ class AuthService {
         'profilePicture': imageURL,
         'name': name,
         'selectedSceneId': 1,
+        'lastUsed': DateTime.now(),
+        'usageCount': 1,
+        'streakLength': 1,
+        'numDaysUsed': 1,
       });
     } catch (e) {
       _logger.e(e);
@@ -108,7 +112,6 @@ class AuthService {
       rethrow;
     }
   }
-
 
   Future<void> signUp(String email, String password, String name) async {
     try {
@@ -183,19 +186,60 @@ class AuthService {
   Future<void> logUserUsage() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .update({'lastUsed': DateTime.now()});
-      } else {
+      if (user == null) {
         _logger.e('Attempted to log user usage while logged out');
+        return;
       }
+
+      final userRef =
+          FirebaseFirestore.instance.collection('users').doc(user.email);
+
+      // Atomic read‑modify‑write to keep stats accurate
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(userRef);
+
+        // Existing values (with safe defaults)
+        final data = snapshot.data() ?? {};
+        final Timestamp? lastUsedTs = data['lastUsed'];
+        final DateTime? prevLastUsed = lastUsedTs?.toDate();
+        final int prevUsageCount = (data['usageCount'] ?? 0) as int;
+        int streak = (data['streakLength'] ?? 1) as int;
+
+        final DateTime now = DateTime.now();
+        bool isSameDay(DateTime a, DateTime b) =>
+            a.year == b.year && a.month == b.month && a.day == b.day;
+
+        // Update streak logic
+        if (prevLastUsed == null) {
+          streak = 1;
+        } else if (isSameDay(now, prevLastUsed)) {
+          // Already counted today; streak unchanged
+        } else if (isSameDay(
+            now.subtract(const Duration(days: 1)), prevLastUsed)) {
+          streak += 1; // consecutive day
+        } else {
+          streak = 1; // streak broken
+        }
+
+        // numDaysUsed logic
+        int numDaysUsed = (data['numDaysUsed'] ?? 0) as int;
+        bool countedToday =
+            prevLastUsed != null && isSameDay(now, prevLastUsed);
+        if (!countedToday) {
+          numDaysUsed += 1;
+        }
+
+        transaction.update(userRef, {
+          'lastUsed': now,
+          'usageCount': prevUsageCount + 1,
+          'streakLength': streak,
+          'numDaysUsed': numDaysUsed,
+        });
+      });
     } catch (e) {
       _logger.e('Error while logging user usage $e');
       rethrow;
     }
-
   }
 
   Future<void> signUpInWithMicrosoft() async {
@@ -431,5 +475,44 @@ class AuthService {
       _logger.e('Display name change failed. $e');
       rethrow;
     }
+  }
+
+  Future<int> getUsageCount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _logger.e('Attempted to get usage count while logged out');
+      throw Exception();
+    }
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.email)
+        .get();
+    return (doc.data()?['usageCount'] ?? 0) as int;
+  }
+
+  Future<int> getStreakLength() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _logger.e('Attempted to get streak length while logged out');
+      throw Exception();
+    }
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.email)
+        .get();
+    return (doc.data()?['streakLength'] ?? 0) as int;
+  }
+
+  Future<int> getNumDaysUsed() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _logger.e('Attempted to get numDaysUsed while logged out');
+      throw Exception();
+    }
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.email)
+        .get();
+    return (doc.data()?['numDaysUsed'] ?? 0) as int;
   }
 }
