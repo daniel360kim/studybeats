@@ -55,6 +55,8 @@ class _StudyRoomState extends State<StudyRoom> {
   void initState() {
     super.initState();
     initScenes();
+    initAuth();
+
     checkFirstVisit();
     if (widget.openPricing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,6 +74,18 @@ class _StudyRoomState extends State<StudyRoom> {
         _showWelcomePopup = true;
       });
       await prefs.setBool('hasVisited', true);
+    }
+  }
+
+  void initAuth() async {
+    try {
+      final authService = AuthService();
+      if (!authService.isUserLoggedIn()) {
+        await authService.logInAnonymously();
+        await authService.logUserUsage();
+      }
+    } catch (e) {
+      _logger.e('Error while initializing auth $e');
     }
   }
 
@@ -102,10 +116,6 @@ class _StudyRoomState extends State<StudyRoom> {
             _playlistId = null;
           });
           return;
-        }
-        final authService = AuthService();
-        if (authService.isUserLoggedIn()) {
-          await authService.logUserUsage();
         }
         final initialSceneIndex = await AuthService().getselectedSceneId();
         _logger.i('Initial scene index $initialSceneIndex');
@@ -308,10 +318,7 @@ class _StudyRoomState extends State<StudyRoom> {
         Positioned(
           top: 20,
           right: 20,
-          child: Consumer<ApplicationState>(
-            builder: (context, appState, child) {
-              return CredentialBar(
-                loggedIn: appState.loggedIn,
+          child:  CredentialBar(
                 onUpgradePressed: showInitialUpgradeDialog,
                 onLogout: () async {
                   changeScene(1);
@@ -320,9 +327,9 @@ class _StudyRoomState extends State<StudyRoom> {
                     setState(() {});
                   }
                 },
-              );
-            },
-          ),
+              )
+            
+          
         ),
       ],
     );

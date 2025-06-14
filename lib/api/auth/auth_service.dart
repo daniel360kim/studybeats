@@ -15,6 +15,86 @@ import 'package:uuid/uuid.dart';
 class AuthService {
   final Logger _logger = getLogger('AuthService');
   final AnalyticsService _analyticsService = AnalyticsService();
+
+  ///
+  ///Gets the current Firebase user. Studybeats assumes that a user is always logged in
+  /// if the user is not logged in, it will attempt to log in anonymously to create a user
+  /// Ideally the user should already be logged in before this function is called
+  Future<User> getCurrentUser({int retryCount = 3}) async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      while (user == null && retryCount > 0) {
+        _logger.w('Current user is null. Creating anonymous user');
+        await logInAnonymously();
+        user = FirebaseAuth.instance.currentUser;
+        retryCount--;
+      }
+
+      if (user == null) {
+        _logger.e('Failed to retrieve current user after retries');
+        throw Exception('User is null after retries');
+      }
+
+      _logger.i('Current user retrieved: ${user.email ?? user.uid}');
+
+      return user;
+    } catch (e) {
+      _logger.e('Error retrieving current user: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns the Firestore document ID for the current Firebase user.
+  /// User docs are stored by their email address, but for anonymous users,
+  /// the UID is used instead.
+  /// Falls back to the UID when `email` is null (e.g. anonymous accounts).
+  String docIdForUser(User user) {
+    if (user.isAnonymous) {
+      return user.uid;
+    } else {
+      final email = user.email;
+      if (email != null) {
+        return email;
+      } else {
+        return user.uid;
+      }
+    }
+  }
+
+  Future<bool> isUserAnonymous() async {
+    final user = await getCurrentUser();
+    return user.isAnonymous;
+  }
+
+  Future<void> logInAnonymously() async {
+    try {
+      _logger.i('Attempting to log in anonymously');
+      await FirebaseAuth.instance.signInAnonymously();
+      // Look in firestore database to see if this user exists
+      final user = await getCurrentUser();
+
+      final userRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user));
+
+      final docSnapshot = await userRef.get();
+      if (!docSnapshot.exists) {
+        _logger.d('User document does not exist. Creating baseline record.');
+        await _registerWithFirestore(
+            'Anonymous User', null, SignupMethod.anonymous);
+      }
+
+      _analyticsService.logLogin();
+      _logger.i('User logged in anonymously');
+    } on FirebaseAuthException catch (e) {
+      _logger.w('FIREBASE EXCEPTION: Anonymous login failed. $e');
+      rethrow;
+    } catch (e) {
+      _logger.e('Anonymous login failed: $e');
+      rethrow;
+    }
+  }
+
   Future _createUserEmailPassword(String email, String password) async {
     try {
       _logger.i('Requesting account creation with email and password');
@@ -32,14 +112,15 @@ class AuthService {
     }
   }
 
-  Future _registerWithFirestore(String name, String? imageURL) async {
+  Future _registerWithFirestore(
+      String name, String? imageURL, SignupMethod method) async {
     try {
       _logger.i('Registering user with Firebase');
       return await FirebaseFirestore.instance
           .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.email)
+          .doc(docIdForUser(await getCurrentUser()))
           .set({
-        'uid': FirebaseAuth.instance.currentUser!.uid,
+        'uid': (await getCurrentUser()).uid,
         'profilePicture': imageURL,
         'name': name,
         'selectedSceneId': 1,
@@ -47,6 +128,7 @@ class AuthService {
         'usageCount': 1,
         'streakLength': 1,
         'numDaysUsed': 1,
+        'loginMethod': method.name,
       });
     } catch (e) {
       _logger.e(e);
@@ -55,44 +137,34 @@ class AuthService {
   }
 
   Future getCurrentUserEmail() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      return user.email;
-    } else {
-      return null;
-    }
+    final user = await getCurrentUser();
+    return user.email;
   }
 
   Future<int> getselectedSceneId() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final dataSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .get();
+    final user = await getCurrentUser();
+    final dataSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(docIdForUser(user))
+        .get();
 
-      if (!dataSnapshot.exists) {
-        return 1;
-      }
+    if (!dataSnapshot.exists) {
+      return 1;
+    }
 
-      if (dataSnapshot.data()!.containsKey('selectedSceneId')) {
-        return dataSnapshot.get('selectedSceneId');
-      } else {
-        return 1;
-      }
+    if (dataSnapshot.data()!.containsKey('selectedSceneId')) {
+      return dataSnapshot.get('selectedSceneId');
     } else {
       return 1;
     }
   }
 
   Future changeselectedSceneId(int index) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .update({'selectedSceneId': index});
-    }
+    final user = await getCurrentUser();
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(docIdForUser(user))
+        .update({'selectedSceneId': index});
   }
 
   Future _login(String email, String password) async {
@@ -117,7 +189,7 @@ class AuthService {
     try {
       await _createUserEmailPassword(email, password);
       await _login(email, password);
-      await _registerWithFirestore(name, null);
+      await _registerWithFirestore(name, null, SignupMethod.email);
       _logger.i('User registered succesfully');
     } catch (e) {
       rethrow;
@@ -126,6 +198,18 @@ class AuthService {
 
   bool isUserLoggedIn() {
     return FirebaseAuth.instance.currentUser != null;
+  }
+
+  Future<void> signOutAndLoginAnonymously() async {
+    try {
+      _logger.i('Signing out user and logging in anonymously');
+      await FirebaseAuth.instance.signOut();
+      await logInAnonymously();
+      _logger.i('User signed out and logged in anonymously');
+    } catch (e) {
+      _logger.e('Sign out and login anonymously failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> signUpInWithGoogle() async {
@@ -150,20 +234,18 @@ class AuthService {
 
       await FirebaseAuth.instance.signInWithCredential(credential);
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .get();
-        if (!doc.exists) {
-          await _analyticsService.logSignUp(SignupMethod.google);
-          await _registerWithFirestore(user.displayName!, user.photoURL!);
-        }
-      } else {
-        _logger.e('User is null after attempted Google Sign In');
-        throw Exception();
+      final user = await getCurrentUser();
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user))
+          .get();
+      if (!doc.exists) {
+        await _analyticsService.logSignUp(SignupMethod.google);
+        await _registerWithFirestore(
+            user.displayName!, user.photoURL!, SignupMethod.google);
       }
+
       await _analyticsService.logLogin();
       _logger.i('User signed in with Google');
     } catch (e) {
@@ -173,26 +255,25 @@ class AuthService {
   }
 
   Future<UserMetadata> getUserMetadata() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      return user.metadata;
-    } else {
-      _logger.e('Attempted to get user metadata while logged out');
-      throw Exception();
-    }
+    final user = await getCurrentUser();
+    return user.metadata;
   }
 
   // Call this function to log the date time that the user last used the app
   Future<void> logUserUsage() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        _logger.e('Attempted to log user usage while logged out');
+      final user = await getCurrentUser();
+
+      final userRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user));
+
+      // Ensure the document exists before running the transaction
+      final docSnapshot = await userRef.get();
+      if (!docSnapshot.exists) {
+        _logger.e('User document did not exist. Creating baseline record.');
         return;
       }
-
-      final userRef =
-          FirebaseFirestore.instance.collection('users').doc(user.email);
 
       // Atomic read‑modify‑write to keep stats accurate
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -254,49 +335,47 @@ class AuthService {
           await FirebaseAuth.instance.signInWithPopup(microsoftProvider);
       final credential = result.credential;
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .get();
-        if (!doc.exists) {
-          final graphAPIService =
-              GraphAPIService(accessToken: credential?.accessToken);
+      final user = await getCurrentUser();
 
-          final userModel = await graphAPIService.fetchUserInfo();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user))
+          .get();
+      if (!doc.exists) {
+        final graphAPIService =
+            GraphAPIService(accessToken: credential?.accessToken);
 
-          if (userModel.displayName == null) {
-            _logger.e('Microsoft user display name came out as null');
-            throw Exception();
-          }
+        final userModel = await graphAPIService.fetchUserInfo();
 
-          displayName = userModel.displayName!;
-
-          final bytes = await graphAPIService.fetchProfilePhoto();
-          final image = MemoryImage(bytes);
-
-          final ref = await _generateProfilePictureReference();
-
-          await ref.putData(
-              image.bytes, SettableMetadata(contentType: 'image/jpeg'));
-
-          await _analyticsService.logSignUp(SignupMethod.microsoft);
-          _registerWithFirestore(displayName, await ref.getDownloadURL());
+        if (userModel.displayName == null) {
+          _logger.e('Microsoft user display name came out as null');
+          throw Exception();
         }
 
-        await _analyticsService.logLogin();
-      } else {
-        _logger.e('User is null after attempted Microsoft Sign In');
-        throw Exception();
+        displayName = userModel.displayName!;
+
+        final bytes = await graphAPIService.fetchProfilePhoto();
+        final image = MemoryImage(bytes);
+
+        final ref = await _generateProfilePictureReference();
+
+        await ref.putData(
+            image.bytes, SettableMetadata(contentType: 'image/jpeg'));
+
+        await _analyticsService.logSignUp(SignupMethod.microsoft);
+        await _registerWithFirestore(
+            displayName, await ref.getDownloadURL(), SignupMethod.microsoft);
       }
+
+      await _analyticsService.logLogin();
+
       _logger.i('User signed in with Microsoft');
     } catch (e) {
       if (e is GraphAPIException) {
         _logger.w(
             'Profile photo request failed. Setting profile photo as default picture');
         await _analyticsService.logSignUp(SignupMethod.microsoft);
-        _registerWithFirestore(displayName, null);
+        await _registerWithFirestore(displayName, null, SignupMethod.microsoft);
         return;
       }
       _logger.e('Microsoft sign in failed. $e');
@@ -315,47 +394,30 @@ class AuthService {
 
   Future<String?> getProfilePictureUrl() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .get();
-        return doc.get('profilePicture');
-      } else {
-        _logger.e('Profile picture url access attempted while logged out');
-        throw Exception();
-      }
+      final user = await getCurrentUser();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user))
+          .get();
+      return doc.get('profilePicture');
     } catch (e) {
       throw Exception(e);
     }
   }
 
   Future<DateTime> getAccountCreationDate() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      return user.metadata.creationTime!;
-    } else {
-      _logger.e('Attempted to get account creation date while logged out');
-      throw Exception();
-    }
+    final user = await getCurrentUser();
+    return user.metadata.creationTime!;
   }
 
   Future<String> getCurrentUserUid() async {
-    final user = FirebaseAuth.instance.currentUser;
-
+    final user = await getCurrentUser();
     try {
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .get();
-
-        return doc.get('uid');
-      } else {
-        _logger.e('Attempted to get uid while logged out');
-        throw Exception();
-      }
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user))
+          .get();
+      return doc.get('uid');
     } catch (e) {
       _logger.e('Unknown error while retrieving uid $e');
       rethrow;
@@ -363,20 +425,13 @@ class AuthService {
   }
 
   Future<String> getDisplayName() async {
-    final user = FirebaseAuth.instance.currentUser;
-
+    final user = await getCurrentUser();
     try {
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .get();
-
-        return doc.get('name');
-      } else {
-        _logger.e('Attempted to get display name while logged out');
-        throw Exception();
-      }
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user))
+          .get();
+      return doc.get('name');
     } catch (e) {
       _logger.e('Unknown error while retrieving user display name $e');
       rethrow;
@@ -386,25 +441,19 @@ class AuthService {
   Future<void> updateProfilePicture(html.File image) async {
     // Delete the old profile picture if the domain is firebase storage
     _logger.i('Updating profile picture');
-    final user = FirebaseAuth.instance.currentUser;
-
+    final user = await getCurrentUser();
     try {
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .get();
-        final oldProfilePicture = doc.get('profilePicture');
-        if (oldProfilePicture.contains('firebasestorage.googleapis.com')) {
-          _logger.i(
-              'Profile picture found in firebasestorage domain. Deleting previous profile picture');
-          final oldProfilePictureRef =
-              FirebaseStorage.instance.refFromURL(oldProfilePicture);
-          await oldProfilePictureRef.delete();
-        }
-      } else {
-        _logger.e('User is null while updating profile picture');
-        throw Exception();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docIdForUser(user))
+          .get();
+      final oldProfilePicture = doc.get('profilePicture');
+      if (oldProfilePicture.contains('firebasestorage.googleapis.com')) {
+        _logger.i(
+            'Profile picture found in firebasestorage domain. Deleting previous profile picture');
+        final oldProfilePictureRef =
+            FirebaseStorage.instance.refFromURL(oldProfilePicture);
+        await oldProfilePictureRef.delete();
       }
 
       final ref = await _generateProfilePictureReference();
@@ -417,7 +466,7 @@ class AuthService {
 
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.email)
+          .doc(docIdForUser(user))
           .update({'profilePicture': url});
       _logger.i('Profile picture updated');
     } catch (e) {
@@ -445,13 +494,8 @@ class AuthService {
   Future<void> sendEmailChangeEmail(String email) async {
     _logger.i('Sending email change email');
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await user.verifyBeforeUpdateEmail(email);
-      } else {
-        _logger.e('User is null while changing email');
-        throw Exception();
-      }
+      final user = await getCurrentUser();
+      await user.verifyBeforeUpdateEmail(email);
     } catch (e) {
       _logger.e('Email change failed. $e');
       rethrow;
@@ -461,16 +505,11 @@ class AuthService {
   Future<void> changeName(String displayName) async {
     _logger.i('Changing display name');
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .update({'name': displayName});
-      } else {
-        _logger.e('User is null while changing display name');
-        throw Exception();
-      }
+      final user = await getCurrentUser();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .update({'name': displayName});
     } catch (e) {
       _logger.e('Display name change failed. $e');
       rethrow;
@@ -478,40 +517,28 @@ class AuthService {
   }
 
   Future<int> getUsageCount() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _logger.e('Attempted to get usage count while logged out');
-      throw Exception();
-    }
+    final user = await getCurrentUser();
     final doc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(user.email)
+        .doc(docIdForUser(user))
         .get();
     return (doc.data()?['usageCount'] ?? 0) as int;
   }
 
   Future<int> getStreakLength() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _logger.e('Attempted to get streak length while logged out');
-      throw Exception();
-    }
+    final user = await getCurrentUser();
     final doc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(user.email)
+        .doc(docIdForUser(user))
         .get();
     return (doc.data()?['streakLength'] ?? 0) as int;
   }
 
   Future<int> getNumDaysUsed() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _logger.e('Attempted to get numDaysUsed while logged out');
-      throw Exception();
-    }
+    final user = await getCurrentUser();
     final doc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(user.email)
+        .doc(docIdForUser(user))
         .get();
     return (doc.data()?['numDaysUsed'] ?? 0) as int;
   }

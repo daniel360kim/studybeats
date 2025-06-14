@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:ui'; // For ImageFilter
+// For ImageFilter
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/side_widgets/aichat/aimessage.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/queue.dart'; // For PopupMenuDetails
+// For PopupMenuDetails
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
@@ -333,11 +333,12 @@ class _AiChatState extends State<AiChat> {
   // Renamed original _sendMessage to _sendMessageLogic to avoid confusion
   Future<void> _sendMessageLogic(String textForMessage) async {
     if (_currentChatId == null) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _showError = true;
           _errorMessage = "Please select a chat.";
         });
+      }
       return;
     }
     if (_loadingResponse || _isLoadingMessages || _loadingImage) return;
@@ -386,16 +387,18 @@ class _AiChatState extends State<AiChat> {
         promptTokens = _openaiService.tokenizer
                 .numTokensFromString(trimmedTextForMessage) +
             _openaiService.tokenizer.sizeFromImageUrl(_imageUrl!);
-        if (isFirstUserMessageInNewChat)
+        if (isFirstUserMessageInNewChat) {
           firstUserMessageContentForTitle = trimmedTextForMessage.isEmpty
               ? 'Image analysis'
               : trimmedTextForMessage;
+        }
       } else {
         userMessageMap = {'role': 'user', 'content': trimmedTextForMessage};
         promptTokens =
             _openaiService.tokenizer.numTokensFromString(trimmedTextForMessage);
-        if (isFirstUserMessageInNewChat)
+        if (isFirstUserMessageInNewChat) {
           firstUserMessageContentForTitle = trimmedTextForMessage;
+        }
       }
 
       if (mounted) {
@@ -410,8 +413,9 @@ class _AiChatState extends State<AiChat> {
       if (mounted) setState(() => _imageUrl = null);
 
       final assistantPlaceholder = {'role': 'assistant', 'content': ''};
-      if (mounted)
+      if (mounted) {
         setState(() => _conversationHistory.add(assistantPlaceholder));
+      }
       _scrollToBottom();
 
       final stream = _openaiService.getCompletionStream(_currentChatId!,
@@ -451,8 +455,9 @@ class _AiChatState extends State<AiChat> {
             .then((_) => _loadUserChats(newlySelectedChatId: _currentChatId))
             .catchError((e) => _logger.e("Error auto-generating title: $e"));
       }
-      if (mounted)
+      if (mounted) {
         setState(() => _showTokenMessage = _openaiService.tokenLimitExceeded);
+      }
     } catch (e) {
       _logger.e('Error sending message: $e');
       if (mounted) {
@@ -468,11 +473,12 @@ class _AiChatState extends State<AiChat> {
         });
       }
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loadingResponse = false;
           _loadingImage = false;
         });
+      }
     }
   }
 
@@ -542,10 +548,12 @@ class _AiChatState extends State<AiChat> {
                       if (!mounted) return;
                       setState(() {
                         _currentWidth += details.primaryDelta!;
-                        if (_currentWidth < _minWidth)
+                        if (_currentWidth < _minWidth) {
                           _currentWidth = _minWidth;
-                        if (_currentWidth > _maxWidth)
+                        }
+                        if (_currentWidth > _maxWidth) {
                           _currentWidth = _maxWidth;
+                        }
                       });
                     },
                     child: Container(
@@ -703,10 +711,12 @@ class _AiChatState extends State<AiChat> {
           child: PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'info') await showInfoDialog();
-              if (value == 'clear_chat' && _currentChatId != null)
+              if (value == 'clear_chat' && _currentChatId != null) {
                 await _showClearCurrentChatDialog();
-              if (value == 'delete_chat' && _currentChatId != null)
+              }
+              if (value == 'delete_chat' && _currentChatId != null) {
                 await _showDeleteCurrentChatDialog();
+              }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -1071,8 +1081,9 @@ class _AiChatState extends State<AiChat> {
   Future<void> showInfoDialog() async {
     int tokensUsedToday = await _openaiService.getTokensUsedToday();
     final int tokenLimit = _openaiService.getTokenLimit();
-    if (tokensUsedToday > tokenLimit && tokenLimit != 0)
+    if (tokensUsedToday > tokenLimit && tokenLimit != 0) {
       tokensUsedToday = tokenLimit;
+    }
     String tokensUsedTodayStr =
         NumberFormat.decimalPattern().format(tokensUsedToday);
     String tokenLimitStr = tokenLimit == 0
@@ -1188,19 +1199,21 @@ class _AiChatState extends State<AiChat> {
           FirebaseStorage.instance.ref().child('openai_user_images/$filename');
       await ref.putBlob(file);
       final downloadUrl = await ref.getDownloadURL();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _imageUrl = downloadUrl;
           _loadingImage = false;
         });
+      }
     } catch (e) {
       _logger.e("Error picking image: $e");
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loadingImage = false;
           _showError = true;
           _errorMessage = "Failed to process image.";
         });
+      }
     }
   }
 }

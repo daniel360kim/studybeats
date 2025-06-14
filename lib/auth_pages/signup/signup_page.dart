@@ -34,11 +34,18 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void initState() {
-    if (_authService.isUserLoggedIn()) {
-      context.goNamed(AppRoute.studyRoom.name);
-    }
+    _initAuth();
     super.initState();
     _keyboardListenerFocusNode.requestFocus();
+  }
+
+  void _initAuth() async {
+    bool isAnonymous = await _authService.isUserAnonymous();
+    if (!isAnonymous) {
+      if (mounted) {
+        context.goNamed(AppRoute.studyRoom.name);
+      }
+    } 
   }
 
   @override

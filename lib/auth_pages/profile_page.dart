@@ -42,15 +42,21 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_authService.isUserLoggedIn()) {
-        _logger.w('User is not logged in, redirecting to login page');
-        context.goNamed(AppRoute.loginPage.name);
-      }
+      _initAuth();
     });
 
     getMembershipStatus();
     // Fetch the profile image URL once during initialization
     updateProfilePictureUrl();
+  }
+  
+  void _initAuth() async {
+    bool isAnonymous = await _authService.isUserAnonymous();
+    if (isAnonymous) {
+      if (mounted) {
+        context.goNamed(AppRoute.loginPage.name);
+      }
+    } 
   }
 
   void updateProfilePictureUrl() {

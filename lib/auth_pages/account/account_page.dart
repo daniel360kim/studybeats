@@ -52,15 +52,21 @@ class _AccountPageState extends State<AccountPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_authService.isUserLoggedIn()) {
-        _logger.w('User is not logged in. Redirecting to login page.');
-        context.goNamed(AppRoute.loginPage.name);
-      }
+      _initAuth();
     });
     _tabController = TabController(length: 4, vsync: this);
     _loadUserData();
     getMembershipStatus();
     updateProfilePictureUrl();
+  }
+
+  void _initAuth() async {
+    bool isAnonymous = await _authService.isUserAnonymous();
+    if (isAnonymous) {
+      if (mounted) {
+        context.goNamed(AppRoute.loginPage.name);
+      }
+    } 
   }
 
   void _loadUserData() async {

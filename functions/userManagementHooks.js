@@ -22,26 +22,33 @@ const db = admin.firestore();
  * 'cleanupUserOnDeleteFunction' (defined in mailchimpHooks.js and triggered by Firestore).
  */
 const handleAuthUserDeletionV1Function = functions.auth.user().onDelete(async (user) => {
-    // For v1, the 'user' object is the UserRecord directly
-    const userEmail = user.email;
-    const userId = user.uid;
+  const userId = user.uid;
 
-    if (!userEmail) {
-        logger.warn(`User with UID ${userId} was deleted from Auth, but no email was found. Cannot delete Firestore user document by email.`);
-        return null;
+  logger.info(`Firebase Auth user (UID: ${userId}) was deleted (v1 trigger). Attempting to locate and delete Firestore document in 'users' collection where uid == ${userId}.`);
+
+  try {
+    const firestore = getFirestore();
+    const usersQuerySnapshot = await firestore
+      .collection('users')
+      .where('uid', '==', userId)
+      .get();
+
+    if (usersQuerySnapshot.empty) {
+      logger.warn(`No Firestore user document found with uid == ${userId}.`);
+      return null;
     }
 
-    logger.info(`Firebase Auth user ${userEmail} (UID: ${userId}) was deleted (v1 trigger). Attempting to delete corresponding Firestore document at users/${userId}.`);
+    const deletePromises = usersQuerySnapshot.docs.map(async (doc) => {
+      await firestore.recursiveDelete(doc.ref);
+      logger.info(`Successfully recursively deleted Firestore document and subcollections at users/${doc.id} for Auth user UID ${userId}.`);
+    });
 
-    try {
-      const path = `users/${userEmail}`;
-      const firestore = getFirestore();
-      await firestore.recursiveDelete(firestore.doc(path));
-      logger.info(`Successfully recursively deleted Firestore document and subcollections at ${path} for Auth user UID ${userId} (v1 trigger).`);
-    } catch (error) {
-      logger.error(`Error recursively deleting Firestore document for Auth user UID ${userId} (v1 trigger):`, error);
-    }
-    return null;
+    await Promise.all(deletePromises);
+  } catch (error) {
+    logger.error(`Error recursively deleting Firestore user document for Auth user UID ${userId}:`, error);
+  }
+
+  return null;
 });
 
 

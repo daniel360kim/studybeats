@@ -13,8 +13,10 @@ class TodoListService {
   // Client code should check and handle user not being logged in before calling this method
   Future<void> init() async {
     try {
-      final email = await _getUserEmail();
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+      final user = await _authService.getCurrentUser();
+      final String collectionId = _authService.docIdForUser(user);
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(collectionId);
       _todoListCollection = userDoc.collection('todoLists');
 
       // If there are no todo lists, create the default one
@@ -24,21 +26,6 @@ class TodoListService {
       }
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
-      rethrow;
-    }
-  }
-
-  Future<String> _getUserEmail() async {
-    try {
-      final email = await _authService.getCurrentUserEmail();
-      if (email != null) {
-        return email;
-      } else {
-        _logger.e('User email is null');
-        throw Exception('User email is null');
-      }
-    } catch (e, s) {
-      _logger.e('Failed to get user email: $e $s');
       rethrow;
     }
   }
@@ -114,25 +101,14 @@ class TodoService {
 
   Future<void> _initialize() async {
     try {
-      final email = await _getUserEmail();
-      if (email == null) {
-        _logger.w('User email is null, skipping initialization');
-        return;
-      }
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+      final user = await _authService.getCurrentUser();
+      final collectionId = _authService.docIdForUser(user);
+
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(collectionId);
       _todoCollection = userDoc.collection('todoLists');
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
-      rethrow;
-    }
-  }
-
-  Future<String>? _getUserEmail() async {
-    try {
-      final email = await _authService.getCurrentUserEmail();
-      return email;
-    } catch (e, s) {
-      _logger.e('Failed to get user email: $e $s');
       rethrow;
     }
   }
@@ -373,13 +349,11 @@ class TodoService {
       final todoListSnapshot = await todoListDoc.get();
       final todoList = TodoList.fromJson(todoListSnapshot.data()!);
 
-      return todoList.categories.uncompleted.firstWhere(
-        (item) => item.id == itemId,
-        orElse: (){
-          _logger.w('Todo item $itemId not found in uncompleted list');
-          throw Exception('Todo item $itemId not found in uncompleted list');
-        }
-      );
+      return todoList.categories.uncompleted
+          .firstWhere((item) => item.id == itemId, orElse: () {
+        _logger.w('Todo item $itemId not found in uncompleted list');
+        throw Exception('Todo item $itemId not found in uncompleted list');
+      });
     } catch (e, s) {
       _logger.e('Failed to get todo item: $e $s');
       rethrow;

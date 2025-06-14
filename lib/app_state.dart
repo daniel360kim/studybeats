@@ -37,6 +37,7 @@ class ApplicationState extends ChangeNotifier {
       GoogleProvider(
         clientId: GOOGLE_SIGNIN_CLIENT_ID,
       ),
+      
     ]);
 
     FirebaseAuth.instance.userChanges().listen((user) {

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,11 +31,20 @@ class _PremiumUpgradeDialogState extends State<PremiumUpgradeDialog> {
   PricingInterval _selectedInterval = PricingInterval.year;
 
   bool _checkoutSessionLoading = false;
+  bool _isUserAnonymous = true;
 
   @override
   void initState() {
     super.initState();
     _getProducts();
+    _initAuth();
+  }
+
+  void _initAuth() async {
+    final isUserAnonymous = await AuthService().isUserAnonymous();
+    setState(() {
+      _isUserAnonymous = isUserAnonymous;
+    });
   }
 
   Future<void> _getProducts() async {
@@ -218,7 +226,7 @@ class _PremiumUpgradeDialogState extends State<PremiumUpgradeDialog> {
                     );
                   }
 
-                  if (!AuthService().isUserLoggedIn()) {
+                  if (_isUserAnonymous) {
                     // TODO after login, direct to payment
                     context.goNamed(AppRoute.loginPage.name);
                   }

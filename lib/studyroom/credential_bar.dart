@@ -16,13 +16,11 @@ import 'package:go_router/go_router.dart';
 
 class CredentialBar extends StatefulWidget {
   const CredentialBar({
-    required this.loggedIn,
     required this.onLogout,
     required this.onUpgradePressed,
     super.key,
   });
 
-  final bool loggedIn;
   final VoidCallback onLogout;
   final VoidCallback onUpgradePressed;
 
@@ -31,16 +29,39 @@ class CredentialBar extends StatefulWidget {
 }
 
 class _CredentialBarState extends State<CredentialBar> {
+  bool _isAnonymousUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initAuth();
+    });
+  }
+
+  void _initAuth() async {
+    final authService = AuthService();
+    bool isAnonymous = await authService.isUserAnonymous();
+    setState(() {
+      _isAnonymousUser = isAnonymous;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        if (!widget.loggedIn) notLoggedIn(),
+        if (_isAnonymousUser) notLoggedIn(),
         const SizedBox(width: 16),
-        if (widget.loggedIn)
+        if (!_isAnonymousUser)
           ProfilePicture(
-            onLogout: widget.onLogout,
+            onLogout: () {
+              setState(() {
+                _isAnonymousUser = true;
+              });
+              widget.onLogout();
+            },
             onUpgradePressed: widget.onUpgradePressed,
           )
       ],
@@ -337,11 +358,10 @@ class _ProfilePictureState extends State<ProfilePicture>
         await sessionModel.endSession(sessionService);
       }
       widget.onLogout();
-      await FirebaseAuth.instance.signOut();
+      final authService = AuthService();
+      await authService.signOutAndLoginAnonymously();
     } catch (e) {
-      await FirebaseAuth.instance.signOut();
       widget.onLogout();
-      print('Error signing out: $e');
     }
   }
 }

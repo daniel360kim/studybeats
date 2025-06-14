@@ -86,7 +86,7 @@ class AiMessage extends StatelessWidget {
             child: Center(
                 child: PulsatingCircle(size: 15, color: kFlourishAdobe)));
       } else {
-        profileImageWidget = Container(
+        profileImageWidget = SizedBox(
             height: 30,
             width: 30,
             child: Center(
@@ -153,13 +153,13 @@ class AiMessage extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: imageUrl!,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
+                    placeholder: (context, url) => SizedBox(
                         height: 100,
                         width: 100,
                         child: Center(
                             child: CircularProgressIndicator(
                                 color: kFlourishAdobe.withOpacity(0.5)))),
-                    errorWidget: (context, url, error) => Container(
+                    errorWidget: (context, url, error) => SizedBox(
                         height: 100,
                         width: 100,
                         child:

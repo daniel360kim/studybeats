@@ -21,29 +21,13 @@ class StudySessionService {
 
   /// The real init logic; runs exactly once.
   Future<void> _initialize() async {
-    final email = await _getUserEmail();
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+    final user = await _authService.getCurrentUser();
+    final String collectionId =  _authService.docIdForUser(user);
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(collectionId);
     _studySessionCollection = userDoc.collection('studySessions');
     _studyStatisticsCollection = userDoc.collection('studyStatistics');
     // no boolean needed, no second assignment possible
   }
-
-  /// Retrieves the current user's email.
-  Future<String> _getUserEmail() async {
-    try {
-      final email = await _authService.getCurrentUserEmail();
-      if (email != null) {
-        return email;
-      } else {
-        _logger.e('User email is null');
-        throw Exception('User email is null');
-      }
-    } catch (e, s) {
-      _logger.e('Failed to get user email: $e $s');
-      rethrow;
-    }
-  }
-
   /// Creates a new study session document in Firestore.
   Future<void> createSession(StudySession session) async {
     try {

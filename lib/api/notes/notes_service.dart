@@ -19,9 +19,11 @@ class NoteService {
   /// Initialize Firestore reference for folders.
   Future<void> init() async {
     try {
-      final email = await _getUserEmail();
-      
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(email);
+      final user = await _authService.getCurrentUser();
+      final String collectionId = _authService.docIdForUser(user);
+
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(collectionId);
       _folderCollection = userDoc.collection('folders');
 
       // Ensure at least one default folder exists.
@@ -31,22 +33,6 @@ class NoteService {
       }
     } catch (e) {
       _logger.e('Error initializing NoteService: $e');
-      rethrow;
-    }
-  }
-
-  /// Fetch authenticated user email.
-  Future<String> _getUserEmail() async {
-    try {
-      final email = await _authService.getCurrentUserEmail();
-      if (email != null) {
-        return email;
-      } else {
-        _logger.e('User email is null');
-        throw Exception('User email is null');
-      }
-    } catch (e) {
-      _logger.e('Error getting user email: $e');
       rethrow;
     }
   }
@@ -238,7 +224,6 @@ class NoteService {
 
   Stream<List<NotePreview>> notePreviewsStream(String folderId) {
     try {
-
       return _folderCollection
           .doc(folderId)
           .collection('notes')

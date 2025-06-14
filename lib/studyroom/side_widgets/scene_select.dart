@@ -42,6 +42,7 @@ class _SceneSelectorState extends State<SceneSelector> {
 
   List<_SceneItem> _sceneItems = [];
   bool _isPro = false;
+  bool _isAnonymousUser = true;
 
   @override
   void initState() {
@@ -51,7 +52,11 @@ class _SceneSelectorState extends State<SceneSelector> {
 
   Future<void> _fetchScenes() async {
     try {
-      if (_authService.isUserLoggedIn()) {
+      final bool isAnonymousUser = await _authService.isUserAnonymous();
+      setState(() {
+        _isAnonymousUser = isAnonymousUser;
+      });
+      if (!isAnonymousUser) {
         final isPro = await StripeSubscriptionService().hasProMembership();
         setState(() {
           _isPro = isPro;
@@ -134,9 +139,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                         isUserPro: _isPro,
                       )),
                   // For non-pro users, show a pro scene promotion if any pro scenes exist.
-                  if (!_isPro &&
-                      proItems.isNotEmpty &&
-                      _authService.isUserLoggedIn())
+                  if (!_isPro && proItems.isNotEmpty && !_isAnonymousUser)
                     _buildProSceneStack(proItems),
                 ],
               ),

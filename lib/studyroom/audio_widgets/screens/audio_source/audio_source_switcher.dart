@@ -119,17 +119,21 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
       final currentPlaylistId = playlistProvider.playlistId;
       if (currentPlaylistId == null) {
         // TODO Handle the case when there is no current playlist
+        setStateIfMounted(() {
+          currentPlaylist = null;
+        });
+        return;
       }
 
       final audioService = AudioService();
-      final playlist = await audioService.getPlaylistInfo(currentPlaylistId!);
+      final playlist = await audioService.getPlaylistInfo(currentPlaylistId);
 
-      setState(() {
+      setStateIfMounted(() {
         currentPlaylist = playlist;
       });
     } catch (e) {
       _logger.e('Error fetching playlist info: $e');
-      setState(() {
+      setStateIfMounted(() {
         currentPlaylist = null;
       });
     }

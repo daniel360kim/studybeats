@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_models.dart';
 import 'package:url_launcher/url_launcher.dart'; // Required for launching URL
 
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/widgets/shimmer_list_widget.dart';

@@ -110,7 +110,8 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   void _loadStreak() async {
     try {
-      if (_authService.isUserLoggedIn()) {
+      final isAnonymous = await _authService.isUserAnonymous();
+      if (!isAnonymous) {
         final count = await _authService.getStreakLength();
         if (mounted) setState(() => _streakCount = count);
       }
@@ -566,9 +567,11 @@ class PlayerWidgetState extends State<PlayerWidget>
                     _nextSong();
                   }
                 },
-                onFavorite: (value) {
+                onFavorite: (value) async {
                   if (_currentAudioSource == AudioSourceType.lofi) {
-                    _authService.isUserLoggedIn()
+                    final isAnonymous =
+                        await _authService.isUserAnonymous();
+                    !isAnonymous
                         ? _toggleFavorite(value)
                         : context.goNamed(AppRoute.loginPage.name);
                   }
@@ -581,7 +584,6 @@ class PlayerWidgetState extends State<PlayerWidget>
               );
             },
           ),
-          if (_authService.isUserLoggedIn())
             StreakWidget(streakCount: _streakCount),
         ],
       ),
@@ -625,13 +627,16 @@ class PlayerWidgetState extends State<PlayerWidget>
                   _nextSong();
                 }
               },
-              onFavorite: (value) {
-                if (_currentAudioSource == AudioSourceType.lofi) {
-                  _authService.isUserLoggedIn()
-                      ? _toggleFavorite(value)
-                      : context.goNamed(AppRoute.loginPage.name);
-                }
-              },
+               onFavorite: (value) async {
+                  if (_currentAudioSource == AudioSourceType.lofi) {
+                    final isAnonymous =
+                        await _authService.isUserAnonymous();
+                    !isAnonymous
+                        ? _toggleFavorite(value)
+                        : context.goNamed(AppRoute.loginPage.name);
+                  }
+                },
+              
               isPlaying: playing,
               isFavorite: _currentAudioSource == AudioSourceType.lofi
                   ? _isCurrentSongFavorite
@@ -688,10 +693,12 @@ class PlayerWidgetState extends State<PlayerWidget>
       const DateTimeWidget(),
     ];
   }
-
+  ///
+  /// Make sure to check if user is anonymous before toggling favorite
   void _toggleFavorite(bool isFavorite) async {
+
     if (_currentAudioSource != AudioSourceType.lofi ||
-        !_authService.isUserLoggedIn() ||
+  
         currentSongInfo == null) {
       return;
     }
@@ -755,16 +762,47 @@ class PlayerWidgetState extends State<PlayerWidget>
   }
 }
 
-class StreakWidget extends StatelessWidget {
+class StreakWidget extends StatefulWidget {
   final int streakCount;
 
-  const StreakWidget({Key? key, required this.streakCount}) : super(key: key);
+  const StreakWidget({super.key, required this.streakCount});
 
   @override
+  State<StreakWidget> createState() => _StreakWidgetState();
+}
+
+class _StreakWidgetState extends State<StreakWidget> {
+
+  bool _isAnonymous = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserStatus();
+  }
+
+  void _checkUserStatus() async {
+    try {
+      final isAnonymous = await AuthService().isUserAnonymous();
+      if (mounted) {
+        setState(() {
+        _isAnonymous = isAnonymous;
+      });
+      }
+    // ignore: empty_catches
+    } catch (e) {
+      
+      
+    }
+  }
+  @override
   Widget build(BuildContext context) {
+    if (_isAnonymous || widget.streakCount <= 0) {
+      return const SizedBox.shrink(); // Don't show if anonymous or no streak
+    }
     return Tooltip(
       message:
-          'You’ve used Studybeats $streakCount day${streakCount == 1 ? '' : 's'} in a row!',
+          'You’ve used Studybeats ${widget.streakCount} day${widget.streakCount == 1 ? '' : 's'} in a row!',
       textStyle: const TextStyle(color: Colors.white),
       decoration: BoxDecoration(
         color: Colors.black87,
@@ -794,7 +832,7 @@ class StreakWidget extends StatelessWidget {
                 color: Colors.white, size: 18),
             const SizedBox(width: 6),
             Text(
-              '$streakCount',
+              '${widget.streakCount}',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,

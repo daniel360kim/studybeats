@@ -47,6 +47,22 @@ class SideWidgetBarState extends State<SideWidgetBar> {
   final GlobalKey _todoKey = GlobalKey();
   final GlobalKey _notesKey = GlobalKey();
 
+  bool _isUserAnonymous = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserStatus();
+  }
+
+  void _checkUserStatus() async {
+    final isUserAnonymous = await AuthService().isUserAnonymous();
+
+    setState(() {
+      _isUserAnonymous = isUserAnonymous;
+    });
+  }
+
   void _showLoginMenu(GlobalKey key) {
     final RenderBox box = key.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = box.localToGlobal(Offset.zero);
@@ -236,11 +252,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   option: NavigationOption.aiChat,
                   imagePath: 'assets/icons/robot.png',
                   onItemTapped: (option) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() => _selectedOption = null);
-                      _showLoginMenu(_aiChatKey);
-                      return;
-                    }
                     _onItemTapped(option);
                   },
                 ),
@@ -251,11 +262,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   option: NavigationOption.timer,
                   imagePath: 'assets/icons/timer.png',
                   onItemTapped: (option) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() => _selectedOption = null);
-                      _showLoginMenu(_timerKey);
-                      return;
-                    }
                     _onItemTapped(option);
                   },
                 ),
@@ -266,11 +272,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   option: NavigationOption.todo,
                   imagePath: 'assets/icons/todo.png',
                   onItemTapped: (option) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() => _selectedOption = null);
-                      _showLoginMenu(_todoKey);
-                      return;
-                    }
                     _onItemTapped(option);
                   },
                 ),
@@ -281,11 +282,6 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   option: NavigationOption.notes,
                   imagePath: 'assets/icons/notes.png',
                   onItemTapped: (option) {
-                    if (!AuthService().isUserLoggedIn()) {
-                      setState(() => _selectedOption = null);
-                      _showLoginMenu(_notesKey);
-                      return;
-                    }
                     _onItemTapped(option);
                   },
                 ),
@@ -309,7 +305,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
             child: SceneSelector(
               onSceneSelected: (id) async {
                 widget.onSceneChanged(id);
-                if (AuthService().isUserLoggedIn()) {
+                if (!_isUserAnonymous) {
                   await AuthService().changeselectedSceneId(id);
                 }
               },
@@ -317,7 +313,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
               currentScene: widget.currentScene,
               currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
               onProSceneSelected: () {
-                if (!AuthService().isUserLoggedIn()) {
+                if (_isUserAnonymous) {
                   setState(() => _selectedOption = null);
                   _redirectToLogin();
                   return;
@@ -326,44 +322,40 @@ class SideWidgetBarState extends State<SideWidgetBar> {
               },
             ),
           ),
-          if (AuthService().isUserLoggedIn())
-            Visibility(
-              maintainState: true,
-              visible: _selectedOption == NavigationOption.aiChat,
-              child: AiChat(
-                onClose: () => setState(() => _selectedOption = null),
-                onUpgradePressed: () {
-                  widget.onUpgradeSelected(NavigationOption.aiChat);
-                },
-              ),
+          Visibility(
+            maintainState: false,
+            visible: _selectedOption == NavigationOption.aiChat,
+            child: AiChat(
+              onClose: () => setState(() => _selectedOption = null),
+              onUpgradePressed: () {
+                widget.onUpgradeSelected(NavigationOption.aiChat);
+              },
             ),
-          if (AuthService().isUserLoggedIn())
-            Visibility(
-              maintainState: false,
-              visible: _selectedOption == NavigationOption.timer,
-              child: StudySessionSideWidget(
-                onClose: () => setState(() => _selectedOption = null),
-              ),
+          ),
+          Visibility(
+            maintainState: false,
+            visible: _selectedOption == NavigationOption.timer,
+            child: StudySessionSideWidget(
+              onClose: () => setState(() => _selectedOption = null),
             ),
-          if (AuthService().isUserLoggedIn())
-            Visibility(
-              maintainState: false,
-              visible: _selectedOption == NavigationOption.todo,
-              child: Todo(
-                onClose: () => setState(() => _selectedOption = null),
-              ),
+          ),
+          Visibility(
+            maintainState: false,
+            visible: _selectedOption == NavigationOption.todo,
+            child: Todo(
+              onClose: () => setState(() => _selectedOption = null),
             ),
-          if (AuthService().isUserLoggedIn())
-            Visibility(
-              maintainState: true,
-              visible: _selectedOption == NavigationOption.notes,
-              child: Notes(
-                onClose: () => setState(() => _selectedOption = null),
-                onUpgradePressed: () {
-                  widget.onUpgradeSelected(NavigationOption.notes);
-                },
-              ),
+          ),
+          Visibility(
+            maintainState: false,
+            visible: _selectedOption == NavigationOption.notes,
+            child: Notes(
+              onClose: () => setState(() => _selectedOption = null),
+              onUpgradePressed: () {
+                widget.onUpgradeSelected(NavigationOption.notes);
+              },
             ),
+          ),
         ],
       ),
     );

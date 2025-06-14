@@ -11,7 +11,6 @@ import 'dart:math' show Random;
 import 'package:crypto/crypto.dart' show Digest, sha256;
 import 'package:flutter/foundation.dart'; // For kIsWeb and ChangeNotifier
 import 'package:http/http.dart' as http;
-import 'package:studybeats/secrets.dart';
 
 const SPOTIFY_CLIENT_ID = 'acc81880af9f4d3fbc51be242528b818';
 

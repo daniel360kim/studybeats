@@ -98,11 +98,23 @@ class OpenaiService {
 
   Future<void> init() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) {
-      _logger.e('User is not logged in or email is null');
-      throw Exception('User is not logged in or email is null');
+
+    int retryCount = 0;
+    while (user == null && retryCount < 3) {
+      // Ideally the user should be logged in before calling init
+      // But we handle this gracefully by logging in anonymously
+      _logger.w(
+          'User is not logged in or email is null, logging in anonymously ($retryCount/3)');
+      await _authService.logInAnonymously();
+      retryCount++;
+
+      if (retryCount >= 3) {
+        _logger.e(
+            'Failed to log in after 3 attempts, aborting OpenAI service initialization.');
+        throw Exception('User not logged in after multiple attempts.');
+      }
     }
-    _userEmail = user.email!;
+    _userEmail = _authService.docIdForUser(user!);
 
     _userDocumentRef =
         FirebaseFirestore.instance.collection('users').doc(_userEmail);
