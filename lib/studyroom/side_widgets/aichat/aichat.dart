@@ -64,6 +64,7 @@ class AiChat extends StatefulWidget {
 }
 
 class _AiChatState extends State<AiChat> {
+  bool _dismissedAnonWarning = false;
   final FocusNode _keyboardListenerFocusNode = FocusNode();
   final FocusNode _textInputFocusNode = FocusNode();
   final TextEditingController _textEditingController = TextEditingController();
@@ -91,6 +92,8 @@ class _AiChatState extends State<AiChat> {
   final List<Map<String, dynamic>> _conversationHistory = [];
   int numCharacters = 0;
 
+  bool _isAnonymous = false;
+
   final _logger = getLogger('AiChat');
   final _analyticsService = AnalyticsService();
 
@@ -109,6 +112,8 @@ class _AiChatState extends State<AiChat> {
 
   Future<void> _init() async {
     try {
+      final user = await _authService.getCurrentUser();
+      _isAnonymous = user.isAnonymous;
       await _openaiService.init();
       await _analyticsService.logOpenFeature(ContentType.aiChat, 'AiChat');
       final url = await _authService.getProfilePictureUrl();
@@ -508,6 +513,48 @@ class _AiChatState extends State<AiChat> {
               children: [
                 Column(
                   children: [
+                    if (_isAnonymous && !_dismissedAnonWarning)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8E1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFFE0B2)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  size: 20, color: Color(0xFFF57C00)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  "Chats won't be saved unless you're logged in.",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF6D4C41),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close,
+                                    size: 18, color: Color(0xFF6D4C41)),
+                                padding: EdgeInsets.zero,
+                                onPressed: () {
+                                  setState(() {
+                                    _dismissedAnonWarning = true;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     Expanded(child: _buildMessagesArea()),
                     if (_showError)
                       Padding(

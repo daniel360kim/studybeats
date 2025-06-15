@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/notes/notes_service.dart';
 import 'package:studybeats/api/notes/objects.dart';
 import 'package:studybeats/colors.dart';
@@ -10,7 +11,8 @@ import 'package:uuid/uuid.dart';
 import 'draggable_note.dart';
 
 class Notes extends StatefulWidget {
-  const Notes({required this.onClose, required this.onUpgradePressed, super.key});
+  const Notes(
+      {required this.onClose, required this.onUpgradePressed, super.key});
   final VoidCallback onClose;
   final VoidCallback onUpgradePressed;
   @override
@@ -35,11 +37,23 @@ class _NotesState extends State<Notes> {
 
   late final StripeSubscriptionService _stripeSubscriptionService;
 
+  // Anonymous state and dismiss tracking
+  bool _isAnonymous = false;
+  bool _dismissedAnonWarning = false;
+
   @override
   void initState() {
     super.initState();
     _stripeSubscriptionService = StripeSubscriptionService();
+    _initAuth();
     _fetchNotes();
+  }
+
+  void _initAuth() async {
+    final user = await AuthService().getCurrentUser();
+    setState(() {
+      _isAnonymous = user.isAnonymous;
+    });
   }
 
   void _showError() {
@@ -137,6 +151,50 @@ class _NotesState extends State<Notes> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Anonymous banner
+                      if (_isAnonymous && !_dismissedAnonWarning)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF8E1),
+                              borderRadius: BorderRadius.circular(10),
+                              border:
+                                  Border.all(color: const Color(0xFFFFE0B2)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.warning_amber_rounded,
+                                    size: 20, color: Color(0xFFF57C00)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    "Notes won't be saved unless you're logged in.",
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF6D4C41),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close,
+                                      size: 18, color: Color(0xFF6D4C41)),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    setState(() {
+                                      _dismissedAnonWarning = true;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       Text(
                         'Notes',
                         style: GoogleFonts.inter(

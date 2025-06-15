@@ -1,4 +1,5 @@
 import 'package:provider/provider.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
@@ -37,11 +38,25 @@ class _TodoState extends State<Todo> {
 
   String? _selectedListId;
 
+  bool _isAnonymous = false;
+  bool _dismissedAnonWarning = false;
+
   @override
   void initState() {
     super.initState();
     _fetchTodoItems();
     initStudyService();
+    _initAuth();
+  }
+
+  void _initAuth() async {
+    final authService = AuthService();
+    final isAnonymous = await authService.isUserAnonymous();
+    if (mounted) {
+      setState(() {
+        _isAnonymous = isAnonymous;
+      });
+    }
   }
 
   void _fetchTodoItems() async {
@@ -220,6 +235,44 @@ class _TodoState extends State<Todo> {
           ),
         ),
         const SizedBox(height: 16),
+        if (_isAnonymous && !_dismissedAnonWarning)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFFE0B2)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    size: 20, color: Color(0xFFF57C00)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Tasks won't be saved unless you're logged in.",
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF6D4C41),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18, color: Color(0xFF6D4C41)),
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    setState(() {
+                      _dismissedAnonWarning = true;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
         if (_creatingNewTask)
           CreateNewTaskInputs(
             onCreateTask: (newTask) async {

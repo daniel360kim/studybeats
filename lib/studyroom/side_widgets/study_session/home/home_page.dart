@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
@@ -20,6 +21,8 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
   late Future<int> _currentStreakFuture;
   late Future<StudyStatistics> _allTimeStatsFuture;
   int _weeksBack = 0;
+  bool _isAnonymous = false;
+  bool _dismissedAnonWarning = false;
 
   @override
   void initState() {
@@ -30,6 +33,17 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
         initialization.then((_) => _studySessionService.getCurrentStreak());
     _allTimeStatsFuture =
         initialization.then((_) => _studySessionService.getAllTimeStatistics());
+    _initAuth();
+  }
+
+  void _initAuth() async {
+    // Import AuthService at the top of your file if not already imported.
+    // ignore: import_of_legacy_library_into_null_safe
+
+    final user = await AuthService().getCurrentUser();
+    setState(() {
+      _isAnonymous = user.isAnonymous;
+    });
   }
 
   DateTime _getStartOfWeek(int weeksBack) {
@@ -47,6 +61,44 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
       child: ListView(
         children: [
           _buildStartSessionButton(),
+          if (_isAnonymous && !_dismissedAnonWarning)
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFE0B2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 20, color: Color(0xFFF57C00)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Sessions won't be saved unless you're logged in.",
+                      style: GoogleFonts.inter(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF6D4C41),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close,
+                        size: 18, color: Color(0xFF6D4C41)),
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      setState(() {
+                        _dismissedAnonWarning = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 16),
           _buildStreakCard(),
           const SizedBox(height: 20),
