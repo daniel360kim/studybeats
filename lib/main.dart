@@ -12,7 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
+import 'package:studybeats/studyroom/audio/display_track_info.dart';
+import 'package:studybeats/studyroom/audio/display_track_notifier.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
+import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
 import 'package:url_strategy/url_strategy.dart';
 
 Future<void> main() async {
@@ -43,6 +46,8 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (context) => StudySessionModel()),
           ChangeNotifierProvider(create: (_) => SpotifyAuthService()),
           ChangeNotifierProvider(create: (_) => AudioSourceSelectionProvider()),
+          ChangeNotifierProvider(create: (_) => SidePanelController()),
+          ChangeNotifierProvider(create: (_) => DisplayTrackNotifier()),
         ],
         child: const Studybeats(),
       ),

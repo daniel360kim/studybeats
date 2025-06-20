@@ -5,11 +5,12 @@ import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_task_list.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/new_session/todo_adder.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/current_session/session_task_list.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/new_session/todo_adder.dart';
 
-import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
-import 'package:studybeats/studyroom/side_widgets/todo/todo_list.dart';
+import 'package:studybeats/studyroom/study_tools/todo/todo_inputs.dart';
+import 'package:studybeats/studyroom/study_tools/todo/todo_list.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -107,11 +108,11 @@ class _TodoState extends State<Todo> {
   Widget buildTaskManager(StudySessionModel sessionModel) {
     return SizedBox(
       width: 400,
-      height: MediaQuery.of(context).size.height - 80,
+      height: MediaQuery.of(context).size.height - kControlBarHeight,
       child: Column(
         children: [
           SizedBox(
-            height: MediaQuery.of(context).size.height - 80 - 70,
+            height: MediaQuery.of(context).size.height - kControlBarHeight - 70,
             child: PageView(
               controller: _taskPageController,
               physics: const NeverScrollableScrollPhysics(),
@@ -262,7 +263,8 @@ class _TodoState extends State<Todo> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: Color(0xFF6D4C41)),
+                  icon: const Icon(Icons.close,
+                      size: 18, color: Color(0xFF6D4C41)),
                   padding: EdgeInsets.zero,
                   onPressed: () {
                     setState(() {
@@ -401,14 +403,14 @@ class _TodoState extends State<Todo> {
             baseColor: Colors.grey[300]!,
             highlightColor: Colors.grey[100]!,
             child: Container(
-              height: MediaQuery.of(context).size.height - 80,
+              height: MediaQuery.of(context).size.height - kControlBarHeight,
               width: 400,
               color: Colors.white,
             ),
           )
         : SizedBox(
             width: 400,
-            height: MediaQuery.of(context).size.height - 80,
+            height: MediaQuery.of(context).size.height - kControlBarHeight,
             child: Column(
               children: [
                 buildTopBar(),

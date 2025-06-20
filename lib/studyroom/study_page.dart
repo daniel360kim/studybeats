@@ -4,13 +4,14 @@ import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
-import 'package:studybeats/app_state.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_widget_bar.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/current_session/study_session_dialog.dart';
+import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
+import 'package:studybeats/studyroom/side_widgets/side_widget_screen.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/current_session/study_session_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -201,11 +202,19 @@ class _StudyRoomState extends State<StudyRoom> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () {
-        // When tapping anywhere outside, close any open side widget.
-        _sideWidgetKey.currentState?.closeAll();
+      onTapUp: (details) {
+        final renderBox = context.findRenderObject() as RenderBox;
+        final tapPosition = renderBox.globalToLocal(details.globalPosition);
+        final screenWidth = MediaQuery.of(context).size.width;
 
-        _playerWidgetKey.currentState?.closeAllWidgets();
+        const sidePanelWidth = 320.0;
+        final tapInSidePanel = tapPosition.dx > screenWidth - sidePanelWidth;
+
+        if (!tapInSidePanel) {
+          _sideWidgetKey.currentState?.closeAll();
+          _playerWidgetKey.currentState?.closeAllWidgets();
+          context.read<SidePanelController>().close();
+        }
       },
       child: Scaffold(
         body: Stack(
@@ -292,44 +301,42 @@ class _StudyRoomState extends State<StudyRoom> {
         ),
         if (_playlistId != null)
           if (_playlistId != null)
-            Positioned(
-              // Adjust position as needed...
-              child: Consumer<PlaylistNotifier>(
-                builder: (context, playlistNotifier, child) {
-                  return playlistNotifier.playlistId != null
-                      ? Container(
-                          // Use a ValueKey on the container to force rebuild when playlistId changes.
-                          key: ValueKey(playlistNotifier.playlistId),
-                          child: PlayerWidget(
-                            key:
-                                _playerWidgetKey, // Your persistent GlobalKey stays here.
-                            playlistId: playlistNotifier.playlistId!,
-                            onLoaded: () {
-                              setState(() {
-                                _loadingControlBar = false;
-                              });
-                            },
-                          ),
-                        )
-                      : SizedBox.shrink();
-                },
-              ),
+            Consumer<PlaylistNotifier>(
+              builder: (context, playlistNotifier, child) {
+                return playlistNotifier.playlistId != null
+                    ? Container(
+                        // Use a ValueKey on the container to force rebuild when playlistId changes.
+                        key: ValueKey(playlistNotifier.playlistId),
+                        child: PlayerWidget(
+                          key:
+                              _playerWidgetKey, // Your persistent GlobalKey stays here.
+                          playlistId: playlistNotifier.playlistId!,
+                          onLoaded: () {
+                            setState(() {
+                              _loadingControlBar = false;
+                            });
+                          },
+                        ),
+                      )
+                    : SizedBox.shrink();
+              },
             ),
         Positioned(
           top: 20,
           right: 20,
-          child:  CredentialBar(
-                onUpgradePressed: showInitialUpgradeDialog,
-                onLogout: () async {
-                  changeScene(1);
+          child: CredentialBar(
+            onUpgradePressed: showInitialUpgradeDialog,
+            onLogout: () async {
+              changeScene(1);
 
-                  if (mounted) {
-                    setState(() {});
-                  }
-                },
-              )
-            
-          
+              if (mounted) {
+                setState(() {});
+              }
+            },
+          ),
+        ),
+        Consumer<SidePanelController>(
+          builder: (_, __, ___) => const SideWidgetScreen(),
         ),
       ],
     );

@@ -8,7 +8,7 @@ import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/secrets.dart';
 // Assuming tokenizer.dart is in the same directory or accessible via package import
-import 'package:studybeats/studyroom/side_widgets/aichat/tokenizer.dart';
+import 'package:studybeats/studyroom/study_tools/aichat/tokenizer.dart';
 
 enum MessageType {
   aiResponse,

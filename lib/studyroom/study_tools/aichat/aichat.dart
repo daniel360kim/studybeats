@@ -5,7 +5,8 @@ import 'package:flutter/gestures.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/side_widgets/aichat/aimessage.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/studyroom/study_tools/aichat/aimessage.dart';
 // For PopupMenuDetails
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -491,7 +492,7 @@ class _AiChatState extends State<AiChat> {
   Widget build(BuildContext context) {
     return SizedBox(
       width: _currentWidth,
-      height: MediaQuery.of(context).size.height - 80,
+      height: MediaQuery.of(context).size.height - kControlBarHeight,
       child: KeyboardListener(
         // Keep KeyboardListener for Shift+Enter
         focusNode: _keyboardListenerFocusNode,

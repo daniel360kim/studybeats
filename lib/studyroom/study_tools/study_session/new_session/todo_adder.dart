@@ -5,7 +5,7 @@ import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
+import 'package:studybeats/studyroom/study_tools/todo/todo_inputs.dart';
 
 class TodoAdder extends StatefulWidget {
   final ValueChanged<Set<SessionTodoReference>> onTodoItemToggled;

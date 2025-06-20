@@ -6,11 +6,12 @@ import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/router.dart';
-import 'package:studybeats/studyroom/side_widgets/aichat/aichat.dart';
-import 'package:studybeats/studyroom/side_widgets/notes/notes.dart';
-import 'package:studybeats/studyroom/side_widgets/scene_select.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/study_sessions.dart';
-import 'package:studybeats/studyroom/side_widgets/todo/todo_widget.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/studyroom/study_tools/aichat/aichat.dart';
+import 'package:studybeats/studyroom/study_tools/notes/notes.dart';
+import 'package:studybeats/studyroom/study_tools/scene_select.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/study_sessions.dart';
+import 'package:studybeats/studyroom/study_tools/todo/todo_widget.dart';
 
 enum NavigationOption {
   scene,
@@ -232,7 +233,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                 bottom: BorderSide(color: Colors.grey, width: 1.0),
               ),
             ),
-            height: MediaQuery.of(context).size.height - 80,
+            height: MediaQuery.of(context).size.height - kControlBarHeight,
             width: 50,
             child: Column(
               children: [

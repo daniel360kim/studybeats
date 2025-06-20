@@ -7,12 +7,12 @@ import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_controls.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_end_summary.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/home/home_page.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/new_session/session_inputs.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/new_session/todo_adder.dart';
-import 'package:studybeats/studyroom/side_widgets/todo/todo_inputs.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/current_session/session_controls.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/current_session/session_end_summary.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/home/home_page.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/new_session/session_inputs.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/new_session/todo_adder.dart';
+import 'package:studybeats/studyroom/study_tools/todo/todo_inputs.dart';
 import 'package:uuid/uuid.dart';
 
 // Data object for session creation.

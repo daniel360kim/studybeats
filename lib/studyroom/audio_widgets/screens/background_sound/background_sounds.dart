@@ -6,6 +6,7 @@ import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/controller.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
 
 class BackgroundSfxControls extends StatefulWidget {
   const BackgroundSfxControls({super.key});
@@ -43,7 +44,7 @@ class _BackgroundSfxControlsState extends State<BackgroundSfxControls> {
       onTap: () {},
       child: SizedBox(
         width: 400,
-        height: MediaQuery.of(context).size.height - 80 * 3,
+        height: MediaQuery.of(context).size.height - kControlBarHeight * 3,
         child: ClipRRect(
           borderRadius: borderRadius,
           child: BackdropFilter(
@@ -87,7 +88,7 @@ class _BackgroundSfxControlsState extends State<BackgroundSfxControls> {
                           ),
                           const SizedBox(height: 15),
                           SizedBox(
-                            height: MediaQuery.of(context).size.height - 80 * 5,
+                            height: MediaQuery.of(context).size.height - kControlBarHeight * 5,
                             child: ListView.builder(
                               scrollDirection: Axis.vertical,
                               itemCount: _sfxPlaylists!.length,

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class SongQueue extends StatefulWidget {
@@ -52,7 +53,7 @@ class _SongQueueState extends State<SongQueue> {
 
     return SizedBox(
       width: 500,
-      height: MediaQuery.of(context).size.height - 80 * 2,
+      height: MediaQuery.of(context).size.height - kControlBarHeight * 2,
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
@@ -143,7 +144,7 @@ class _SongQueueState extends State<SongQueue> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: MediaQuery.of(context).size.height - 80 * 2 - 289,
+          height: MediaQuery.of(context).size.height - kControlBarHeight * 2 - 289,
           child: ListView.builder(
             shrinkWrap: true,
             itemCount: widget.queue?.length ?? 0,

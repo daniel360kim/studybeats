@@ -3,7 +3,8 @@ import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/page_controller.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/page_controller.dart';
 
 /// A Pomodoro Timer widget that displays aggregated statistics and opens a
 /// page for creating new study sessions when the start button is pressed.
@@ -41,7 +42,7 @@ class _PomodoroTimerState extends State<StudySessionSideWidget> {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 450,
-      height: MediaQuery.of(context).size.height - 80,
+      height: MediaQuery.of(context).size.height - kControlBarHeight,
       child: Container(
         decoration: const BoxDecoration(
             gradient: LinearGradient(

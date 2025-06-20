@@ -3,7 +3,7 @@ import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:studybeats/studyroom/side_widgets/aichat/profile.dart'; // Assuming this is your PulsatingCircle
+import 'package:studybeats/studyroom/study_tools/aichat/profile.dart'; // Assuming this is your PulsatingCircle
 
 // Assuming kStyleSheet is defined as in your original file
 final kStyleSheet = MarkdownStyleSheet(

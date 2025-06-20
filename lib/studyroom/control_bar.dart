@@ -6,6 +6,7 @@ import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
+import 'package:studybeats/studyroom/audio/display_track_notifier.dart';
 import 'package:studybeats/studyroom/audio/lofi_controller.dart';
 import 'package:studybeats/studyroom/audio/spotify_controller.dart';
 import 'package:studybeats/studyroom/audio/audio_controller.dart';
@@ -22,7 +23,10 @@ import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:intl/intl.dart';
+import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
 import 'audio_widgets/controls/music_controls.dart';
+
+const double kControlBarHeight = 80.0;
 
 class PlayerWidget extends StatefulWidget {
   const PlayerWidget({
@@ -158,6 +162,7 @@ class PlayerWidgetState extends State<PlayerWidget>
         _currentAudioSource = newSource;
         _audioPlayerError = false;
         currentSongInfo = null;
+            context.read<DisplayTrackNotifier>().updateTrack(currentSongInfo);
         songQueue = [];
       });
       _setActiveController(newSource);
@@ -351,6 +356,7 @@ class PlayerWidgetState extends State<PlayerWidget>
     if (!mounted) return;
     setState(() {
       currentSongInfo = newSongInfo;
+      context.read<DisplayTrackNotifier>().updateTrack(currentSongInfo);
       _isCurrentSongFavorite = newIsFavorite;
       songQueue = newSongQueue;
       _audioPlayerError = false;
@@ -366,7 +372,7 @@ class PlayerWidgetState extends State<PlayerWidget>
           baseColor: Colors.grey[300]!,
           highlightColor: Colors.grey[100]!,
           child: Container(
-            height: 80,
+            height: kControlBarHeight,
             width: MediaQuery.of(context).size.width,
             color: Colors.white,
           ),
@@ -569,8 +575,7 @@ class PlayerWidgetState extends State<PlayerWidget>
                 },
                 onFavorite: (value) async {
                   if (_currentAudioSource == AudioSourceType.lofi) {
-                    final isAnonymous =
-                        await _authService.isUserAnonymous();
+                    final isAnonymous = await _authService.isUserAnonymous();
                     !isAnonymous
                         ? _toggleFavorite(value)
                         : context.goNamed(AppRoute.loginPage.name);
@@ -584,7 +589,7 @@ class PlayerWidgetState extends State<PlayerWidget>
               );
             },
           ),
-            StreakWidget(streakCount: _streakCount),
+          StreakWidget(streakCount: _streakCount),
         ],
       ),
     );
@@ -627,16 +632,15 @@ class PlayerWidgetState extends State<PlayerWidget>
                   _nextSong();
                 }
               },
-               onFavorite: (value) async {
-                  if (_currentAudioSource == AudioSourceType.lofi) {
-                    final isAnonymous =
-                        await _authService.isUserAnonymous();
-                    !isAnonymous
-                        ? _toggleFavorite(value)
-                        : context.goNamed(AppRoute.loginPage.name);
-                  }
-                },
-              
+              onFavorite: (value) async {
+                if (_currentAudioSource == AudioSourceType.lofi) {
+                  final isAnonymous = await _authService.isUserAnonymous();
+                  !isAnonymous
+                      ? _toggleFavorite(value)
+                      : context.goNamed(AppRoute.loginPage.name);
+                }
+              },
+
               isPlaying: playing,
               isFavorite: _currentAudioSource == AudioSourceType.lofi
                   ? _isCurrentSongFavorite
@@ -690,15 +694,17 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
       if (_streakCount > 0) StreakWidget(streakCount: _streakCount),
       const SizedBox(width: 12),
-      const DateTimeWidget(),
+      GestureDetector(
+        onTap: () => context.read<SidePanelController>().toggle(),
+        child: const DateTimeWidget(),
+      ),
     ];
   }
+
   ///
   /// Make sure to check if user is anonymous before toggling favorite
   void _toggleFavorite(bool isFavorite) async {
-
     if (_currentAudioSource != AudioSourceType.lofi ||
-  
         currentSongInfo == null) {
       return;
     }
@@ -772,7 +778,6 @@ class StreakWidget extends StatefulWidget {
 }
 
 class _StreakWidgetState extends State<StreakWidget> {
-
   bool _isAnonymous = true;
 
   @override
@@ -786,15 +791,13 @@ class _StreakWidgetState extends State<StreakWidget> {
       final isAnonymous = await AuthService().isUserAnonymous();
       if (mounted) {
         setState(() {
-        _isAnonymous = isAnonymous;
-      });
+          _isAnonymous = isAnonymous;
+        });
       }
-    // ignore: empty_catches
-    } catch (e) {
-      
-      
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
+
   @override
   Widget build(BuildContext context) {
     if (_isAnonymous || widget.streakCount <= 0) {

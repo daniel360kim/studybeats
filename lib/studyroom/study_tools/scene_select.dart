@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
 
 class SceneSelector extends StatefulWidget {
   const SceneSelector({
@@ -104,7 +105,7 @@ class _SceneSelectorState extends State<SceneSelector> {
 
     return SizedBox(
       width: 400,
-      height: MediaQuery.of(context).size.height - 80,
+      height: MediaQuery.of(context).size.height - kControlBarHeight,
       child: Column(
         children: [
           _buildTopBar(),

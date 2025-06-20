@@ -8,7 +8,7 @@ import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/api/study/timer_fx/timer_fx_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/timer_player.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/timer_player.dart';
 
 class SessionSettings extends StatefulWidget {
   final ValueChanged<bool> onTimerSoundEnabled;

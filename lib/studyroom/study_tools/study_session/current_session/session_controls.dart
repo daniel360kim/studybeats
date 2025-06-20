@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/current_session/session_task_list.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/new_session/session_settings.dart';
-import 'package:studybeats/studyroom/side_widgets/study_session/new_session/todo_adder.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/current_session/session_task_list.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/new_session/session_settings.dart';
+import 'package:studybeats/studyroom/study_tools/study_session/new_session/todo_adder.dart';
 
 class CurrentSessionControls extends StatefulWidget {
   const CurrentSessionControls({super.key});

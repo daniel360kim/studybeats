@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/todo/todo_item.dart'; // Your TodoItem model.
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/todo/item_tile.dart'; // Your tile widget.
+import 'package:studybeats/studyroom/study_tools/todo/item_tile.dart'; // Your tile widget.
 import 'package:studybeats/api/todo/todo_service.dart'; // Import TodoService
 
 // Sorting and filtering enums.

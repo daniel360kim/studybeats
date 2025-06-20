@@ -7,6 +7,7 @@ import 'package:studybeats/api/notes/notes_service.dart';
 import 'package:studybeats/api/notes/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:uuid/uuid.dart';
 import 'draggable_note.dart';
 
@@ -130,7 +131,7 @@ class _NotesState extends State<Notes> {
         // Side panel showing a "New note" button.
         SizedBox(
           width: 400,
-          height: MediaQuery.of(context).size.height - 80,
+          height: MediaQuery.of(context).size.height - kControlBarHeight,
           child: Column(
             children: [
               buildTopBar(),
