@@ -25,7 +25,8 @@ exports.backfillDefaultNotificationSettings = mailchimpRelatedFunctions.backfill
 
 // --- Re-export functions from userManagementHooks.js ---
 exports.handleAuthUserDeletionV1 = userManagementRelatedFunctions.handleAuthUserDeletionV1; // This is the Auth onUserDeleted trigger
-
+exports.cleanupOldAnonymousUsers = userManagementRelatedFunctions.cleanupOldAnonymousUsers; 
+exports.handleAuthUserCreation = userManagementRelatedFunctions.handleAuthUserCreation; // This is the Auth onUserCreated trigger
 
 // Example of another function directly in index.js (if you have any)
 // const { onRequest } = require("firebase-functions/v2/https");
