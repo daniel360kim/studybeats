@@ -11,8 +11,10 @@ class CalendarTile extends SideWidgetTile {
       : super(
           settings: SideWidgetSettings(
             widgetId: Uuid().v4(),
+            title: 'Calendar',
+            description: 'Displays the current date',
             type: SideWidgetType.calendar,
-            size: {'width': 160, 'height': 160},
+            size: {'width': 1, 'height': 1},
             data: {
               'theme': 'default',
               'timezone': 'UTC',
@@ -24,10 +26,19 @@ class CalendarTile extends SideWidgetTile {
   State<CalendarTile> createState() => _CalendarTileState();
 
   @override
-  Map<String, dynamic> get defaultSettings => {
+  SideWidgetSettings get defaultSettings {
+    return SideWidgetSettings(
+      widgetId: Uuid().v4(),
+      title: 'Calendar',
+      description: 'Displays the current date',
+      type: SideWidgetType.calendar,
+      size: {'width': 1, 'height': 1},
+      data: {
         'theme': 'default',
         'timezone': 'UTC',
-      };
+      },
+    );
+  }
 }
 
 class _CalendarTileState extends State<CalendarTile> {
@@ -61,15 +72,22 @@ class _CalendarTileState extends State<CalendarTile> {
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
         child: Container(
-          width: 100,
-          height: 20,
-          color: Colors.grey,
+          width: kTileUnitWidth,
+          height: kTileUnitHeight,
+          decoration: BoxDecoration(
+            color: Colors.grey,
+            borderRadius: BorderRadius.circular(12.0), // Match widget radius
+          ),
         ),
       );
     }
 
+    if (error) {
+      return showErrorContainer();
+    }
+
     final theme = data['theme'];
-    final timezone = data['timezone'];
+    // final timezone = data['timezone'];
 
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
@@ -107,8 +125,8 @@ class _CalendarTileState extends State<CalendarTile> {
     }
 
     return Container(
-      width: 160,
-      height: 160,
+      width: kTileUnitWidth,
+      height: kTileUnitHeight,
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color:

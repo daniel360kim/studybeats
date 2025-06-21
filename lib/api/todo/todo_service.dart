@@ -8,10 +8,12 @@ class TodoListService {
   final _authService = AuthService();
   final _logger = getLogger('TodoListService');
 
-  late final CollectionReference<Map<String, dynamic>> _todoListCollection;
+  late CollectionReference<Map<String, dynamic>> _todoListCollection;
+  bool _initialized = false;
 
   // Client code should check and handle user not being logged in before calling this method
   Future<void> init() async {
+    if (_initialized) return;
     try {
       final user = await _authService.getCurrentUser();
       final String collectionId = _authService.docIdForUser(user);
@@ -24,6 +26,7 @@ class TodoListService {
       if (todoLists.isEmpty) {
         await createEmptyTodoList();
       }
+      _initialized = true;
     } catch (e, s) {
       _logger.e('Failed to initialize todo service: $e $s');
       rethrow;

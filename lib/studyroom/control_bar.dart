@@ -23,7 +23,9 @@ import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:intl/intl.dart';
+import 'package:studybeats/studyroom/side_widgets/date_time_widget.dart';
 import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
+import 'package:studybeats/studyroom/side_widgets/side_widget_screen.dart';
 import 'audio_widgets/controls/music_controls.dart';
 
 const double kControlBarHeight = 80.0;
@@ -162,7 +164,7 @@ class PlayerWidgetState extends State<PlayerWidget>
         _currentAudioSource = newSource;
         _audioPlayerError = false;
         currentSongInfo = null;
-            context.read<DisplayTrackNotifier>().updateTrack(currentSongInfo);
+        context.read<DisplayTrackNotifier>().updateTrack(currentSongInfo);
         songQueue = [];
       });
       _setActiveController(newSource);
@@ -694,10 +696,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
       if (_streakCount > 0) StreakWidget(streakCount: _streakCount),
       const SizedBox(width: 12),
-      GestureDetector(
-        onTap: () => context.read<SidePanelController>().toggle(),
-        child: const DateTimeWidget(),
-      ),
+      DateTimeWidget(),
     ];
   }
 
@@ -844,46 +843,6 @@ class _StreakWidgetState extends State<StreakWidget> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class DateTimeWidget extends StatelessWidget {
-  const DateTimeWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final timeString = DateFormat('h:mm a').format(now);
-    final dateString = DateFormat('EEE, MMM d').format(now);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            timeString,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-            ),
-          ),
-          Text(
-            dateString,
-            style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 11,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:one_clock/one_clock.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
@@ -13,6 +12,8 @@ class ClockTile extends SideWidgetTile {
       : super(
             settings: SideWidgetSettings(
           type: SideWidgetType.clock,
+          title: 'Analog Clock',
+          description: 'Displays the current time',
           size: {
             'width': 1,
             'height': 1,
@@ -30,10 +31,19 @@ class ClockTile extends SideWidgetTile {
   State<ClockTile> createState() => _ClockTileState();
 
   @override
-  Map<String, dynamic> get defaultSettings => {
+  SideWidgetSettings get defaultSettings {
+    return SideWidgetSettings(
+      widgetId: Uuid().v4(),
+      title: 'Analog Clock',
+      description: 'Displays the current time',
+      type: SideWidgetType.clock,
+      size: {'width': 1, 'height': 1},
+      data: {
         'theme': 'default',
         'timezone': 'UTC',
-      };
+      },
+    );
+  }
 }
 
 class _ClockTileState extends State<ClockTile> {
@@ -63,23 +73,29 @@ class _ClockTileState extends State<ClockTile> {
   @override
   Widget build(BuildContext context) {
     if (!doneLoading) {
-     return Shimmer.fromColors(
+      return Shimmer.fromColors(
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
         child: Container(
-          width: 100,
-          height: 20,
-          color: Colors.grey,
+          width: kTileUnitWidth,
+          height: kTileUnitHeight,
+          decoration: BoxDecoration(
+            color: Colors.grey,
+            borderRadius: BorderRadius.circular(12.0), // Match widget radius
+          ),
         ),
       );
+    }
+    if (error) {
+      return showErrorContainer();
     }
 
     final theme = data['theme'];
     //final timezone = data['timezone'];
 
     return Container(
-      width: 160,
-      height: 160,
+      width: kTileUnitWidth,
+      height: kTileUnitHeight,
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
         color: const Color(0xFF333333),

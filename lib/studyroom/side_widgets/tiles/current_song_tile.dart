@@ -17,6 +17,8 @@ class CurrentSongTile extends SideWidgetTile {
       : super(
             settings: SideWidgetSettings(
           type: SideWidgetType.currentSong,
+          title: 'Current Song',
+          description: 'Displays the currently playing song',
           size: {
             'width': 1,
             'height': 1,
@@ -33,9 +35,18 @@ class CurrentSongTile extends SideWidgetTile {
   State<CurrentSongTile> createState() => _CurrentSongTileState();
 
   @override
-  Map<String, dynamic> get defaultSettings => {
+  SideWidgetSettings get defaultSettings {
+    return SideWidgetSettings(
+      widgetId: Uuid().v4(),
+      title: 'Current Song',
+      description: 'Displays the currently playing song',
+      type: SideWidgetType.currentSong,
+      size: {'width': 1, 'height': 1},
+      data: {
         'theme': 'default',
-      };
+      },
+    );
+  }
 }
 
 class _CurrentSongTileState extends State<CurrentSongTile>
@@ -70,12 +81,17 @@ class _CurrentSongTileState extends State<CurrentSongTile>
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
         child: Container(
-          width: 100,
-          height: 20,
-          color: Colors.grey,
+          width: kTileUnitWidth,
+          height: kTileUnitHeight,
+          decoration: BoxDecoration(
+            color: Colors.grey,
+            borderRadius: BorderRadius.circular(12.0), // Match widget radius
+          ),
         ),
       );
     }
+
+    if (error) showErrorContainer();
 
     final DisplayTrackInfo? trackInfo =
         context.watch<DisplayTrackNotifier>().track;
@@ -92,8 +108,8 @@ class _CurrentSongTileState extends State<CurrentSongTile>
                   child: Image.network(
                     trackInfo.imageUrl!
                         .replaceAll('100x100bb.jpg', '300x300bb.jpg'),
-                    width: 160,
-                    height: 160,
+                    width: kTileUnitWidth,
+                    height: kTileUnitHeight,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -104,8 +120,8 @@ class _CurrentSongTileState extends State<CurrentSongTile>
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
                   child: Container(
-                    width: 160,
-                    height: 160,
+                    width: kTileUnitWidth,
+                    height: kTileUnitHeight,
                     color: Colors.black.withOpacity(0.3),
                   ),
                 ),
@@ -195,8 +211,8 @@ class _CurrentSongTileState extends State<CurrentSongTile>
             ],
           )
         : Container(
-            width: 160,
-            height: 160,
+            width: kTileUnitWidth,
+            height: kTileUnitHeight,
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               color: const Color(0xFF333333),

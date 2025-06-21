@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 import 'package:studybeats/log_printer.dart';
-
+import 'package:studybeats/studyroom/side_widgets/tiles/calendar_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/clock_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/current_song_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/todo_tile.dart';
 
 class SideWidgetService {
   final _authService = AuthService();
@@ -38,25 +42,22 @@ class SideWidgetService {
         // Initialize with default widget
         final clockRef = _widgetSettings.doc();
         final calendarRef = _widgetSettings.doc();
+        final nowPlayingRef = _widgetSettings.doc();
+        final tasksRef = _widgetSettings.doc();
 
-        final defaultWidget = SideWidgetSettings(
-          widgetId: clockRef.id,
-          type: SideWidgetType.clock,
-          size: {'width': 1, 'height': 1},
-          data: {'theme': 'default', 'timezone': 'UTC'},
-        );
+        final clockWidgetSettings = ClockTile.withDefaults().settings;
+        final calendarWidgetSettings = CalendarTile.withDefaults().settings;
+        final nowPlayingWidgetSettings =
+            CurrentSongTile.withDefaults().settings;
+        final tasksWidgetSettings = TodoTile.withDefaults().settings;
 
-        final defaultWidget2 = SideWidgetSettings(
-          widgetId: calendarRef.id,
-          type: SideWidgetType.calendar,
-          size: {'width': 1, 'height': 1},
-          data: {'theme': 'default', 'timezone': 'UTC'},
-        );
-
-        await clockRef.set(defaultWidget.toMap());
-        await calendarRef.set(defaultWidget2.toMap());
-        await updateWidgetOrder([clockRef.id, calendarRef.id]);
-        widgetIds = [clockRef.id, calendarRef.id];
+        await clockRef.set(clockWidgetSettings.toMap());
+        await calendarRef.set(calendarWidgetSettings.toMap());
+        await nowPlayingRef.set(nowPlayingWidgetSettings.toMap());
+        await tasksRef.set(tasksWidgetSettings.toMap());
+        await updateWidgetOrder(
+            [clockRef.id, calendarRef.id, nowPlayingRef.id, tasksRef.id]);
+        widgetIds = [clockRef.id, calendarRef.id, nowPlayingRef.id, tasksRef.id];
       } else {
         widgetIds = List<String>.from(orderSnap.data()!['order']);
       }
@@ -85,12 +86,21 @@ class SideWidgetService {
   /// Saves a widget's settings to Firestore.
   Future<void> saveWidgetSettings(SideWidgetSettings settings) async {
     try {
-      
       await _widgetSettings
           .doc(settings.widgetId)
           .set(settings.toMap(), SetOptions(merge: true));
     } catch (e) {
       _logger.e('Error saving widget settings for ${settings.widgetId}: $e');
+      rethrow;
+    }
+  }
+
+  Future<String> getNewDocId() async {
+    try {
+      final newRef = _widgetSettings.doc();
+      return newRef.id;
+    } catch (e) {
+      _logger.e('Error getting new document ID: $e');
       rethrow;
     }
   }
@@ -150,26 +160,26 @@ class SideWidgetService {
   }
 
   Future<SideWidgetSettings> createAndAddWidget({
-  required SideWidgetType type,
-  required Map<String, dynamic> size,
-  required Map<String, dynamic> data,
-}) async {
-  try {
-    final newRef = _widgetSettings.doc();
-    final settings = SideWidgetSettings(
-      widgetId: newRef.id,
-      type: type,
-      size: size,
-      data: data,
-    );
+    required SideWidgetType type,
+    required Map<String, dynamic> size,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final newRef = _widgetSettings.doc();
+      final settings = SideWidgetSettings(
+        widgetId: newRef.id,
+        type: type,
+        size: size,
+        data: data,
+      );
 
-    await newRef.set(settings.toMap());
-    await addWidgetToOrder(newRef.id);
+      await newRef.set(settings.toMap());
+      await addWidgetToOrder(newRef.id);
 
-    return settings;
-  } catch (e) {
-    _logger.e('Error creating and adding widget: $e');
-    rethrow;
+      return settings;
+    } catch (e) {
+      _logger.e('Error creating and adding widget: $e');
+      rethrow;
+    }
   }
-}
 }

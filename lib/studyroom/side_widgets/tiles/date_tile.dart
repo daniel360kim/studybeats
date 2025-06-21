@@ -11,8 +11,10 @@ class DateTile extends SideWidgetTile {
       : super(
           settings: SideWidgetSettings(
             widgetId: const Uuid().v4(),
+            title: 'Date',
+            description: 'Displays the current date',
             type: SideWidgetType.date,
-            size: {'width': 160, 'height': 160},
+            size: {'width': kTileUnitWidth, 'height': kTileUnitHeight},
             data: {
               'theme': 'default',
               'timezone': 'UTC',
@@ -24,10 +26,19 @@ class DateTile extends SideWidgetTile {
   State<DateTile> createState() => _DateTileState();
 
   @override
-  Map<String, dynamic> get defaultSettings => {
+  SideWidgetSettings get defaultSettings {
+    return SideWidgetSettings(
+      widgetId: const Uuid().v4(),
+      title: 'Date',
+      description: 'Displays the current date',
+      type: SideWidgetType.date,
+      size: {'width': kTileUnitWidth, 'height': kTileUnitHeight},
+      data: {
         'theme': 'default',
         'timezone': 'UTC',
-      };
+      },
+    );
+  }
 }
 
 class _DateTileState extends State<DateTile> {
@@ -61,15 +72,17 @@ class _DateTileState extends State<DateTile> {
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
         child: Container(
-          width: 160,
-          height: 160,
+          width: kTileUnitWidth,
+          height: kTileUnitHeight,
           decoration: BoxDecoration(
             color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(12.0),
+            borderRadius: BorderRadius.circular(16.0), // Match widget radius
           ),
         ),
       );
     }
+
+    if (error) showErrorContainer();
 
     final theme = data['theme'];
     final now = DateTime.now();
@@ -91,8 +104,8 @@ class _DateTileState extends State<DateTile> {
     ][now.month - 1];
 
     return Container(
-      width: 160,
-      height: 160,
+      width: kTileUnitWidth,
+      height: kTileUnitHeight,
       decoration: BoxDecoration(
         color:
             theme == 'dark' ? const Color(0xFF333333) : const Color(0xFFF5F5F5),

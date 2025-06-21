@@ -1,5 +1,3 @@
-// functions/index.js
-
 const admin = require("firebase-admin");
 
 // Initialize Firebase Admin SDK.
@@ -15,7 +13,7 @@ try {
 const mailchimpRelatedFunctions = require('./mailchimpHooks');
 // Import functions from userManagementHooks.js
 const userManagementRelatedFunctions = require('./userManagementHooks');
-
+const functions = require("firebase-functions");
 
 // --- Re-export functions from mailchimpHooks.js ---
 exports.initializeUserSettingsOnUserCreate = mailchimpRelatedFunctions.initializeUserSettingsOnUserCreate;
@@ -27,6 +25,10 @@ exports.backfillDefaultNotificationSettings = mailchimpRelatedFunctions.backfill
 exports.handleAuthUserDeletionV1 = userManagementRelatedFunctions.handleAuthUserDeletionV1; // This is the Auth onUserDeleted trigger
 exports.cleanupOldAnonymousUsers = userManagementRelatedFunctions.cleanupOldAnonymousUsers; 
 exports.handleAuthUserCreation = userManagementRelatedFunctions.handleAuthUserCreation; // This is the Auth onUserCreated trigger
+
+// Import and export weather functions
+const weatherFunctions = require('./weather');
+exports.getWeather = weatherFunctions.getWeather;
 
 // Example of another function directly in index.js (if you have any)
 // const { onRequest } = require("firebase-functions/v2/https");

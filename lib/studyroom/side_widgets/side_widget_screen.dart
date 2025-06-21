@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:reorderables/reorderables.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
@@ -7,7 +8,11 @@ import 'package:studybeats/studyroom/side_widgets/tiles/calendar_tile.dart';
 import 'package:studybeats/studyroom/side_widgets/tiles/clock_tile.dart';
 import 'package:studybeats/studyroom/side_widgets/tiles/current_song_tile.dart';
 import 'package:studybeats/studyroom/side_widgets/tiles/date_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/digital_clock_tile.dart';
 import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/study_statistics_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/todo_tile.dart';
+import 'package:studybeats/studyroom/side_widgets/tiles/weather_tile.dart';
 import 'side_panel_controller.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
@@ -18,8 +23,14 @@ List<SideWidgetTile> sideWidgetTileLibrary = [
   CalendarTile.withDefaults(),
   CurrentSongTile.withDefaults(),
   DateTile.withDefaults(),
+  TodoTile.withDefaults(),
+  StudyStatisticsTile.withDefaults(),
+  DigitalClockTile.withDefaults(),
+  WeatherTile.withDefaults(isPreview: true),
   // Add more tiles as needed
 ];
+
+const kSideWidgetAnimationDuration = Duration(milliseconds: 300);
 
 /// A sliding panel that displays draggable and reorderable widget tiles,
 /// such as clocks, weather, or productivity modules.
@@ -95,6 +106,14 @@ class _SideWidgetScreenState extends State<SideWidgetScreen> {
         return CurrentSongTile(settings: settings);
       case SideWidgetType.date:
         return DateTile(settings: settings);
+      case SideWidgetType.todo:
+        return TodoTile(settings: settings);
+      case SideWidgetType.studyStatistics:
+        return StudyStatisticsTile(settings: settings);
+      case SideWidgetType.digitalClock:
+        return DigitalClockTile(settings: settings);
+      case SideWidgetType.weather:
+        return WeatherTile(isPreview: false, settings: settings);
       default:
         return ClockTile(settings: settings);
     }
@@ -128,67 +147,89 @@ class _SideWidgetScreenState extends State<SideWidgetScreen> {
                 ),
                 itemBuilder: (context, index) {
                   final tile = sideWidgetTileLibrary[index];
-                  return Stack(
+                  return Column(
                     children: [
-                      Container(
-                        width: tileSize,
-                        height: tileSize,
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: tile,
-                        ),
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () async {
-                            try {
-                              final newSettings =
-                                  await _widgetService.createAndAddWidget(
-                                type: tile.settings.type,
-                                size: tile.settings.size,
-                                data: tile.settings.data,
-                              );
-                              setState(() {
-                                _tileSettings.add(newSettings);
-                              });
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Error adding widget: $e')),
-                              );
-                            }
-                          },
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.green,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.green.withOpacity(0.5),
-                                    blurRadius: 4,
-                                    spreadRadius: 1,
+                      Stack(
+                        children: [
+                          Container(
+                            width: tileSize * 0.6,
+                            height: tileSize * 0.6,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: tile,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () async {
+                                try {
+                                  final newSettings =
+                                      await _widgetService.createAndAddWidget(
+                                    type: tile.settings.type,
+                                    size: tile.settings.size,
+                                    data: tile.settings.data,
+                                  );
+                                  setState(() {
+                                    _tileSettings.add(newSettings);
+                                  });
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Error adding widget: $e')),
+                                  );
+                                }
+                              },
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.green,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.green.withOpacity(0.5),
+                                        blurRadius: 4,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                size: 16,
-                                color: Colors.white,
+                                  child: const Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        tile.settings.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tile.settings.description,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -209,23 +250,36 @@ class _SideWidgetScreenState extends State<SideWidgetScreen> {
     const tileSize = 160.0;
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
+      duration: kSideWidgetAnimationDuration,
       curve: Curves.easeInOut,
       top: 0,
       right: visible ? 0 : -panelWidth,
       width: panelWidth,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.fastLinearToSlowEaseIn,
-        constraints: const BoxConstraints(minHeight: 0),
-        child: GestureDetector(
-          onTap: () {
-            if (_isDeleting) {
-              setState(() {
-                _isDeleting = false;
-              });
-            }
-          },
+      child: TapRegion(
+        onTapOutside: (event) {
+          final sidePanelController = context.read<SidePanelController>();
+          if (sidePanelController.isOpen) {
+            sidePanelController.close();
+          }
+          if (_isAdding) {
+            setState(() {
+              _isAdding = false;
+            });
+          }
+          if (_isDeleting) {
+            setState(() {
+              _isDeleting = false;
+            });
+          }
+        },
+        consumeOutsideTaps: false,
+        // Add this line to exclude the DateTimeWidget from triggering onTapOutside
+
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastLinearToSlowEaseIn,
+          constraints: const BoxConstraints(minHeight: 0),
+          onEnd: () {},
           child: SizedBox(
             height: MediaQuery.of(context).size.height - kControlBarHeight,
             child: SingleChildScrollView(
