@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:one_clock/one_clock.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
@@ -8,7 +7,6 @@ import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
 import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:uuid/uuid.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 

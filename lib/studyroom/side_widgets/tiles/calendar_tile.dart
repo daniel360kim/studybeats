@@ -113,8 +113,8 @@ class _CalendarTileState extends State<CalendarTile> {
           child: Text(
             '$i',
             style: TextStyle(
-              fontSize: 8,
-              fontWeight: FontWeight.w700,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
               color: isToday
                   ? (theme == 'dark' ? Colors.black : Colors.white)
                   : (theme == 'dark' ? Colors.white70 : Colors.black87),
