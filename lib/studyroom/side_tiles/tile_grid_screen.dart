@@ -1,19 +1,21 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:reorderables/reorderables.dart';
+import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/calendar_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/clock_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/current_song_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/date_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/digital_clock_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/study_statistics_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/todo_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/weather_tile.dart';
-import 'side_panel_controller.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/calendar_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/clock_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/current_song_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/date_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/digital_clock_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/notes_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/study_graphs.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/study_statistics_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/todo_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/weather_tile.dart';
+import 'tile_screen_controller.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 
@@ -27,6 +29,8 @@ List<SideWidgetTile> sideWidgetTileLibrary = [
   StudyStatisticsTile.withDefaults(),
   DigitalClockTile.withDefaults(),
   WeatherTile.withDefaults(isPreview: true),
+  NotesTile.withDefaults(),
+  //StudyGraphsTile.withDefaults(),
   // Add more tiles as needed
 ];
 
@@ -114,8 +118,10 @@ class _SideWidgetScreenState extends State<SideWidgetScreen> {
         return DigitalClockTile(settings: settings);
       case SideWidgetType.weather:
         return WeatherTile(isPreview: false, settings: settings);
-      default:
-        return ClockTile(settings: settings);
+      case SideWidgetType.notes:
+        return NotesTile(settings: settings);
+      case SideWidgetType.studyGraph:
+        return StudyGraphsTile(settings: settings); // Replace with actual tile
     }
   }
 
@@ -232,6 +238,15 @@ class _SideWidgetScreenState extends State<SideWidgetScreen> {
                           fontSize: 12,
                         ),
                       ),
+                      /*
+                      ElevatedButton(
+                          onPressed: () async {
+                            final injector =
+                                TestDataInjector(StudySessionService());
+                            await injector.injectTestData();
+                          },
+                          child: const Text('Inject Test Data')),
+                          */
                     ],
                   );
                 },
@@ -307,9 +322,10 @@ class _SideWidgetScreenState extends State<SideWidgetScreen> {
                               ReorderableWrap(
                                 spacing: 12,
                                 runSpacing: 12,
+
                                 needsLongPressDraggable: false,
                                 reorderAnimationDuration:
-                                    const Duration(milliseconds: 300),
+                                    const Duration(milliseconds: 500),
 
                                 // Handles drag-and-drop reorder logic
                                 onReorder: (oldIndex, newIndex) async {

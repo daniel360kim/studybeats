@@ -7,6 +7,8 @@ enum SideWidgetType {
   todo,
   studyStatistics,
   digitalClock,
+  notes,
+  studyGraph,
 }
 
 SideWidgetType widgetTypeFromString(String value) {

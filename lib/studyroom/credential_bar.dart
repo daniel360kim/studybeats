@@ -204,6 +204,7 @@ class _ProfilePictureState extends State<ProfilePicture>
               });
             },
             onTapUp: (_) {
+              if (!mounted) return;
               setState(() {
                 _isPressed = false;
               });

@@ -1,13 +1,12 @@
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/studyroom/audio/display_track_info.dart';
 import 'package:studybeats/studyroom/audio/display_track_notifier.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/side_widget_tile.dart';
 import 'package:uuid/uuid.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 

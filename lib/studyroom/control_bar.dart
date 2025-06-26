@@ -22,10 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
-import 'package:intl/intl.dart';
-import 'package:studybeats/studyroom/side_widgets/date_time_widget.dart';
-import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
-import 'package:studybeats/studyroom/side_widgets/side_widget_screen.dart';
+import 'package:studybeats/studyroom/side_tiles/date_time_widget.dart';
 import 'audio_widgets/controls/music_controls.dart';
 
 const double kControlBarHeight = 80.0;
@@ -495,209 +492,115 @@ class PlayerWidgetState extends State<PlayerWidget>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
-      child: LayoutBuilder(builder: (context, constraints) {
-        if (constraints.maxWidth > 1050) {
-          // Center controls, streak/time widgets right, vertically centered
-          return Stack(
-            children: [
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: buildControlWidgets().sublist(0, 3),
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: buildControlWidgets().sublist(3),
-                  ),
-                ),
-              ),
-            ],
-          );
-        } else if (constraints.maxWidth < 1050 && constraints.maxWidth > 850) {
-          return Row(
+      child: Scrollbar(
+        thumbVisibility: false, // Set to false for auto-hide on scroll
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: buildControlWidgets().sublist(0, 3),
-          );
-        } else if (constraints.maxWidth < 850 && constraints.maxWidth > 700) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: buildControlWidgets().sublist(0, 2),
-          );
-        } else {
-          return buildMiniControlWidgets();
-        }
-      }),
-    );
-  }
-
-  Widget buildMiniControlWidgets() {
-    return Align(
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          StreamBuilder<bool>(
-            stream:
-                _currentAudioController?.isPlayingStream ?? Stream.value(false),
-            builder: (context, snapshot) {
-              final playing = snapshot.data ?? false;
-
-              return Controls(
-                showFavorite: false,
-                showShuffle: _currentAudioSource == AudioSourceType.lofi,
-                onShuffle: _shuffle,
-                onPrevious: () {
-                  if (currentSongInfo == null) {
-                  } else {
-                    _previousSong();
-                  }
-                },
-                onPlay: () {
-                  if (currentSongInfo == null) {
-                  } else {
-                    _play();
-                  }
-                },
-                onPause: () {
-                  if (currentSongInfo == null) {
-                  } else {
-                    _pause();
-                  }
-                },
-                onNext: () {
-                  if (currentSongInfo == null) {
-                  } else {
-                    _nextSong();
-                  }
-                },
-                onFavorite: (value) async {
-                  if (_currentAudioSource == AudioSourceType.lofi) {
-                    final isAnonymous = await _authService.isUserAnonymous();
-                    !isAnonymous
-                        ? _toggleFavorite(value)
-                        : context.goNamed(AppRoute.loginPage.name);
-                  }
-                },
-                isPlaying: playing,
-                isFavorite: _currentAudioSource == AudioSourceType.lofi
-                    ? _isCurrentSongFavorite
-                    : false,
-                // isFavoriteEnabled: _currentAudioSource == AudioSourceType.lofi,
-              );
-            },
+            mainAxisSize: MainAxisSize.max,
+            children: _buildResponsiveControls(context),
           ),
-          StreakWidget(streakCount: _streakCount),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> buildControlWidgets() {
-    return [
-      Center(
-        child: StreamBuilder<bool>(
-          stream:
-              _currentAudioController?.isPlayingStream ?? Stream.value(false),
-          builder: (context, snapshot) {
-            final playing = snapshot.data ?? false;
-
-            return Controls(
-              showFavorite: false,
-              showShuffle: _currentAudioSource == AudioSourceType.lofi,
-              onShuffle: _shuffle,
-              onPrevious: () {
-                if (currentSongInfo == null) {
-                } else {
-                  _previousSong();
-                }
-              },
-              onPlay: () {
-                if (currentSongInfo == null) {
-                } else {
-                  _play();
-                }
-              },
-              onPause: () {
-                if (currentSongInfo == null) {
-                } else {
-                  _pause();
-                }
-              },
-              onNext: () {
-                if (currentSongInfo == null) {
-                } else {
-                  _nextSong();
-                }
-              },
-              onFavorite: (value) async {
-                if (_currentAudioSource == AudioSourceType.lofi) {
-                  final isAnonymous = await _authService.isUserAnonymous();
-                  !isAnonymous
-                      ? _toggleFavorite(value)
-                      : context.goNamed(AppRoute.loginPage.name);
-                }
-              },
-
-              isPlaying: playing,
-              isFavorite: _currentAudioSource == AudioSourceType.lofi
-                  ? _isCurrentSongFavorite
-                  : false,
-              //isFavoriteEnabled: _currentAudioSource == AudioSourceType.lofi,
-            );
-          },
         ),
       ),
-      Row(
-        children: [
-          SongInfo(
-            song: currentSongInfo,
-            positionStream: _currentAudioController?.positionDataStream ??
-                Stream.value(
-                    PositionData(Duration.zero, Duration.zero, Duration.zero)),
-            onSeekRequested: (newPosition) {
-              try {
-                _currentAudioController?.seek(newPosition);
-              } catch (e) {
-                _showError("Failed to seek track. Please try again.");
+    );
+  }
+
+  /// Always shows all control bar widgets, regardless of width.
+  List<Widget> _buildResponsiveControls(BuildContext context) {
+    final List<Widget> widgets = [];
+
+    void addSpacer() => widgets.add(const SizedBox(width: 12));
+
+    widgets.add(const SizedBox(width: 150));
+
+    // Always show primary playback controls
+    widgets.add(
+      StreamBuilder<bool>(
+        stream: _currentAudioController?.isPlayingStream ?? Stream.value(false),
+        builder: (context, snapshot) {
+          final playing = snapshot.data ?? false;
+          return Controls(
+            showFavorite: false,
+            showShuffle: _currentAudioSource == AudioSourceType.lofi,
+            onShuffle: _shuffle,
+            onPrevious: () => currentSongInfo != null ? _previousSong() : null,
+            onPlay: () => currentSongInfo != null ? _play() : null,
+            onPause: () => currentSongInfo != null ? _pause() : null,
+            onNext: () => currentSongInfo != null ? _nextSong() : null,
+            onFavorite: (value) async {
+              if (_currentAudioSource == AudioSourceType.lofi) {
+                final isAnonymous = await _authService.isUserAnonymous();
+                !isAnonymous
+                    ? _toggleFavorite(value)
+                    : context.goNamed(AppRoute.loginPage.name);
               }
             },
-          ),
-          const SizedBox(width: 20),
-          VolumeSlider(
-            volumeChanged: (volume) {
-              try {
-                _currentAudioController?.setVolume(volume);
-              } catch (e) {
-                _showError("Failed to set volume. Please try again.");
-              }
-            },
-          ),
-        ],
+            isPlaying: playing,
+            isFavorite: _currentAudioSource == AudioSourceType.lofi
+                ? _isCurrentSongFavorite
+                : false,
+          );
+        },
       ),
+    );
+
+    // Always show SongInfo
+    addSpacer();
+    widgets.add(
+      SongInfo(
+        song: currentSongInfo,
+        positionStream: _currentAudioController?.positionDataStream ??
+            Stream.value(
+                PositionData(Duration.zero, Duration.zero, Duration.zero)),
+        onSeekRequested: (newPosition) {
+          try {
+            _currentAudioController?.seek(newPosition);
+          } catch (e) {
+            _showError("Failed to seek track. Please try again.");
+          }
+        },
+      ),
+    );
+
+    // Always show VolumeSlider
+    addSpacer();
+    widgets.add(
+      VolumeSlider(
+        volumeChanged: (volume) {
+          try {
+            _currentAudioController?.setVolume(volume);
+          } catch (e) {
+            _showError("Failed to set volume. Please try again.");
+          }
+        },
+      ),
+    );
+
+    // Always show auxiliary icon controls
+    addSpacer();
+    widgets.add(
       IconControls(
         key: _iconControlsKey,
         onAudioSourcePressed: (enabled) {
-          setState(() {
-            _showAudioSource = enabled;
-          });
+          setState(() => _showAudioSource = enabled);
         },
-
-        //isEqualizerEnabled: _currentAudioSource == AudioSourceType.lofi,
         onBackgroundSoundPressed: (enabled) {
-          setState(() {
-            _showBackgroundSound = enabled;
-          });
+          setState(() => _showBackgroundSound = enabled);
         },
       ),
-      if (_streakCount > 0) StreakWidget(streakCount: _streakCount),
-      const SizedBox(width: 12),
-      DateTimeWidget(),
-    ];
+    );
+
+    // Always show daily‑streak badge (if any)
+    addSpacer();
+
+    widgets.add(StreakWidget(streakCount: _streakCount));
+
+    // Always show date/time widget
+    addSpacer();
+    widgets.add(DateTimeWidget());
+
+    return widgets;
   }
 
   ///

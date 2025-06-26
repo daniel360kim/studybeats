@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/colors.dart';
@@ -11,6 +12,7 @@ import 'package:studybeats/studyroom/study_tools/aichat/aichat.dart';
 import 'package:studybeats/studyroom/study_tools/notes/notes.dart';
 import 'package:studybeats/studyroom/study_tools/scene_select.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/study_sessions.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar_controller.dart';
 import 'package:studybeats/studyroom/study_tools/todo/todo_widget.dart';
 
 enum NavigationOption {
@@ -21,8 +23,8 @@ enum NavigationOption {
   notes,
 }
 
-class SideWidgetBar extends StatefulWidget {
-  const SideWidgetBar({
+class StudyToolbar extends StatefulWidget {
+  const StudyToolbar({
     required this.onSceneChanged,
     required this.currentScene,
     required this.currentSceneBackgroundUrl,
@@ -38,16 +40,19 @@ class SideWidgetBar extends StatefulWidget {
   final ValueChanged<int> onOpenLoginDialog;
 
   @override
-  State<SideWidgetBar> createState() => SideWidgetBarState();
+  State<StudyToolbar> createState() => StudyToolbarState();
 }
 
-class SideWidgetBarState extends State<SideWidgetBar> {
-  NavigationOption? _selectedOption;
+class StudyToolbarState extends State<StudyToolbar> {
+  // NavigationOption? _selectedOption; // <-- DELETED. State is now in the provider.
+
+  // These keys are for UI positioning (showMenu) and are fine to keep here.
   final GlobalKey _aiChatKey = GlobalKey();
   final GlobalKey _timerKey = GlobalKey();
   final GlobalKey _todoKey = GlobalKey();
   final GlobalKey _notesKey = GlobalKey();
 
+  // This is local component state, unrelated to navigation, so it stays.
   bool _isUserAnonymous = true;
 
   @override
@@ -58,10 +63,11 @@ class SideWidgetBarState extends State<SideWidgetBar> {
 
   void _checkUserStatus() async {
     final isUserAnonymous = await AuthService().isUserAnonymous();
-
-    setState(() {
-      _isUserAnonymous = isUserAnonymous;
-    });
+    if (mounted) {
+      setState(() {
+        _isUserAnonymous = isUserAnonymous;
+      });
+    }
   }
 
   void _showLoginMenu(GlobalKey key) {
@@ -98,9 +104,9 @@ class SideWidgetBarState extends State<SideWidgetBar> {
               children: [
                 Center(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(10),
-                      topRight: const Radius.circular(10),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10),
                     ),
                     child: Image.asset(
                       'assets/flat/abstract.png',
@@ -197,29 +203,24 @@ class SideWidgetBarState extends State<SideWidgetBar> {
     );
   }
 
-  void _onItemTapped(NavigationOption option) {
-    setState(() {
-      _selectedOption = _selectedOption == option ? null : option;
-    });
-  }
-
-  void closeAll() {
-    setState(() {
-      _selectedOption = null;
-    });
-  }
+  // void _onItemTapped(NavigationOption option) { ... } // <-- DELETED
+  // void closeAll() { ... } // <-- DELETED
 
   @override
   Widget build(BuildContext context) {
+    // Get the StudyToolbarController from the provider.
+    // Using .watch() ensures this widget rebuilds when the state changes.
+    final controller = context.watch<StudyToolbarController>();
+
     return Row(
       children: [
-        _buildControlBar(),
-        _getSelectedWidget(),
+        _buildControlBar(controller),
+        _getSelectedWidget(controller),
       ],
     );
   }
 
-  Widget _buildControlBar() {
+  Widget _buildControlBar(StudyToolbarController controller) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
@@ -238,52 +239,52 @@ class SideWidgetBarState extends State<SideWidgetBar> {
             child: Column(
               children: [
                 NavigationItem(
-                  selectedOption: _selectedOption,
+                  selectedOption: controller.selectedOption,
                   toolTip: 'Change scene',
                   option: NavigationOption.scene,
                   imagePath: 'assets/icons/scene.png',
                   onItemTapped: (option) {
-                    _onItemTapped(option);
+                    context.read<StudyToolbarController>().toggleOption(option);
                   },
                 ),
                 NavigationItem(
                   key: _aiChatKey,
-                  selectedOption: _selectedOption,
+                  selectedOption: controller.selectedOption,
                   toolTip: 'Studybeats Bot',
                   option: NavigationOption.aiChat,
                   imagePath: 'assets/icons/robot.png',
                   onItemTapped: (option) {
-                    _onItemTapped(option);
+                    context.read<StudyToolbarController>().toggleOption(option);
                   },
                 ),
                 NavigationItem(
                   key: _timerKey,
-                  selectedOption: _selectedOption,
+                  selectedOption: controller.selectedOption,
                   toolTip: 'Focus Session',
                   option: NavigationOption.timer,
                   imagePath: 'assets/icons/timer.png',
                   onItemTapped: (option) {
-                    _onItemTapped(option);
+                    context.read<StudyToolbarController>().toggleOption(option);
                   },
                 ),
                 NavigationItem(
                   key: _todoKey,
-                  selectedOption: _selectedOption,
+                  selectedOption: controller.selectedOption,
                   toolTip: 'Todo List',
                   option: NavigationOption.todo,
                   imagePath: 'assets/icons/todo.png',
                   onItemTapped: (option) {
-                    _onItemTapped(option);
+                    context.read<StudyToolbarController>().toggleOption(option);
                   },
                 ),
                 NavigationItem(
                   key: _notesKey,
-                  selectedOption: _selectedOption,
+                  selectedOption: controller.selectedOption,
                   toolTip: 'Notes',
                   option: NavigationOption.notes,
                   imagePath: 'assets/icons/notes.png',
                   onItemTapped: (option) {
-                    _onItemTapped(option);
+                    context.read<StudyToolbarController>().toggleOption(option);
                   },
                 ),
               ],
@@ -294,7 +295,10 @@ class SideWidgetBarState extends State<SideWidgetBar> {
     );
   }
 
-  Widget _getSelectedWidget() {
+  Widget _getSelectedWidget(StudyToolbarController controller) {
+    // Use .read here for the onClose callbacks since they don't need to listen for changes.
+    final navRead = context.read<StudyToolbarController>();
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
@@ -302,7 +306,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
         children: [
           Visibility(
             maintainState: true,
-            visible: _selectedOption == NavigationOption.scene,
+            visible: controller.selectedOption == NavigationOption.scene,
             child: SceneSelector(
               onSceneSelected: (id) async {
                 widget.onSceneChanged(id);
@@ -310,12 +314,12 @@ class SideWidgetBarState extends State<SideWidgetBar> {
                   await AuthService().changeselectedSceneId(id);
                 }
               },
-              onClose: () => setState(() => _selectedOption = null),
+              onClose: () => navRead.closePanel(),
               currentScene: widget.currentScene,
               currentSceneBackgroundUrl: widget.currentSceneBackgroundUrl,
               onProSceneSelected: () {
                 if (_isUserAnonymous) {
-                  setState(() => _selectedOption = null);
+                  navRead.closePanel();
                   _redirectToLogin();
                   return;
                 }
@@ -325,9 +329,9 @@ class SideWidgetBarState extends State<SideWidgetBar> {
           ),
           Visibility(
             maintainState: false,
-            visible: _selectedOption == NavigationOption.aiChat,
+            visible: controller.selectedOption == NavigationOption.aiChat,
             child: AiChat(
-              onClose: () => setState(() => _selectedOption = null),
+              onClose: () => navRead.closePanel(),
               onUpgradePressed: () {
                 widget.onUpgradeSelected(NavigationOption.aiChat);
               },
@@ -335,23 +339,23 @@ class SideWidgetBarState extends State<SideWidgetBar> {
           ),
           Visibility(
             maintainState: false,
-            visible: _selectedOption == NavigationOption.timer,
+            visible: controller.selectedOption == NavigationOption.timer,
             child: StudySessionSideWidget(
-              onClose: () => setState(() => _selectedOption = null),
+              onClose: () => navRead.closePanel(),
             ),
           ),
           Visibility(
             maintainState: false,
-            visible: _selectedOption == NavigationOption.todo,
+            visible: controller.selectedOption == NavigationOption.todo,
             child: Todo(
-              onClose: () => setState(() => _selectedOption = null),
+              onClose: () => navRead.closePanel(),
             ),
           ),
           Visibility(
             maintainState: false,
-            visible: _selectedOption == NavigationOption.notes,
+            visible: controller.selectedOption == NavigationOption.notes,
             child: Notes(
-              onClose: () => setState(() => _selectedOption = null),
+              onClose: () => navRead.closePanel(),
               onUpgradePressed: () {
                 widget.onUpgradeSelected(NavigationOption.notes);
               },
@@ -364,7 +368,7 @@ class SideWidgetBarState extends State<SideWidgetBar> {
 
   Widget _redirectToLogin() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() => _selectedOption = null);
+      context.read<StudyToolbarController>().closePanel();
       context.goNamed(AppRoute.loginPage.name);
     });
     return const SizedBox();

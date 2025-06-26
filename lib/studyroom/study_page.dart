@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/rendering.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
@@ -8,13 +9,14 @@ import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/credential_bar.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
-import 'package:studybeats/studyroom/side_widget_bar.dart';
-import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
-import 'package:studybeats/studyroom/side_widgets/side_widget_screen.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar.dart';
+import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
+import 'package:studybeats/studyroom/side_tiles/tile_grid_screen.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/current_session/study_session_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar_controller.dart';
 import 'package:studybeats/studyroom/upgrade_dialogs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studybeats/studyroom/welcome_widget.dart';
@@ -39,8 +41,8 @@ class _StudyRoomState extends State<StudyRoom> {
   int? _playlistId;
   final _logger = getLogger('StudyRoom Page Widget');
 
-  final GlobalKey<SideWidgetBarState> _sideWidgetKey =
-      GlobalKey<SideWidgetBarState>();
+  final GlobalKey<StudyToolbarState> _sideWidgetKey =
+      GlobalKey<StudyToolbarState>();
   GlobalKey<PlayerWidgetState> _playerWidgetKey =
       GlobalKey<PlayerWidgetState>();
 
@@ -203,6 +205,7 @@ class _StudyRoomState extends State<StudyRoom> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapUp: (details) {
+        if (!mounted) return;
         final renderBox = context.findRenderObject() as RenderBox;
         final tapPosition = renderBox.globalToLocal(details.globalPosition);
         final screenWidth = MediaQuery.of(context).size.width;
@@ -211,7 +214,8 @@ class _StudyRoomState extends State<StudyRoom> {
         final tapInSidePanel = tapPosition.dx > screenWidth - sidePanelWidth;
 
         if (!tapInSidePanel) {
-          _sideWidgetKey.currentState?.closeAll();
+          Provider.of<StudyToolbarController>(context, listen: false)
+              .closePanel(); // Close the side panel if tapped outside
           _playerWidgetKey.currentState?.closeAllWidgets();
           context.read<SidePanelController>().close();
         }
@@ -248,7 +252,7 @@ class _StudyRoomState extends State<StudyRoom> {
           child: _currentScene != null
               ? Row(
                   children: [
-                    SideWidgetBar(
+                    StudyToolbar(
                       onOpenLoginDialog: (index) {},
                       key: _sideWidgetKey,
                       onSceneChanged: (id) {
@@ -305,6 +309,7 @@ class _StudyRoomState extends State<StudyRoom> {
               builder: (context, playlistNotifier, child) {
                 return playlistNotifier.playlistId != null
                     ? Container(
+                        
                         // Use a ValueKey on the container to force rebuild when playlistId changes.
                         key: ValueKey(playlistNotifier.playlistId),
                         child: PlayerWidget(

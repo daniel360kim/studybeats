@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/calendar_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/clock_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/current_song_tile.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/todo_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/calendar_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/clock_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/current_song_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/todo_tile.dart';
 
 class SideWidgetService {
   final _authService = AuthService();

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar_controller.dart';
 import 'package:uuid/uuid.dart';
 
 class StudyStatisticsTile extends SideWidgetTile {
@@ -103,43 +107,53 @@ class _StudyStatisticsTileState extends State<StudyStatisticsTile> {
       return showErrorContainer();
     }
 
-    return Container(
-        width: kTileUnitWidth,
-        height: kTileUnitHeight,
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: kFlourishAliceBlue,
-          borderRadius: BorderRadius.circular(12.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8.0,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildMetricCard(
-              'Focus Time',
-              _formatTime(_studyStatistics!.totalStudyTime),
-              kFlourishBlue,
-            ),
-            const SizedBox(height: 8),
-            _buildMetricCard(
-              'Break Time',
-              _formatTime(_studyStatistics!.totalBreakTime),
-              kFlourishAdobe,
-            ),
-            const SizedBox(height: 8),
-            _buildMetricCard(
-              'Todos Completed',
-              _studyStatistics!.totalTodosCompleted.toString(),
-              Colors.green,
-            )
-          ],
-        ));
+    return GestureDetector(
+      onTap: () {
+        // Open the todo list in the toolbar
+        Provider.of<StudyToolbarController>(context, listen: false)
+            .openOption(NavigationOption.timer);
+
+        // Close the side panel if it's open
+        Provider.of<SidePanelController>(context, listen: false).close();
+      },
+      child: Container(
+          width: kTileUnitWidth,
+          height: kTileUnitHeight,
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: kFlourishAliceBlue,
+            borderRadius: BorderRadius.circular(12.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8.0,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMetricCard(
+                'Focus Time',
+                _formatTime(_studyStatistics!.totalStudyTime),
+                kFlourishBlue,
+              ),
+              const SizedBox(height: 8),
+              _buildMetricCard(
+                'Break Time',
+                _formatTime(_studyStatistics!.totalBreakTime),
+                kFlourishAdobe,
+              ),
+              const SizedBox(height: 8),
+              _buildMetricCard(
+                'Todos Completed',
+                _studyStatistics!.totalTodosCompleted.toString(),
+                Colors.green,
+              )
+            ],
+          )),
+    );
   }
 
   Widget _buildMetricCard(String label, String value, Color color) {

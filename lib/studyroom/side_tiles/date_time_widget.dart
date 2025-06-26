@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
+import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
 
 class DateTimeWidget extends StatelessWidget {
   DateTimeWidget({super.key});

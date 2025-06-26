@@ -5,8 +5,10 @@ import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
 import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/side_widgets/side_panel_controller.dart';
-import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar.dart';
+import 'package:studybeats/studyroom/study_tools/study_toolbar_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 
@@ -61,7 +63,7 @@ class _TodoTileState extends State<TodoTile> {
   String? _selectedListId;
 
   bool _lastPanelOpen = false;
-  bool _servicesInitialized = false;
+  final bool _servicesInitialized = false;
 
   @override
   void initState() {
@@ -225,8 +227,18 @@ class _TodoTileState extends State<TodoTile> {
     if (error) {
       return showErrorContainer();
     }
-    return _buildTileContainer(
-      child: _buildContent(isLoading: !doneLoading || !todosDoneLoading),
+    return GestureDetector(
+      onTap: () {
+        // Open the todo list in the toolbar
+        Provider.of<StudyToolbarController>(context, listen: false)
+            .openOption(NavigationOption.todo);
+
+        // Close the side panel if it's open
+        Provider.of<SidePanelController>(context, listen: false).close();
+      },
+      child: _buildTileContainer(
+        child: _buildContent(isLoading: !doneLoading || !todosDoneLoading),
+      ),
     );
   }
 }

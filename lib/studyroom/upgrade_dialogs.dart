@@ -229,6 +229,7 @@ class _PremiumUpgradeDialogState extends State<PremiumUpgradeDialog> {
                   if (_isUserAnonymous) {
                     // TODO after login, direct to payment
                     context.goNamed(AppRoute.loginPage.name);
+                    return;
                   }
                   try {
                     final String url = await StripeSubscriptionService()

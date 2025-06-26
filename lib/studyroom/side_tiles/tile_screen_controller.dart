@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// Keeps side‑panel open state and prevents double‑toggles while
 /// the AnimatedPositioned transition is still running.
 class SidePanelController extends ChangeNotifier {
-  bool _isOpen = true;
+  bool _isOpen = false;
   bool _isTransitioning = false;
 
   static const Duration _animationDuration = Duration(milliseconds: 300);

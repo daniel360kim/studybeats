@@ -6,7 +6,7 @@ import 'package:studybeats/api/side_widgets/objects.dart';
 import 'package:studybeats/api/side_widgets/side_widget_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/secrets.dart'; // Ensure your OPEN_WEATHER_API_KEY is here
-import 'package:studybeats/studyroom/side_widgets/tiles/side_widget_tile.dart';
+import 'package:studybeats/studyroom/side_tiles/tiles/side_widget_tile.dart';
 import 'package:uuid/uuid.dart';
 import 'package:weather/weather.dart';
 
@@ -434,7 +434,7 @@ class _WeatherTileState extends State<WeatherTile>
     }
     // Handle loading and error states first
     if (_isLoading) {
-      return Container(
+      return SizedBox(
           width: kTileUnitWidth,
           height: kTileUnitHeight,
           child: Shimmer.fromColors(
