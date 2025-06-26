@@ -16,6 +16,7 @@ import 'package:studybeats/studyroom/audio/display_track_notifier.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
 import 'package:studybeats/studyroom/study_tools/study_toolbar_controller.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 
 Future<void> main() async {
@@ -49,6 +50,7 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (_) => SidePanelController()),
           ChangeNotifierProvider(create: (_) => DisplayTrackNotifier()),
           ChangeNotifierProvider(create: (_) => StudyToolbarController()),
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ],
         child: const Studybeats(),
       ),

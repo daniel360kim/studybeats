@@ -23,9 +23,156 @@ import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
 import 'package:studybeats/studyroom/side_tiles/date_time_widget.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'audio_widgets/controls/music_controls.dart';
 
 const double kControlBarHeight = 80.0;
+
+/// A new, aesthetic switch for toggling between light and dark themes.
+/// The handle animates between a sun and moon icon.
+class ThemeSwitcher extends StatefulWidget {
+  const ThemeSwitcher({super.key});
+
+  @override
+  State<ThemeSwitcher> createState() => _ThemeSwitcherState();
+}
+
+class _ThemeSwitcherState extends State<ThemeSwitcher>
+    with SingleTickerProviderStateMixin {
+  bool _isDarkMode = false;
+  late AnimationController _controller;
+  late Animation<Alignment> _thumbAnimation;
+  late Animation<Color?> _trackColorAnimation;
+  late Animation<Color?> _iconColorAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _thumbAnimation = AlignmentTween(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _trackColorAnimation = ColorTween(
+      begin: Colors.grey.shade300, // Light mode track color
+      end: const Color(0xFF424260), // Dark mode track color
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _iconColorAnimation = ColorTween(
+      begin: Colors.orangeAccent, // Sun color
+      end: Colors.yellow, // Moon color
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    if (mounted) {
+      setState(() {
+        _isDarkMode =
+            Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+        if (_isDarkMode) {
+          _controller.forward();
+        } else {
+          _controller.reverse();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+      if (_isDarkMode) {
+        _controller.forward();
+        Provider.of<ThemeProvider>(context, listen: false).setDarkMode(true);
+      } else {
+        _controller.reverse();
+        Provider.of<ThemeProvider>(context, listen: false).setDarkMode(false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: _isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+      child: GestureDetector(
+        onTap: _handleTap,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Container(
+              width: 60,
+              height: 34,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: _trackColorAnimation.value,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(2.0),
+                child: Align(
+                  alignment: _thumbAnimation.value,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Moon Icon (visible in dark mode)
+                        AnimatedOpacity(
+                          opacity: _controller
+                              .value, // Fades in as controller goes 0 -> 1
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            Icons.nightlight_round,
+                            color: _iconColorAnimation.value,
+                            size: 20,
+                          ),
+                        ),
+                        // Sun Icon (visible in light mode)
+                        AnimatedOpacity(
+                          opacity: 1.0 -
+                              _controller
+                                  .value, // Fades out as controller goes 0 -> 1
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            Icons.wb_sunny_rounded,
+                            color: _iconColorAnimation.value,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 
 class PlayerWidget extends StatefulWidget {
   const PlayerWidget({
@@ -49,7 +196,6 @@ class PlayerWidgetState extends State<PlayerWidget>
   AbstractAudioController? _currentAudioController;
   AudioSourceType _currentAudioSource = AudioSourceType.lofi;
   StreamSubscription? _spotifyStatusSubscription;
-  // Fires whenever SpotifyPlaybackController’s display state (current track, etc.) changes.
   StreamSubscription? _spotifyDisplayStateSubscription;
   StreamSubscription? _spotifyErrorSubscription;
   StreamSubscription<PositionData>? _positionSubscription;
@@ -63,7 +209,6 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   DisplayTrackInfo? currentSongInfo;
   List<DisplayTrackInfo> songQueue = [];
-  //final SongCloudInfoService _songCloudInfoService = SongCloudInfoService();
 
   bool verticalLayout = false;
   bool _showQueue = false;
@@ -100,12 +245,11 @@ class PlayerWidgetState extends State<PlayerWidget>
     _currentAudioSource = _audioSourceProvider.currentSource;
     _audioSourceProvider.addListener(_handleAudioSourceChange);
 
-    // Listen to playlist changes so we can stop playback immediately
     _playlistNotifier = Provider.of<PlaylistNotifier>(context, listen: false);
     _lastPlaylistId = _playlistNotifier.playlistId;
     _playlistNotifier.addListener(stopAll);
 
-    _setActiveController(_currentAudioSource); // Set initial controller
+    _setActiveController(_currentAudioSource);
 
     _updateSongState();
     _loadStreak();
@@ -123,7 +267,6 @@ class PlayerWidgetState extends State<PlayerWidget>
     }
   }
 
-  // Listener for Lofi controller's isLoaded state
   void _handleLofiLoaded() {
     _logger.d('Lofi controller reported isLoaded = true');
     if (_lofiController.isLoaded.value &&
@@ -137,7 +280,6 @@ class PlayerWidgetState extends State<PlayerWidget>
     final newSource = _audioSourceProvider.currentSource;
     _logger.i('Audio source changed: $_currentAudioSource → $newSource');
     if (newSource != _currentAudioSource) {
-      // Clean up listeners and stop the outgoing controller
       if (_currentAudioSource == AudioSourceType.lofi) {
         _lofiController.isLoaded.removeListener(_handleLofiLoaded);
         _lofiPlayingSubscription?.cancel();
@@ -156,7 +298,6 @@ class PlayerWidgetState extends State<PlayerWidget>
       _positionSubscription = null;
       _currentAudioController?.stop();
 
-      // Set new source and controller
       setState(() {
         _currentAudioSource = newSource;
         _audioPlayerError = false;
@@ -171,7 +312,6 @@ class PlayerWidgetState extends State<PlayerWidget>
 
   void _setActiveController(AudioSourceType source) {
     _logger.i('Switching to audio source: $source');
-    // Defensive removal of any existing listeners before setting new ones
     _lofiController.isLoaded.removeListener(_handleLofiLoaded);
     _lofiPlayingSubscription?.cancel();
     _lofiPlayingSubscription = null;
@@ -190,7 +330,6 @@ class PlayerWidgetState extends State<PlayerWidget>
       _logger.d('Using LofiAudioController');
       _currentAudioController = _lofiController;
       if (_lofiController.isLoaded.value) {
-        // Already initialised; just update state and attach listeners.
         _lofiController.isLoaded.addListener(_handleLofiLoaded);
         _lofiPlayingSubscription =
             _lofiController.isPlayingStream.listen((_) => _updateSongState());
@@ -200,14 +339,12 @@ class PlayerWidgetState extends State<PlayerWidget>
         return;
       }
       _lofiController.init().then((_) {
-        _lofiController.isLoaded.addListener(_handleLofiLoaded); // Add listener
-        // Update UI whenever play/pause changes
+        _lofiController.isLoaded.addListener(_handleLofiLoaded);
         _lofiPlayingSubscription = _lofiController.isPlayingStream.listen((_) {
           if (mounted && _currentAudioSource == AudioSourceType.lofi) {
             _updateSongState();
           }
         });
-        // Update UI whenever current track index changes (first load included)
         _lofiIndexSubscription =
             _lofiController.audioPlayer.currentIndexStream.listen((_) {
           if (mounted && _currentAudioSource == AudioSourceType.lofi) {
@@ -215,7 +352,7 @@ class PlayerWidgetState extends State<PlayerWidget>
           }
         });
         _logger.i('LofiAudioController initialized');
-        if (mounted) _updateSongState(); // initial song info
+        if (mounted) _updateSongState();
       }).catchError((e) {
         _logger.e('Failed to initialize Lofi player: $e');
         _showError('Failed to initialize Lofi player.');
@@ -245,14 +382,14 @@ class PlayerWidgetState extends State<PlayerWidget>
           }
         });
         _logger.i('SpotifyPlaybackController initialized');
-        if (mounted) _updateSongState(); // Initial update
+        if (mounted) _updateSongState();
       }).catchError((e) {
         _logger.e('Failed to initialize Spotify player: $e');
         _showError('Failed to initialize Spotify player.');
         if (mounted) setState(() => _audioPlayerError = true);
       });
     }
-    if (mounted) setState(() {}); // Rebuild if necessary
+    if (mounted) setState(() {});
   }
 
   void closeAllWidgets() {
@@ -280,37 +417,25 @@ class PlayerWidgetState extends State<PlayerWidget>
   void stopAll() async {
     _logger.w('Stopping all audio sources');
     try {
-      // Pause whatever is currently active
       await _currentAudioController?.pause();
-
-      // Pause Lofi outright
       await _lofiController.pause();
-
-      // Fully dispose the Spotify SDK player so playback halts no matter what
       await _spotifyController.disposePlayer();
     } catch (_) {
       _logger.e('Error during stopAll: $_');
-      // Swallow errors during teardown – widget might be unmounted
     }
   }
 
   @override
   void dispose() {
     stopAll();
-    // Remove listener for AudioSourceSelectionProvider
     _audioSourceProvider.removeListener(_handleAudioSourceChange);
-
-    // Remove listener for Lofi controller
     _lofiController.isLoaded.removeListener(_handleLofiLoaded);
     _lofiIndexSubscription?.cancel();
     _lofiPlayingSubscription?.cancel();
-
-    // Cancel Spotify stream subscription
     _spotifyStatusSubscription?.cancel();
     _spotifyDisplayStateSubscription?.cancel();
     _spotifyErrorSubscription?.cancel();
     _positionSubscription?.cancel();
-
     _lofiController.dispose();
     _spotifyController.dispose();
     super.dispose();
@@ -341,10 +466,6 @@ class PlayerWidgetState extends State<PlayerWidget>
 
     if (_currentAudioSource == AudioSourceType.lofi) {
       final lofiSongInfo = _lofiController.getCurrentSongInfo();
-      if (lofiSongInfo != null) {
-        //newIsFavorite = await _songCloudInfoService.isSongFavorite(
-        //  widget.playlistId, lofiSongInfo);
-      }
       newSongQueue = _lofiController.getSongOrder();
     } else if (_currentAudioSource == AudioSourceType.spotify) {
       newIsFavorite = false;
@@ -392,37 +513,6 @@ class PlayerWidgetState extends State<PlayerWidget>
                     _showBackgroundSound ||
                     _showAudioSource)
                   const Spacer(),
-                /*
-                if (_currentAudioSource == AudioSourceType.lofi && _showQueue)
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {},
-                      child: SongQueue(
-                        songOrder: _lofiController.audioPlayer.sequence
-                                ?.map((audioSource) =>
-                                    audioSource.tag as LofiSongMetadata)
-                                .toList()
-                                .isEmpty ?? true
-                            ? null
-                            : _lofiController.audioPlayer.sequence!
-                                .map((audioSource) =>
-                                    audioSource.tag as LofiSongMetadata)
-                                .toList(),
-                        currentSong: currentSongInfo,
-                        queue: songQueue.isEmpty ? null : songQueue,
-                        onSongSelected: (index) async {
-                          await _lofiController.play();
-                          _lofiController.seekToIndex(index).then((_) {
-                            _updateSongState();
-                          });
-                        },
-                      ),
-                    ),
-                  )
-                  */
-
                 Visibility(
                   visible: _showAudioSource,
                   maintainState: true,
@@ -435,7 +525,7 @@ class PlayerWidgetState extends State<PlayerWidget>
                         initialAudioSource: _currentAudioSource,
                         lofiController: _lofiController,
                         onAudioSourceChanged: (source) {},
-                        spotifyController: _spotifyController, // Pass instance
+                        spotifyController: _spotifyController,
                       ),
                     ),
                   ),
@@ -493,7 +583,7 @@ class PlayerWidgetState extends State<PlayerWidget>
       behavior: HitTestBehavior.opaque,
       onTap: () {},
       child: Scrollbar(
-        thumbVisibility: false, // Set to false for auto-hide on scroll
+        thumbVisibility: false,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -506,15 +596,20 @@ class PlayerWidgetState extends State<PlayerWidget>
     );
   }
 
-  /// Always shows all control bar widgets, regardless of width.
   List<Widget> _buildResponsiveControls(BuildContext context) {
     final List<Widget> widgets = [];
 
     void addSpacer() => widgets.add(const SizedBox(width: 12));
 
-    widgets.add(const SizedBox(width: 150));
+    widgets.add(const SizedBox(
+      width: 100,
+    ));
 
-    // Always show primary playback controls
+    widgets.add(const Padding(
+      padding: EdgeInsets.only(left: 24.0, right: 12.0),
+      child: ThemeSwitcher(),
+    ));
+
     widgets.add(
       StreamBuilder<bool>(
         stream: _currentAudioController?.isPlayingStream ?? Stream.value(false),
@@ -545,7 +640,6 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
     );
 
-    // Always show SongInfo
     addSpacer();
     widgets.add(
       SongInfo(
@@ -563,7 +657,6 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
     );
 
-    // Always show VolumeSlider
     addSpacer();
     widgets.add(
       VolumeSlider(
@@ -577,7 +670,6 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
     );
 
-    // Always show auxiliary icon controls
     addSpacer();
     widgets.add(
       IconControls(
@@ -591,20 +683,16 @@ class PlayerWidgetState extends State<PlayerWidget>
       ),
     );
 
-    // Always show daily‑streak badge (if any)
     addSpacer();
 
     widgets.add(StreakWidget(streakCount: _streakCount));
 
-    // Always show date/time widget
     addSpacer();
     widgets.add(DateTimeWidget());
 
     return widgets;
   }
 
-  ///
-  /// Make sure to check if user is anonymous before toggling favorite
   void _toggleFavorite(bool isFavorite) async {
     if (_currentAudioSource != AudioSourceType.lofi ||
         currentSongInfo == null) {
@@ -696,14 +784,13 @@ class _StreakWidgetState extends State<StreakWidget> {
           _isAnonymous = isAnonymous;
         });
       }
-      // ignore: empty_catches
     } catch (e) {}
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isAnonymous || widget.streakCount <= 0) {
-      return const SizedBox.shrink(); // Don't show if anonymous or no streak
+      return const SizedBox.shrink();
     }
     return Tooltip(
       message:

@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
@@ -9,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class SceneSelector extends StatefulWidget {
   const SceneSelector({
@@ -33,8 +35,9 @@ class SceneSelector extends StatefulWidget {
 /// Private class to pair SceneData with its thumbnail URL.
 class _SceneItem {
   final SceneData scene;
-  final String backgroundUrl;
-  _SceneItem(this.scene, this.backgroundUrl);
+  final String backgroundUrlLight;
+  final String backgroundUrlDark;
+  _SceneItem(this.scene, this.backgroundUrlLight, this.backgroundUrlDark);
 }
 
 class _SceneSelectorState extends State<SceneSelector> {
@@ -70,8 +73,9 @@ class _SceneSelectorState extends State<SceneSelector> {
 
       final sceneList = await _sceneService.getSceneData();
       final items = await Future.wait(sceneList.map((scene) async {
-        final url = await _sceneService.getThumbnailImageUrl(scene);
-        return _SceneItem(scene, url);
+        final darkUrl = await _sceneService.getThumbnailImageUrl(scene, true);
+        final lightUrl = await _sceneService.getThumbnailImageUrl(scene, false);
+        return _SceneItem(scene, lightUrl, darkUrl);
       }));
 
       setState(() {
@@ -102,6 +106,8 @@ class _SceneSelectorState extends State<SceneSelector> {
           .where((item) => item.scene.id != widget.currentScene.id)
           .toList();
     }
+
+    bool isDark = Provider.of<ThemeProvider>(context).isDarkMode;
 
     return SizedBox(
       width: 400,
@@ -136,7 +142,9 @@ class _SceneSelectorState extends State<SceneSelector> {
                   ...scenesForList.map((item) => SceneSelection(
                         parent: widget,
                         scene: item.scene,
-                        backgroundImageUrl: item.backgroundUrl,
+                        backgroundImageUrl: isDark
+                            ? item.backgroundUrlDark
+                            : item.backgroundUrlLight,
                         isUserPro: _isPro,
                       )),
                   // For non-pro users, show a pro scene promotion if any pro scenes exist.
@@ -182,6 +190,7 @@ class _SceneSelectorState extends State<SceneSelector> {
   }
 
   Widget _buildProSceneStack(List<_SceneItem> proItems) {
+    bool isDark = Provider.of<ThemeProvider>(context).isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,7 +208,9 @@ class _SceneSelectorState extends State<SceneSelector> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(20.0),
                 child: CachedNetworkImage(
-                  imageUrl: proItems.first.backgroundUrl,
+                  imageUrl: isDark
+                      ? proItems[0].backgroundUrlDark
+                      : proItems[0].backgroundUrlLight,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 180,

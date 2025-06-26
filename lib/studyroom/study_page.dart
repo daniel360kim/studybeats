@@ -20,6 +20,7 @@ import 'package:studybeats/studyroom/study_tools/study_toolbar_controller.dart';
 import 'package:studybeats/studyroom/upgrade_dialogs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studybeats/studyroom/welcome_widget.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class StudyRoom extends StatefulWidget {
   const StudyRoom({this.openPricing = false, super.key});
@@ -37,7 +38,8 @@ class _StudyRoomState extends State<StudyRoom> {
   SceneData? _currentScene;
   List<SceneData> _sceneList = [];
   final SceneService _sceneService = SceneService();
-  String? _backgroundImageUrl;
+  String? _backgroundImageUrlLight;
+  String? _backgroundImageUrlDark;
   int? _playlistId;
   final _logger = getLogger('StudyRoom Page Widget');
 
@@ -114,7 +116,8 @@ class _StudyRoomState extends State<StudyRoom> {
           _logger.e('No scenes found');
           setState(() {
             _currentScene = null;
-            _backgroundImageUrl = null;
+            _backgroundImageUrlLight = null;
+            _backgroundImageUrlDark = null;
             _loadingScene = false;
             _playlistId = null;
           });
@@ -122,15 +125,23 @@ class _StudyRoomState extends State<StudyRoom> {
         }
         final initialSceneIndex = await AuthService().getselectedSceneId();
         _logger.i('Initial scene index $initialSceneIndex');
-        final backgroundUrl = await _sceneService.getBackgroundImageUrl(
-            value.where((element) => element.id == initialSceneIndex).first);
+
+        final SceneData sceneData = value.firstWhere(
+          (scene) => scene.id == initialSceneIndex,
+          orElse: () => value.first,
+        );
+        final backgroundUrlLight =
+            await _sceneService.getBackgroundImageUrl(sceneData, false);
+        final backgroundUrlDark =
+            await _sceneService.getBackgroundImageUrl(sceneData, true);
 
         setState(() {
           _sceneList = value;
           _currentScene = _sceneList.firstWhere(
               (scene) => scene.id == initialSceneIndex,
               orElse: () => _sceneList.first);
-          _backgroundImageUrl = backgroundUrl;
+          _backgroundImageUrlLight = backgroundUrlLight;
+          _backgroundImageUrlDark = backgroundUrlDark;
           _playlistId = _currentScene?.playlistId;
           _loadingScene = false;
         });
@@ -143,7 +154,9 @@ class _StudyRoomState extends State<StudyRoom> {
       _logger.e('Error while initializing scenes $e');
       setState(() {
         _currentScene = null;
-        _backgroundImageUrl = null;
+        _backgroundImageUrlLight = null;
+        _backgroundImageUrlDark = null;
+
         _loadingScene = false;
         _playlistId = null;
       });
@@ -161,9 +174,13 @@ class _StudyRoomState extends State<StudyRoom> {
         return;
       }
 
-      final url = await _sceneService.getBackgroundImageUrl(_currentScene!);
+      final lightUrl =
+          await _sceneService.getBackgroundImageUrl(_currentScene!, false);
+      final darkUrl =
+          await _sceneService.getBackgroundImageUrl(_currentScene!, true);
       setState(() {
-        _backgroundImageUrl = url;
+        _backgroundImageUrlDark = darkUrl;
+        _backgroundImageUrlLight = lightUrl;
       });
 
       // Update the notifier with the new playlistId
@@ -177,7 +194,8 @@ class _StudyRoomState extends State<StudyRoom> {
       _logger.e('Error while changing scene $e');
       setState(() {
         _currentScene = null;
-        _backgroundImageUrl = null;
+        _backgroundImageUrlLight = null;
+        _backgroundImageUrlDark = null;
       });
       Provider.of<PlaylistNotifier>(context, listen: false)
           .updatePlaylistId(null);
@@ -235,12 +253,15 @@ class _StudyRoomState extends State<StudyRoom> {
   }
 
   Widget buildBackgroundImage() {
+    bool isDarkThemeEnabled = Provider.of<ThemeProvider>(context).isDarkMode;
+    final String? _backgroundImageUrl =
+        isDarkThemeEnabled ? _backgroundImageUrlDark : _backgroundImageUrlLight;
     return Stack(
       children: [
         if (_backgroundImageUrl != null)
           ClipRRect(
             child: CachedNetworkImage(
-              imageUrl: _backgroundImageUrl!,
+              imageUrl: _backgroundImageUrl,
               width: MediaQuery.of(context).size.width,
               height: MediaQuery.of(context).size.height,
               fit: BoxFit.cover,
@@ -309,7 +330,6 @@ class _StudyRoomState extends State<StudyRoom> {
               builder: (context, playlistNotifier, child) {
                 return playlistNotifier.playlistId != null
                     ? Container(
-                        
                         // Use a ValueKey on the container to force rebuild when playlistId changes.
                         key: ValueKey(playlistNotifier.playlistId),
                         child: PlayerWidget(

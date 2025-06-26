@@ -11,7 +11,7 @@ class SceneService {
 
   Future<List<SceneData>> getSceneData() async {
     try {
-      final jsonRef = _storageRef.child('index.json');
+      final jsonRef = _storageRef.child('index_v2.json');
       final url = await jsonRef.getDownloadURL();
 
       final response = await _fetchJsonData(url);
@@ -30,9 +30,10 @@ class SceneService {
     }
   }
 
-  Future<String> getBackgroundImageUrl(SceneData scene) async {
+  Future<String> getBackgroundImageUrl(SceneData scene, bool isDarkMode) async {
     try {
-      final jsonRef = _storageRef.child(scene.scenePath);
+      final path = isDarkMode ? scene.scenePathDark : scene.scenePathLight;
+      final jsonRef = _storageRef.child(path);
       return await jsonRef.getDownloadURL();
     } catch (e) {
       _logger.e(
@@ -41,9 +42,14 @@ class SceneService {
     }
   }
 
-  Future<String> getThumbnailImageUrl(SceneData scene) async {
+  Future<String> getThumbnailImageUrl(SceneData scene, bool isDark) async {
     try {
-      final jsonRef = _storageRef.child(scene.thumbnailPath);
+      late final Reference jsonRef;
+      if (isDark) {
+        jsonRef = _storageRef.child(scene.thumbnailPathDark);
+      } else {
+        jsonRef = _storageRef.child(scene.thumbnailPathLight);
+      }
       return await jsonRef.getDownloadURL();
     } catch (e) {
       _logger.e(
