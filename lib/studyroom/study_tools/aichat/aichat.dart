@@ -628,7 +628,7 @@ class _AiChatState extends State<AiChat> {
               baseColor: Colors.grey[300]!,
               highlightColor: Colors.grey[100]!,
               child: Container(
-                  height: MediaQuery.of(context).size.height - 269,
+                  height: MediaQuery.of(context).size.height,
                   color: Colors.white)));
     }
     if (_currentChatId == null) {

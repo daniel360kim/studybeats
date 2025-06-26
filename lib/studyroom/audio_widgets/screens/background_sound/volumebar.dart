@@ -21,6 +21,7 @@ class VolumeBar extends StatefulWidget {
 
 class _VolumeBarState extends State<VolumeBar> {
   late double _value;
+  bool get _isEnabled => widget.onChanged != null;
 
   @override
   void initState() {
@@ -28,16 +29,27 @@ class _VolumeBarState extends State<VolumeBar> {
     _value = widget.initialVolume;
   }
 
+  // Update slider value if the initialVolume prop changes
+  @override
+  void didUpdateWidget(covariant VolumeBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialVolume != oldWidget.initialVolume) {
+      setState(() {
+        _value = widget.initialVolume;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Wrap in an Opacity widget to visually dim when disabled.
     return Opacity(
-      opacity: widget.onChanged != null ? 1.0 : 0.5,
-      child: IconSlider(
+      opacity: _isEnabled ? 1.0 : 0.4,
+      child: _IconSlider(
         icon: widget.icon,
-        themeColor: widget.themeColor,
+        themeColor: _isEnabled ? widget.themeColor : Colors.grey,
         value: _value,
         onChanged: (value) {
+          if (!_isEnabled) return;
           setState(() {
             _value = value;
           });
@@ -48,40 +60,36 @@ class _VolumeBarState extends State<VolumeBar> {
   }
 }
 
-class IconSlider extends StatefulWidget {
+class _IconSlider extends StatelessWidget {
   final double value;
   final ValueChanged<double> onChanged;
   final IconData icon;
   final Color themeColor;
 
-  const IconSlider({
+  const _IconSlider({
     required this.value,
     required this.onChanged,
     required this.icon,
     required this.themeColor,
-    super.key,
   });
 
-  @override
-  _IconSliderState createState() => _IconSliderState();
-}
-
-class _IconSliderState extends State<IconSlider> {
   @override
   Widget build(BuildContext context) {
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
-        thumbShape: CustomIconSliderThumb(icon: widget.icon),
+        activeTrackColor: themeColor,
+        inactiveTrackColor: kFlourishLightBlackish.withOpacity(0.5),
+        thumbColor: themeColor,
+        thumbShape: CustomIconSliderThumb(icon: icon, color: themeColor),
+        trackShape: const RoundedRectSliderTrackShape(),
+        trackHeight: 6.0,
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 18.0),
       ),
       child: Slider(
-        activeColor: widget.themeColor,
-        thumbColor: widget.themeColor,
-        inactiveColor: kFlourishLightBlackish,
-        value: widget.value,
-        onChanged: widget.onChanged,
+        value: value,
+        onChanged: onChanged,
         min: 0,
         max: 100,
-        label: '${widget.value.round()}',
       ),
     );
   }
@@ -89,12 +97,13 @@ class _IconSliderState extends State<IconSlider> {
 
 class CustomIconSliderThumb extends SliderComponentShape {
   final IconData icon;
+  final Color color;
 
-  CustomIconSliderThumb({required this.icon});
+  CustomIconSliderThumb({required this.icon, required this.color});
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) {
-    return const Size(30, 30);
+    return const Size(28, 28);
   }
 
   @override
@@ -114,21 +123,22 @@ class CustomIconSliderThumb extends SliderComponentShape {
   }) {
     final canvas = context.canvas;
     final paint = Paint()
-      ..color = sliderTheme.thumbColor ?? Colors.blue
+      ..color = color
       ..style = PaintingStyle.fill;
 
-    // Draw a background circle.
-    canvas.drawCircle(center, 15, paint);
+    canvas.drawCircle(center, 14, paint);
+
     TextPainter iconPainter = TextPainter(
-      text: TextSpan(
-        text: String.fromCharCode(icon.codePoint),
-        style: TextStyle(
-          fontSize: 20,
-          fontFamily: icon.fontFamily,
-          color: Colors.white,
-        ),
+      textDirection: TextDirection.ltr,
+    );
+
+    iconPainter.text = TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: 18,
+        fontFamily: icon.fontFamily,
+        color: Colors.white,
       ),
-      textDirection: textDirection,
     );
 
     iconPainter.layout();
