@@ -118,16 +118,8 @@ class _SceneSelectorState extends State<SceneSelector> {
           Expanded(
             child: Container(
               width: 400,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Color(0xFFE0E7FF),
-                    Color(0xFFF7F8FC),
-                  ],
-                ),
-              ),
+              decoration: BoxDecoration(
+                  color: Provider.of<ThemeProvider>(context).backgroundColor),
               padding: const EdgeInsets.all(15.0),
               child: ListView(
                 children: [
@@ -162,7 +154,7 @@ class _SceneSelectorState extends State<SceneSelector> {
   Widget _buildTopBar() {
     return Container(
       height: 40,
-      color: Colors.white,
+      color: Provider.of<ThemeProvider>(context).emphasisColor,
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
@@ -184,6 +176,7 @@ class _SceneSelectorState extends State<SceneSelector> {
         style: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
+          color: Provider.of<ThemeProvider>(context).textColor,
         ),
       ),
     );

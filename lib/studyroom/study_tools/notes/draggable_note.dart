@@ -6,11 +6,13 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/notes/notes_service.dart';
 import 'package:studybeats/api/notes/objects.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class DraggableNote extends StatefulWidget {
   const DraggableNote({
@@ -239,6 +241,7 @@ class _DraggableNoteState extends State<DraggableNote> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final double screenHeight = MediaQuery.of(context).size.height;
     final double screenWidth = MediaQuery.of(context).size.width;
 
@@ -266,7 +269,7 @@ class _DraggableNoteState extends State<DraggableNote> {
                   width: _width,
                   height: _height,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: themeProvider.backgroundColor,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey, width: 2),
                     boxShadow: const [
@@ -282,22 +285,23 @@ class _DraggableNoteState extends State<DraggableNote> {
                     children: [
                       _buildToolbar(_width),
                       !_loadingNote
-                          ? _buildTitleEditor()
+                          ? _buildTitleEditor(themeProvider)
                           : Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Shimmer.fromColors(
-                                baseColor: Colors.grey[300]!,
-                                highlightColor: Colors.grey[100]!,
+                                baseColor: themeProvider.shimmerBaseColor,
+                                highlightColor:
+                                    themeProvider.shimmerHighlightColor,
                                 child: Container(
                                   height: 40,
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10),
-                                  color: Colors.white,
+                                  color: themeProvider.shimmerHighlightColor,
                                 ),
                               ),
                             ),
                       !_loadingNote
-                          ? _buildNoteEditor()
+                          ? _buildNoteEditor(themeProvider)
                           : Expanded(
                               child: Column(
                                 children: List.generate(
@@ -317,7 +321,7 @@ class _DraggableNoteState extends State<DraggableNote> {
                               ),
                             ),
                       _buildEditedText(),
-                      _buildBottomControls(),
+                      _buildBottomControls(themeProvider),
                     ],
                   ),
                 ),
@@ -579,14 +583,14 @@ class _DraggableNoteState extends State<DraggableNote> {
     );
   }
 
-  Widget _buildTitleEditor() {
+  Widget _buildTitleEditor(ThemeProvider provider) {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: TextField(
         controller: _titleController,
         style: GoogleFonts.inter(
-          color: kFlourishBlackish,
+          color: provider.textColor,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
@@ -604,7 +608,7 @@ class _DraggableNoteState extends State<DraggableNote> {
     );
   }
 
-  Widget _buildNoteEditor() {
+  Widget _buildNoteEditor(ThemeProvider provider) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -612,7 +616,7 @@ class _DraggableNoteState extends State<DraggableNote> {
           cursor: SystemMouseCursors.text,
           child: DefaultTextStyle(
             style: GoogleFonts.inter(
-              color: kFlourishBlackish,
+              color: provider.textColor,
               fontSize: 10,
             ),
             child: QuillEditor.basic(
@@ -679,12 +683,12 @@ class _DraggableNoteState extends State<DraggableNote> {
     );
   }
 
-  Widget _buildBottomControls() {
+  Widget _buildBottomControls(ThemeProvider provider) {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: kFlourishYellow.withOpacity(0.2),
+        color: kFlourishYellow,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(10),
           bottomRight: Radius.circular(10),

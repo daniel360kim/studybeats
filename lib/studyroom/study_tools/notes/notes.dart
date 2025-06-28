@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/Stripe/subscription_service.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/notes/notes_service.dart';
 import 'package:studybeats/api/notes/objects.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'draggable_note.dart';
 
@@ -24,7 +25,6 @@ class _NotesState extends State<Notes> {
   final NoteService _noteService = NoteService();
   OverlayEntry? _overlayEntry;
   bool _creatingNewNote = false;
-  // For this example, assume a default folder ID and generate a new note ID
   final String _defaultFolderId = 'defaultFolder';
   List<NotePreview>? _notePreviews;
 
@@ -33,12 +33,11 @@ class _NotesState extends State<Notes> {
   final _logger = getLogger('Notes Widget');
   bool isPro = false;
 
-  int noteLimit = 5; // the number of notes a non-pro user can have
+  int noteLimit = 5;
   int _currentNoteCount = 0;
 
   late final StripeSubscriptionService _stripeSubscriptionService;
 
-  // Anonymous state and dismiss tracking
   bool _isAnonymous = false;
   bool _dismissedAnonWarning = false;
 
@@ -52,20 +51,23 @@ class _NotesState extends State<Notes> {
 
   void _initAuth() async {
     final user = await AuthService().getCurrentUser();
-    setState(() {
-      _isAnonymous = user.isAnonymous;
-    });
+    if (mounted) {
+      setState(() {
+        _isAnonymous = user.isAnonymous;
+      });
+    }
   }
 
   void _showError() {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text(
           'Something went wrong',
-          style: TextStyle(color: Colors.white), // Text color
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.red[400]!, // Set background color to red
-        duration: const Duration(seconds: 3), // Show for 5 seconds
+        backgroundColor: Colors.red[400]!,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -75,7 +77,7 @@ class _NotesState extends State<Notes> {
       final isPro = await _stripeSubscriptionService.hasProMembership();
       final activeProduct = await _stripeSubscriptionService.getActiveProduct();
 
-      if (isPro) {
+      if (mounted && isPro) {
         setState(() {
           if (activeProduct.noteLimit == null) {
             noteLimit = 5;
@@ -88,10 +90,12 @@ class _NotesState extends State<Notes> {
       await _noteService.init();
       final notePreviews =
           await _noteService.fetchNotePreviews(_defaultFolderId);
-      setState(() {
-        _currentNoteCount = notePreviews.length;
-        _notePreviews = notePreviews;
-      });
+      if (mounted) {
+        setState(() {
+          _currentNoteCount = notePreviews.length;
+          _notePreviews = notePreviews;
+        });
+      }
     } catch (e) {
       _showError();
       _logger.e('Error fetching notes: $e');
@@ -114,9 +118,9 @@ class _NotesState extends State<Notes> {
           _overlayEntry?.remove();
           _overlayEntry = null;
           setState(() {
-            _currentNoteCount = _notePreviews!.length;
             _creatingNewNote = false;
           });
+          _fetchNotes(); // refetch to update list
         },
       ),
     );
@@ -126,25 +130,26 @@ class _NotesState extends State<Notes> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Stack(
       children: [
-        // Side panel showing a "New note" button.
         SizedBox(
           width: 400,
           height: MediaQuery.of(context).size.height - kControlBarHeight,
           child: Column(
             children: [
-              buildTopBar(),
+              buildTopBar(themeProvider),
               Expanded(
                 child: Container(
                   width: 400,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Color(0xFFE0E7FF),
-                        Color(0xFFF7F8FC),
+                        themeProvider.appBackgroundGradientStart,
+                        themeProvider.appBackgroundGradientEnd,
                       ],
                     ),
                   ),
@@ -152,7 +157,6 @@ class _NotesState extends State<Notes> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Anonymous banner
                       if (_isAnonymous && !_dismissedAnonWarning)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -161,16 +165,17 @@ class _NotesState extends State<Notes> {
                             padding: const EdgeInsets.symmetric(
                                 vertical: 10, horizontal: 14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFF8E1),
+                              color: themeProvider.warningBackgroundColor,
                               borderRadius: BorderRadius.circular(10),
-                              border:
-                                  Border.all(color: const Color(0xFFFFE0B2)),
+                              border: Border.all(
+                                  color: themeProvider.warningBorderColor),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                const Icon(Icons.warning_amber_rounded,
-                                    size: 20, color: Color(0xFFF57C00)),
+                                Icon(Icons.warning_amber_rounded,
+                                    size: 20,
+                                    color: themeProvider.warningIconColor),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -178,13 +183,14 @@ class _NotesState extends State<Notes> {
                                     style: GoogleFonts.inter(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF6D4C41),
+                                      color: themeProvider.warningTextColor,
                                     ),
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.close,
-                                      size: 18, color: Color(0xFF6D4C41)),
+                                  icon: Icon(Icons.close,
+                                      size: 18,
+                                      color: themeProvider.warningTextColor),
                                   padding: EdgeInsets.zero,
                                   onPressed: () {
                                     setState(() {
@@ -201,14 +207,14 @@ class _NotesState extends State<Notes> {
                         style: GoogleFonts.inter(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1A1A1A),
+                          color: themeProvider.mainTextColor,
                         ),
                       ),
                       const SizedBox(height: 16),
                       if (!isPro && _currentNoteCount >= noteLimit)
-                        buildUpgradeCallout(),
+                        buildUpgradeCallout(themeProvider),
                       Expanded(
-                        child: buildNotePreviews(),
+                        child: buildNotePreviews(themeProvider),
                       ),
                     ],
                   ),
@@ -221,21 +227,18 @@ class _NotesState extends State<Notes> {
     );
   }
 
-  Widget buildTopBar() {
+  Widget buildTopBar(ThemeProvider themeProvider) {
     return Container(
       height: 50,
-      color: Colors.white,
+      color: themeProvider.appContentBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
           IconButton(
             onPressed: () async {
-              late final String selectedNoteId;
-              if (_notePreviews == null) {
-                selectedNoteId = '';
-              } else {
-                selectedNoteId = _notePreviews![_selectedNoteIndex.value].id;
-              }
+              if (_notePreviews == null || _notePreviews!.isEmpty) return;
+              final selectedNoteId =
+                  _notePreviews![_selectedNoteIndex.value].id;
               try {
                 if (_creatingNewNote) {
                   _overlayEntry?.remove();
@@ -255,14 +258,14 @@ class _NotesState extends State<Notes> {
               } catch (e) {
                 _logger.e('Error deleting note: $e');
                 _showError();
-                _showError();
               }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text(
-                    'Note deleted',
-                    style: TextStyle(color: Colors.white), // Text color
-                  ),
+                  content: Text('Note deleted',
+                      style: TextStyle(
+                          color: themeProvider.isDarkMode
+                              ? Colors.black
+                              : Colors.white)),
                   action: SnackBarAction(
                     label: 'Undo',
                     onPressed: () async {
@@ -272,27 +275,28 @@ class _NotesState extends State<Notes> {
                       await _noteService.undoDelete(
                           _defaultFolderId, selectedNoteId);
                     },
-                    textColor: Colors.yellow, // Change undo button color
+                    textColor: themeProvider.primaryAppColor,
                   ),
-                  duration:
-                      const Duration(seconds: 15), // Matches deletion time
-                  behavior:
-                      SnackBarBehavior.floating, // Makes it smaller in width
+                  duration: const Duration(seconds: 15),
+                  behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12), // Rounded edges
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 50, vertical: 10), // Reduce width
-                  backgroundColor: kFlourishBlackish, // Customize background
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+                  backgroundColor: themeProvider.isDarkMode
+                      ? Colors.grey[300]
+                      : Colors.grey[800],
                 ),
               );
             },
             tooltip: 'Delete selected note',
-            icon: const Icon(Icons.delete_outlined),
+            icon: Icon(Icons.delete_outlined, color: themeProvider.iconColor),
           ),
-          const VerticalDivider(
+          VerticalDivider(
             indent: 8,
             endIndent: 8,
+            color: themeProvider.dividerColor,
           ),
           if (_currentNoteCount < noteLimit || noteLimit == 0)
             IconButton(
@@ -302,46 +306,45 @@ class _NotesState extends State<Notes> {
                   _currentNoteCount++;
                 });
                 final newNoteId = const Uuid().v4();
-                // Close any existing notes
-
                 _showDraggableNote(newNoteId);
               },
-              icon: const Icon(Icons.add),
+              icon: Icon(Icons.add, color: themeProvider.iconColor),
               tooltip: 'Create a new note',
             ),
-          if (!isPro) buildNoteUsageReport(),
+          if (!isPro) buildNoteUsageReport(themeProvider),
           const Spacer(),
           IconButton(
             onPressed: widget.onClose,
-            icon: const Icon(Icons.close),
+            icon: Icon(Icons.close, color: themeProvider.iconColor),
           ),
         ],
       ),
     );
   }
 
-  Widget buildNoteUsageReport() {
+  Widget buildNoteUsageReport(ThemeProvider themeProvider) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: themeProvider.appContentBackgroundColor,
         borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.all(10),
       child: Row(
         children: [
           const SizedBox(width: 8),
-          Text('Used: $_currentNoteCount / $noteLimit'),
+          Text('Used: $_currentNoteCount / $noteLimit',
+              style: TextStyle(color: themeProvider.mainTextColor)),
         ],
       ),
     );
   }
 
-  Widget buildUpgradeCallout() {
+  Widget buildUpgradeCallout(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
       child: Container(
         decoration: BoxDecoration(
-          color: kFlourishNotesYellow.withOpacity(0.3),
+          color: themeProvider.warningBackgroundColor,
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.all(10),
@@ -362,26 +365,27 @@ class _NotesState extends State<Notes> {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: kFlourishBlackish,
+                    color: themeProvider.mainTextColor,
                   ),
                 ),
                 Text(
                   'Unlimited notes with Pro',
                   style: GoogleFonts.inter(
                     fontSize: 10,
-                    color: kFlourishBlackish,
+                    color: themeProvider.secondaryTextColor,
                   ),
                 ),
               ],
             ),
-            Spacer(),
+            const Spacer(),
             ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kFlourishCyan,
+                  backgroundColor: themeProvider.primaryAppColor,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  minimumSize: Size(80, 36), // Set the minimum size
+                  minimumSize: const Size(80, 36),
                 ),
                 onPressed: () {
                   widget.onUpgradePressed();
@@ -391,7 +395,7 @@ class _NotesState extends State<Notes> {
                   child: Text(
                     'Upgrade',
                     style: GoogleFonts.inter(
-                      color: kFlourishBlackish,
+                      color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -403,14 +407,14 @@ class _NotesState extends State<Notes> {
     );
   }
 
-  Widget buildNotePreviews() {
-    if (_notePreviews == null) return buildLoadingShimmer();
+  Widget buildNotePreviews(ThemeProvider themeProvider) {
+    if (_notePreviews == null) return buildLoadingShimmer(themeProvider);
     return StreamBuilder<List<NotePreview>>(
       stream: _noteService.notePreviewsStream(_defaultFolderId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             _notePreviews == null) {
-          return buildLoadingShimmer();
+          return buildLoadingShimmer(themeProvider);
         } else if (snapshot.hasError) {
           _logger.e('Error fetching notes: ${snapshot.error}');
           _showError();
@@ -435,7 +439,6 @@ class _NotesState extends State<Notes> {
                         _showDraggableNote(note.id);
                       },
                       child: NotePreviewItem(
-                        color: Colors.transparent,
                         title: note.title,
                         preview: note.preview,
                         isSelected: selectedIndex == index,
@@ -445,26 +448,30 @@ class _NotesState extends State<Notes> {
             },
           );
         } else {
-          return const Center(child: Text('No notes available'));
+          return Center(
+              child: Text('No notes available',
+                  style: TextStyle(color: themeProvider.mainTextColor)));
         }
       },
     );
   }
 
-  Shimmer buildLoadingShimmer() {
+  Shimmer buildLoadingShimmer(ThemeProvider themeProvider) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor:
+          themeProvider.isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+      highlightColor:
+          themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[100]!,
       child: ListView.builder(
         itemCount: 10,
         itemBuilder: (context, index) {
           return Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.transparent,
               border: Border(
                 bottom: BorderSide(
-                  color: kFlourishLightBlackish,
+                  color: themeProvider.dividerColor,
                   width: 0.5,
                 ),
               ),
@@ -478,13 +485,17 @@ class _NotesState extends State<Notes> {
                     Container(
                       width: 200,
                       height: 20,
-                      color: Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
+                          : Colors.white,
                     ),
                     const SizedBox(height: 8),
                     Container(
                       width: 300,
                       height: 20,
-                      color: Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
+                          : Colors.white,
                     ),
                   ],
                 ),
@@ -500,30 +511,29 @@ class _NotesState extends State<Notes> {
 
 class NotePreviewItem extends StatelessWidget {
   const NotePreviewItem(
-      {required this.color,
-      required this.title,
+      {required this.title,
       required this.preview,
       required this.isSelected,
       super.key});
 
-  final Color color;
   final String title;
   final String preview;
   final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isSelected ? kFlourishNotesYellow.withOpacity(0.3) : color,
-
-        //only bottom border if not selected
+        color: isSelected
+            ? themeProvider.selectedItemBackgroundColor
+            : Colors.transparent,
         border: isSelected
             ? null
-            : const Border(
+            : Border(
                 bottom: BorderSide(
-                  color: kFlourishLightBlackish,
+                  color: themeProvider.dividerColor,
                   width: 0.5,
                 ),
               ),
@@ -543,7 +553,7 @@ class NotePreviewItem extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: kFlourishBlackish,
+                    color: themeProvider.mainTextColor,
                   ),
                 ),
               ),
@@ -553,7 +563,7 @@ class NotePreviewItem extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                    fontSize: 14, color: kFlourishLightBlackish),
+                    fontSize: 14, color: themeProvider.secondaryTextColor),
               ),
             ],
           ),

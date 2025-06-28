@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:studybeats/colors.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class TimerSwiperItem extends StatefulWidget {
   const TimerSwiperItem({
@@ -8,7 +9,7 @@ class TimerSwiperItem extends StatefulWidget {
     required this.hourUpperValue,
     required this.minuteLowerValue,
     required this.minuteUpperValue,
-    required this.onDurationSelected, // Add this callback
+    required this.onDurationSelected,
     this.initialHourValue = 0,
     this.initialMinuteValue = 0,
     required this.child,
@@ -22,9 +23,7 @@ class TimerSwiperItem extends StatefulWidget {
   final int initialHourValue;
   final int initialMinuteValue;
   final Widget child;
-
-  final ValueChanged<Duration>
-      onDurationSelected; // Callback for selected duration
+  final ValueChanged<Duration> onDurationSelected;
 
   @override
   State<TimerSwiperItem> createState() => _TimerSwiperItemState();
@@ -33,15 +32,18 @@ class TimerSwiperItem extends StatefulWidget {
 class _TimerSwiperItemState extends State<TimerSwiperItem> {
   late Duration _hourTimer;
   late Duration _minuteTimer;
+
   @override
   void initState() {
+    super.initState();
     _hourTimer = Duration(hours: widget.initialHourValue);
     _minuteTimer = Duration(minutes: widget.initialMinuteValue);
-    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -58,11 +60,13 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
                       width: 200,
                       alignment: Alignment.bottomCenter,
                       decoration: BoxDecoration(
-                        color: kFlourishAliceBlue.withOpacity(0.5),
+                        color: themeProvider.dividerColor,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: kFlourishBlackish.withOpacity(0.1),
+                            color: themeProvider.isDarkMode
+                                ? Colors.black.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.1),
                             spreadRadius: 5,
                             blurRadius: 10,
                             offset: const Offset(0, 3),
@@ -89,12 +93,13 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
                             setState(() {
                               _hourTimer = Duration(hours: selectedTime);
                               Duration timer = _hourTimer + _minuteTimer;
-                              widget.onDurationSelected(
-                                  timer); // Call the callback
+                              widget.onDurationSelected(timer);
                             });
                           },
                         )),
-                    Text('H', style: Theme.of(context).textTheme.bodyMedium),
+                    Text('H',
+                        style:
+                            TextStyle(color: themeProvider.secondaryTextColor)),
                     const SizedBox(width: 20),
                     SizedBox(
                         height: 200,
@@ -107,12 +112,13 @@ class _TimerSwiperItemState extends State<TimerSwiperItem> {
                             setState(() {
                               _minuteTimer = Duration(minutes: selectedTime);
                               Duration timer = _hourTimer + _minuteTimer;
-                              widget.onDurationSelected(
-                                  timer); // Call the callback
+                              widget.onDurationSelected(timer);
                             });
                           },
                         )),
-                    Text('M', style: Theme.of(context).textTheme.bodyMedium),
+                    Text('M',
+                        style:
+                            TextStyle(color: themeProvider.secondaryTextColor)),
                   ],
                 ),
               ),
@@ -137,22 +143,20 @@ class TimeSlider extends StatefulWidget {
   final int lowerValue;
   final int upperValue;
   final int initialTimeValue;
-
   final ValueChanged<int> onTimeSelected;
+
   @override
   State<TimeSlider> createState() => _TimeSliderState();
 }
 
 class _TimeSliderState extends State<TimeSlider> {
   late List<int> numbers;
-
-  late int _selectedHourIndex; // Track the selected hour index
+  late int _selectedHourIndex;
   FixedExtentScrollController controller = FixedExtentScrollController();
 
   @override
   void initState() {
     super.initState();
-
     _selectedHourIndex = widget.initialTimeValue;
     numbers = List.generate(widget.upperValue - widget.lowerValue + 1,
         (index) => widget.lowerValue + index);
@@ -186,9 +190,10 @@ class _TimeSliderState extends State<TimeSlider> {
   }
 
   Widget _buildHourWidget(int index) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     Color textColor = index == _selectedHourIndex
-        ? kFlourishBlackish
-        : kFlourishBlackish.withOpacity(0.5);
+        ? themeProvider.mainTextColor
+        : themeProvider.secondaryTextColor;
 
     String number = '';
     if (index < 10) {

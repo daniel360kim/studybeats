@@ -2,14 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/api/study/session_model.dart';
-import 'package:studybeats/api/todo/todo_item.dart'; // Your TodoItem model.
-import 'package:studybeats/colors.dart';
-import 'package:studybeats/studyroom/study_tools/todo/item_tile.dart'; // Your tile widget.
-import 'package:studybeats/api/todo/todo_service.dart'; // Import TodoService
+import 'package:studybeats/api/todo/todo_item.dart';
+import 'package:studybeats/studyroom/study_tools/todo/item_tile.dart';
+import 'package:studybeats/api/todo/todo_service.dart';
+import 'package:studybeats/theme_provider.dart';
 
-// Sorting and filtering enums.
 enum SortBy { dueDate, createdAt }
-
 enum TodoFilter { none, priority, hasDueDate }
 
 class TodoListWidget extends StatefulWidget {
@@ -48,7 +46,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   void initState() {
     super.initState();
     _subscription = widget.uncompletedStream.listen((newItems) {
-      // Mark items checked as done as done
       for (var item in newItems) {
         if (item.isDone) {
           widget.todoService.markTodoItemAsDone(
@@ -58,7 +55,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
         }
       }
       final sortedNewItems = _sortItems(newItems);
-
       _updateList(sortedNewItems);
     });
   }
@@ -102,7 +98,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   void _updateList(List<TodoItem> newItems) {
     final newItemsMap = {for (var item in newItems) item.id: item};
 
-    // Remove items no longer present.
     for (int i = _items.length - 1; i >= 0; i--) {
       if (!newItemsMap.containsKey(_items[i].id)) {
         final removedItem = _items.removeAt(i);
@@ -115,7 +110,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       }
     }
 
-    // Insert or update items.
     for (int i = 0; i < newItems.length; i++) {
       final newItem = newItems[i];
       final existingIndex = _items.indexWhere((item) => item.id == newItem.id);
@@ -157,12 +151,11 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     );
   }
 
-  /// Optimistically marks an item as done with undo support.
   void _handleMarkAsDone(int index) async {
     final sessionModel = Provider.of<StudySessionModel>(context, listen: false);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final removedItem = _items[index];
 
-    // Immediately remove from UI
     if (!sessionModel.isActive) {
       _removeItem(index);
 
@@ -171,15 +164,15 @@ class _TodoListWidgetState extends State<TodoListWidget> {
         todoItemId: removedItem.id,
       );
 
-      // Dismiss any existing SnackBar before showing a new one
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       final snackBar = SnackBar(
-        content: Text('Item completed', style: TextStyle(color: Colors.white)),
+        content: Text('Item completed',
+            style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.black : Colors.white)),
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () async {
-            // Temporarily suspend automatic updates
             _subscription?.pause();
             setState(() {
               final undoneRemovedItem = removedItem.copyWith(isDone: false);
@@ -193,11 +186,10 @@ class _TodoListWidgetState extends State<TodoListWidget> {
               listId: widget.listId,
               todoItemId: removedItem.id,
             );
-            // Resume automatic updates
             await Future.delayed(const Duration(milliseconds: 500));
             _subscription?.resume();
           },
-          textColor: kFlourishAdobe,
+          textColor: themeProvider.primaryAppColor,
         ),
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
@@ -205,7 +197,8 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           borderRadius: BorderRadius.circular(12),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
-        backgroundColor: kFlourishBlackish,
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[800],
       );
 
       ScaffoldMessenger.of(context)
@@ -227,7 +220,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     }
   }
 
-  /// Remove an item by index and animate its removal.
   TodoItem _removeItem(int index) {
     final removedItem = _items.removeAt(index);
     _listKey.currentState?.removeItem(
@@ -246,7 +238,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       itemBuilder: (context, index, animation) {
         final item = _items[index];
 
-        // Apply filtering.
         if (widget.filter == TodoFilter.priority && !item.isFavorite) {
           return const SizedBox.shrink();
         }
@@ -271,7 +262,6 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                 _editingItemId = null;
               });
             },
-            // Use our optimistic update handler.
             onItemMarkedAsDone: () {
               _handleMarkAsDone(index);
             },

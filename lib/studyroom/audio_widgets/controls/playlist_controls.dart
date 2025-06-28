@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class IconControls extends StatefulWidget {
   const IconControls({
@@ -58,6 +59,7 @@ class IconControlsState extends State<IconControls> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeProvider>(context);
     return SizedBox(
       width: 200, // Adjusted width for both buttons.
       child: Row(
@@ -70,7 +72,7 @@ class IconControlsState extends State<IconControls> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: isBackgroundSoundEnabled
-                  ? const Color.fromRGBO(170, 170, 170, 0.7)
+                  ? theme.lightEmphasisColor.withOpacity(0.6)
                   : Colors.transparent,
             ),
             child: IconButton(
@@ -97,7 +99,7 @@ class IconControlsState extends State<IconControls> {
                   _toggleControl('background');
                 }
               },
-              icon: const Icon(Icons.headphones),
+              icon: Icon(Icons.headphones, color: theme.lightEmphasisColor),
             ),
           ),
           const SizedBox(width: 10),
@@ -108,7 +110,7 @@ class IconControlsState extends State<IconControls> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: isAudioSourceEnabled
-                  ? const Color.fromRGBO(170, 170, 170, 0.7)
+                  ? theme.lightEmphasisColor.withOpacity(0.6)
                   : Colors.transparent,
             ),
             child: IconButton(
@@ -116,7 +118,7 @@ class IconControlsState extends State<IconControls> {
               padding: EdgeInsets.zero,
               hoverColor: Colors.transparent,
               onPressed: () => _toggleControl('audio'),
-              icon: const Icon(Icons.audiotrack),
+              icon: Icon(Icons.audiotrack, color: theme.lightEmphasisColor),
             ),
           ),
         ],

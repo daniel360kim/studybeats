@@ -137,13 +137,13 @@ class _StudyStatisticsTileState extends State<StudyStatisticsTile> {
               _buildMetricCard(
                 'Focus Time',
                 _formatTime(_studyStatistics!.totalStudyTime),
-                kFlourishBlue,
+                kFlourishAdobe,
               ),
               const SizedBox(height: 8),
               _buildMetricCard(
                 'Break Time',
                 _formatTime(_studyStatistics!.totalBreakTime),
-                kFlourishAdobe,
+                Colors.blueAccent,
               ),
               const SizedBox(height: 8),
               _buildMetricCard(

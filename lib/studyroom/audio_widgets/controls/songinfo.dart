@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:marquee/marquee.dart'; // Add this package to your pubspec.yaml
+import 'package:studybeats/theme_provider.dart';
 
 class SongInfo extends StatefulWidget {
   const SongInfo({
@@ -61,6 +62,7 @@ class _SongInfoState extends State<SongInfo> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeProvider>(context);
     return MouseRegion(
         onEnter: (_) {
           setState(() {
@@ -77,7 +79,7 @@ class _SongInfoState extends State<SongInfo> {
                 width: 400,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.4),
+                  color: theme.songInfoBackgroundColor,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -111,7 +113,7 @@ class _SongInfoState extends State<SongInfo> {
                                   child: Text(
                                     _formatDuration(remaining),
                                     style: GoogleFonts.inter(
-                                      color: Colors.black,
+                                      color: theme.songInfoTextColor,
                                       fontSize: 8.0,
                                     ),
                                   ),
@@ -141,6 +143,7 @@ class _SongInfoState extends State<SongInfo> {
 
   Widget _buildMarqueeText(String text,
       {double fontSize = 15, FontWeight fontWeight = FontWeight.normal}) {
+    final theme = Provider.of<ThemeProvider>(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final textSpan = TextSpan(
@@ -148,7 +151,7 @@ class _SongInfoState extends State<SongInfo> {
           style: GoogleFonts.inter(
             fontSize: fontSize,
             fontWeight: fontWeight,
-            color: Colors.black,
+            color: theme.songInfoTextColor,
           ),
         );
         final textPainter = TextPainter(
@@ -161,13 +164,13 @@ class _SongInfoState extends State<SongInfo> {
           return Marquee(
             text: text,
             style:
-                GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight),
+                GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight, color: theme.songInfoTextColor),
             velocity: 50.0,
           );
         } else {
           return Text(text,
               style: GoogleFonts.inter(
-                  fontSize: fontSize, fontWeight: fontWeight));
+                  fontSize: fontSize, fontWeight: fontWeight, color: theme.songInfoTextColor));
         }
       },
     );
@@ -212,13 +215,14 @@ class _SongInfoState extends State<SongInfo> {
   }
 
   Widget _buildShimmerTextPlaceholder() {
+    final theme = Provider.of<ThemeProvider>(context);
     final audioSourceProvider =
         Provider.of<AudioSourceSelectionProvider>(context, listen: false);
     final currentSource = audioSourceProvider.currentSource;
     if (currentSource == AudioSourceType.lofi) {
       return Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
+        baseColor: theme.shimmerBaseColor,
+        highlightColor: theme.shimmerHighlightColor,
         child: Container(
           width: 400,
           color: Colors.white,

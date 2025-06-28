@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/study_tools/todo/todo_inputs.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class TodoAdder extends StatefulWidget {
   final ValueChanged<Set<SessionTodoReference>> onTodoItemToggled;
@@ -25,19 +26,14 @@ class _TodoAdderState extends State<TodoAdder> {
   final _todoService = TodoService();
   final _todoListService = TodoListService();
 
-  List<dynamic>?
-      _todoLists; // For later implementation when multiple lists are supported
+  List<dynamic>? _todoLists;
   List<TodoItem>? _uncompletedTodoItems;
 
   Set<SessionTodoReference> _selectedTodoItems = {};
-
-  String?
-      _selectedListId; // For later implementation when multiple lists are supported
+  String? _selectedListId;
 
   final ScrollController _internalScrollController = ScrollController();
-
   bool _creatingNewTask = false;
-  // New state variables for search functionality
   String _searchQuery = "";
   bool _showSearchBar = false;
 
@@ -60,12 +56,14 @@ class _TodoAdderState extends State<TodoAdder> {
       await _todoListService.init();
 
       final todoLists = await _todoListService.fetchTodoLists();
-      final uncompletedTodoItems = todoLists.first.categories.uncompleted;
-      setState(() {
-        _todoLists = todoLists;
-        _selectedListId = todoLists.first.id;
-        _uncompletedTodoItems = uncompletedTodoItems;
-      });
+      if (mounted && todoLists.isNotEmpty) {
+        final uncompletedTodoItems = todoLists.first.categories.uncompleted;
+        setState(() {
+          _todoLists = todoLists;
+          _selectedListId = todoLists.first.id;
+          _uncompletedTodoItems = uncompletedTodoItems;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -77,43 +75,45 @@ class _TodoAdderState extends State<TodoAdder> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildHeading(),
+          buildHeading(themeProvider),
           const SizedBox(height: 10),
           Divider(
-            color: kFlourishBlackish.withOpacity(0.1),
+            color: themeProvider.dividerColor,
             height: 1,
           ),
           const SizedBox(height: 10),
-          // Use AnimatedSwitcher to show either the control buttons or the search bar.
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 100),
             switchInCurve: Curves.fastLinearToSlowEaseIn,
             switchOutCurve: Curves.fastLinearToSlowEaseIn,
             transitionBuilder: (child, animation) => SlideTransition(
               position: Tween<Offset>(
-                begin: const Offset(-0.5, 0), // slides in from right
+                begin: const Offset(-0.5, 0),
                 end: const Offset(0, 0),
               ).animate(animation),
-              child: child,
+              child: _showSearchBar
+                  ? buildSearchBarWithClose(themeProvider)
+                  : buildControlButtons(themeProvider),
             ),
             child: _showSearchBar
-                ? buildSearchBarWithClose()
-                : buildControlButtons(),
+                ? buildSearchBarWithClose(themeProvider)
+                : buildControlButtons(themeProvider),
           ),
           buildAddTask(),
           const SizedBox(height: 10),
-          buildTaskAdderList(),
+          buildTaskAdderList(themeProvider),
         ],
       ),
     );
   }
 
-  Widget buildHeading() {
+  Widget buildHeading(ThemeProvider themeProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -122,7 +122,7 @@ class _TodoAdderState extends State<TodoAdder> {
           style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: kFlourishBlackish),
+              color: themeProvider.mainTextColor),
         ),
         const SizedBox(height: 5),
         Text(
@@ -130,14 +130,13 @@ class _TodoAdderState extends State<TodoAdder> {
           style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: kFlourishBlackish.withOpacity(0.5)),
+              color: themeProvider.secondaryTextColor),
         ),
       ],
     );
   }
 
-// Modify buildControlButtons to include the search icon:
-  Widget buildControlButtons() {
+  Widget buildControlButtons(ThemeProvider themeProvider) {
     return Row(
       children: [
         IconButton(
@@ -150,11 +149,10 @@ class _TodoAdderState extends State<TodoAdder> {
           },
           icon: Icon(
             _creatingNewTask ? Icons.remove : Icons.add,
-            color: kFlourishBlackish,
+            color: themeProvider.iconColor,
           ),
         ),
         const SizedBox(width: 8),
-        // New search icon button:
         IconButton(
           padding: const EdgeInsets.all(5),
           constraints: const BoxConstraints(),
@@ -162,22 +160,21 @@ class _TodoAdderState extends State<TodoAdder> {
             setState(() {
               _showSearchBar = !_showSearchBar;
               if (_showSearchBar) {
-                _creatingNewTask = false; // Hide task creation when searching
-                _searchQuery = ""; // Clear search query when showing the bar
+                _creatingNewTask = false;
+                _searchQuery = "";
               }
             });
           },
-          icon: const Icon(
+          icon: Icon(
             Icons.search,
-            color: kFlourishBlackish,
+            color: themeProvider.iconColor,
           ),
         ),
       ],
     );
   }
 
-  // Add a new widget method that builds the search bar:
-  Widget buildSearchBarWithClose() {
+  Widget buildSearchBarWithClose(ThemeProvider themeProvider) {
     return Container(
       key: const ValueKey('search_bar'),
       child: Row(
@@ -186,23 +183,24 @@ class _TodoAdderState extends State<TodoAdder> {
             width: 245,
             height: 30,
             child: TextField(
-              cursorColor: kFlourishBlackish,
+              cursorColor: themeProvider.primaryAppColor,
+              style: TextStyle(color: themeProvider.mainTextColor),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search, size: 16),
+                prefixIcon:
+                    Icon(Icons.search, size: 16, color: themeProvider.iconColor),
                 hintText: 'Search tasks...',
                 hintStyle: TextStyle(
                   fontSize: 14,
-                  color: kFlourishBlackish.withOpacity(0.8),
+                  color: themeProvider.secondaryTextColor,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide:
-                      BorderSide(color: kFlourishBlackish.withOpacity(0.3)),
+                  borderSide: BorderSide(color: themeProvider.inputBorderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide:
-                      const BorderSide(color: kFlourishBlackish, width: 2),
+                      BorderSide(color: themeProvider.primaryAppColor, width: 2),
                 ),
                 contentPadding: const EdgeInsets.fromLTRB(0, 4, 0, 2),
               ),
@@ -214,15 +212,14 @@ class _TodoAdderState extends State<TodoAdder> {
             ),
           ),
           const SizedBox(width: 8),
-          // Close icon to hide search bar and revert to control buttons.
           IconButton(
-            icon: const Icon(Icons.close, color: kFlourishBlackish),
-            constraints: BoxConstraints(),
+            icon: Icon(Icons.close, color: themeProvider.iconColor),
+            constraints: const BoxConstraints(),
             padding: const EdgeInsets.all(5),
             onPressed: () {
               setState(() {
                 _showSearchBar = false;
-                _searchQuery = ""; // clear search query if needed.
+                _searchQuery = "";
               });
             },
           ),
@@ -299,23 +296,33 @@ class _TodoAdderState extends State<TodoAdder> {
         .toList();
   }
 
-  Widget buildTaskAdderList() {
+  Widget buildTaskAdderList(ThemeProvider themeProvider) {
     return _uncompletedTodoItems == null
         ? Column(
             children: List.generate(
               5,
               (index) => ListTile(
                 leading: Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
+                    baseColor: themeProvider.isDarkMode
+                        ? Colors.grey[800]!
+                        : Colors.grey[300]!,
+                    highlightColor: themeProvider.isDarkMode
+                        ? Colors.grey[700]!
+                        : Colors.grey[100]!,
                     child: const Icon(Icons.circle_outlined)),
                 title: Shimmer.fromColors(
-                  baseColor: Colors.grey[300]!,
-                  highlightColor: Colors.grey[100]!,
+                  baseColor: themeProvider.isDarkMode
+                      ? Colors.grey[800]!
+                      : Colors.grey[300]!,
+                  highlightColor: themeProvider.isDarkMode
+                      ? Colors.grey[700]!
+                      : Colors.grey[100]!,
                   child: Container(
                     width: 100,
                     height: 20,
-                    color: Colors.grey[300]!,
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]
+                        : Colors.grey[300],
                   ),
                 ),
               ),
@@ -331,7 +338,7 @@ class _TodoAdderState extends State<TodoAdder> {
                     'No tasks yet',
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      color: kFlourishBlackish.withOpacity(0.5),
+                      color: themeProvider.secondaryTextColor,
                     ),
                   ),
                 ),
@@ -400,6 +407,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MouseRegion(
       onEnter: (_) {
         setState(() {
@@ -413,7 +422,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
       },
       child: Container(
         color: _isHovering
-            ? kFlourishLightBlackish.withOpacity(0.1)
+            ? themeProvider.primaryAppColor.withOpacity(0.05)
             : Colors.transparent,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(
@@ -429,7 +438,9 @@ class _TodoItemTileState extends State<TodoItemTile> {
             },
             child: Icon(
               _isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: _isSelected ? kFlourishAdobe : kFlourishBlackish,
+              color: _isSelected
+                  ? themeProvider.primaryAppColor
+                  : themeProvider.secondaryTextColor,
             ),
           ),
           title: Column(
@@ -441,7 +452,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   widget.todoItem.title,
                   style: GoogleFonts.inter(
                     fontSize: 16,
-                    color: kFlourishBlackish,
+                    color: themeProvider.mainTextColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -459,11 +470,12 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   textAlign: TextAlign.left,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: themeProvider.secondaryTextColor,
                   ),
                 ),
               const SizedBox(height: 6),
-              if (widget.todoItem.dueDate != null) buildDeadlineDescription(),
+              if (widget.todoItem.dueDate != null)
+                buildDeadlineDescription(themeProvider),
             ],
           ),
         ),
@@ -471,17 +483,18 @@ class _TodoItemTileState extends State<TodoItemTile> {
     );
   }
 
-  Widget buildDeadlineDescription() {
+  Widget buildDeadlineDescription(ThemeProvider themeProvider) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.calendar_today, size: 12, color: kFlourishAdobe),
+        Icon(Icons.calendar_today,
+            size: 12, color: themeProvider.primaryAppColor),
         const SizedBox(width: 4),
         Text(
           _getDeadlineDescription(),
           style: GoogleFonts.inter(
             fontSize: 12,
-            color: kFlourishAdobe,
+            color: themeProvider.primaryAppColor,
           ),
         ),
       ],

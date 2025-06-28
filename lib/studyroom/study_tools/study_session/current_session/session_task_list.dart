@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class SessionTaskList extends StatefulWidget {
   const SessionTaskList(
@@ -39,24 +40,29 @@ class _SessionTaskListState extends State<SessionTaskList> {
       for (var todoRef in widget.todoIds) {
         TodoItem todoItem =
             await _todoService.getTodoItem(todoRef.todoListId, todoRef.todoId);
-        setState(() {
-          todoItems.add(todoItem);
-          _todoRefs.add(todoRef);
-        });
+        if (mounted) {
+          setState(() {
+            todoItems.add(todoItem);
+            _todoRefs.add(todoRef);
+          });
+        }
       }
     } catch (e) {
-      // Handle error
       _logger.e('Failed to fetch todos: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Something went wrong'),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong'),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     if (todoItems.isEmpty) {
       return Column(
         children: List.generate(
@@ -64,12 +70,18 @@ class _SessionTaskListState extends State<SessionTaskList> {
           (index) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Shimmer.fromColors(
-              baseColor: Colors.grey.shade300,
-              highlightColor: Colors.grey.shade100,
+              baseColor: themeProvider.isDarkMode
+                  ? Colors.grey[800]!
+                  : Colors.grey.shade300,
+              highlightColor: themeProvider.isDarkMode
+                  ? Colors.grey[700]!
+                  : Colors.grey.shade100,
               child: Container(
                 height: _tileHeight,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[800]
+                      : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
@@ -79,8 +91,7 @@ class _SessionTaskListState extends State<SessionTaskList> {
       );
     }
     return SizedBox(
-      height: MediaQuery.of(context).size.height -
-          310, // Adjust height based on item count
+      height: MediaQuery.of(context).size.height - 310,
       child: ListView.builder(
         itemCount: todoItems.length,
         itemBuilder: (context, index) {
@@ -95,12 +106,8 @@ class _SessionTaskListState extends State<SessionTaskList> {
                     listId: ref.todoListId,
                     updatedItem: todoItem.copyWith(isDone: true),
                   );
-                  // Optimistically mark as done.
                   setState(() {
                     todoItem.isDone = true;
-                  });
-
-                  setState(() {
                     todoItems.removeAt(index);
                     todoItems.add(todoItem);
                   });
@@ -116,11 +123,13 @@ class _SessionTaskListState extends State<SessionTaskList> {
                 }
               } catch (e) {
                 _logger.e('Failed to toggle todo item: $e');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Failed to update task. Please try again.'),
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to update task. Please try again.'),
+                    ),
+                  );
+                }
               }
             },
           );
@@ -148,6 +157,8 @@ class _SessionTaskTileState extends State<SessionTaskTile> {
   bool _isHovering = false;
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MouseRegion(
       onEnter: (_) {
         setState(() {
@@ -162,20 +173,22 @@ class _SessionTaskTileState extends State<SessionTaskTile> {
       child: Container(
         height: _SessionTaskListState._tileHeight,
         color: _isHovering
-            ? Colors.grey.shade200
-            : kFlourishAliceBlue.withOpacity(0.8),
+            ? themeProvider.primaryAppColor.withOpacity(0.05)
+            : Colors.transparent,
         child: ListTile(
           leading: Checkbox(
             value: widget.todoItem.isDone,
             onChanged: widget.onToggleDone,
-            activeColor: kFlourishAdobe,
+            activeColor: themeProvider.primaryAppColor,
           ),
           title: Text(
             widget.todoItem.title,
             style: TextStyle(
               decoration:
                   widget.todoItem.isDone ? TextDecoration.lineThrough : null,
-              color: widget.todoItem.isDone ? Colors.grey : Colors.black,
+              color: widget.todoItem.isDone
+                  ? themeProvider.secondaryTextColor
+                  : themeProvider.mainTextColor,
             ),
           ),
         ),

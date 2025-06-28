@@ -1,7 +1,8 @@
 import 'package:studybeats/api/todo/todo_item.dart';
-import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class TodoItemTile extends StatefulWidget {
   const TodoItemTile({
@@ -55,7 +56,6 @@ class _TodoItemTileState extends State<TodoItemTile> {
   @override
   void didUpdateWidget(covariant TodoItemTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If the item has changed externally, update our controllers.
     if (oldWidget.item.title != widget.item.title) {
       _titleController.text = widget.item.title;
     }
@@ -78,18 +78,15 @@ class _TodoItemTileState extends State<TodoItemTile> {
   }
 
   void _saveChanges() {
-    // Update the item with the latest edits.
     widget.item.title = _titleController.text;
     widget.item.description = _descriptionController.text;
     widget.item.dueDate = _selectedDate;
     widget.item.dueTime = _selectedTime;
     widget.onItemDetailsChanged(widget.item);
-    // Notify parent to turn editing off.
     widget.onEditEnd();
   }
 
   void _cancelEditing() {
-    // Reset controllers to the original values.
     _titleController.text = widget.item.title;
     _descriptionController.text = widget.item.description ?? '';
     _selectedDate = widget.item.dueDate;
@@ -99,6 +96,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return GestureDetector(
       onTap: () {
         if (!widget.isEditing) {
@@ -115,12 +113,12 @@ class _TodoItemTileState extends State<TodoItemTile> {
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: _isHovering || widget.isEditing
-                  ? kFlourishLightBlackish.withOpacity(0.1)
+                  ? themeProvider.primaryAppColor.withOpacity(0.1)
                   : Colors.transparent,
             ),
             child: Column(
               children: [
-                buildTitle(),
+                buildTitle(themeProvider),
                 if (widget.item.description != null &&
                     widget.item.description!.isNotEmpty &&
                     !widget.isEditing)
@@ -135,15 +133,15 @@ class _TodoItemTileState extends State<TodoItemTile> {
                         textAlign: TextAlign.left,
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: themeProvider.secondaryTextColor,
                         ),
                       ),
                     ),
                   ),
-                if (widget.isEditing) buildEditControls(),
+                if (widget.isEditing) buildEditControls(themeProvider),
                 if (widget.item.dueDate != null || widget.isEditing)
-                  buildDeadlineDescription(),
-                if (widget.isEditing) buildEditSaveControls(),
+                  buildDeadlineDescription(themeProvider),
+                if (widget.isEditing) buildEditSaveControls(themeProvider),
               ],
             ),
           ),
@@ -152,7 +150,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
     );
   }
 
-  Widget buildTitle() {
+  Widget buildTitle(ThemeProvider themeProvider) {
     return Row(
       children: [
         Checkbox(
@@ -160,7 +158,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
             borderRadius: BorderRadius.circular(4),
           ),
           value: widget.item.isDone,
-          activeColor: kFlourishAdobe,
+          activeColor: themeProvider.primaryAppColor,
           onChanged: (value) {
             widget.onItemMarkedAsDone();
             setState(() {
@@ -194,16 +192,18 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   },
                   scrollPadding: EdgeInsets.zero,
                   controller: _titleController,
-                  cursorColor: kFlourishBlackish,
-                  decoration: const InputDecoration(
+                  cursorColor: themeProvider.primaryAppColor,
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: 'Enter title',
+                    hintStyle:
+                        TextStyle(color: themeProvider.secondaryTextColor),
                     contentPadding: EdgeInsets.zero,
                   ),
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: kFlourishBlackish,
+                    color: themeProvider.mainTextColor,
                   ),
                 )
               : Text(
@@ -213,7 +213,9 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: widget.item.isDone ? Colors.grey : Colors.black,
+                    color: widget.item.isDone
+                        ? themeProvider.secondaryTextColor
+                        : themeProvider.mainTextColor,
                   ),
                 ),
         ),
@@ -222,7 +224,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.edit_note_sharp),
+                icon:
+                    Icon(Icons.edit_note_sharp, color: themeProvider.iconColor),
                 iconSize: 18,
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
@@ -231,8 +234,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
               const SizedBox(width: 8),
               IconButton(
                 icon: widget.item.isFavorite
-                    ? const Icon(Icons.star, color: Colors.blue)
-                    : const Icon(Icons.star_border),
+                    ? Icon(Icons.star, color: themeProvider.primaryAppColor)
+                    : Icon(Icons.star_border, color: themeProvider.iconColor),
                 iconSize: 18,
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
@@ -250,7 +253,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
     );
   }
 
-  Widget buildEditControls() {
+  Widget buildEditControls(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.only(left: 40, right: 40, bottom: 8),
       child: TextField(
@@ -269,30 +272,33 @@ class _TodoItemTileState extends State<TodoItemTile> {
             });
           }
         },
-        cursorColor: kFlourishBlackish,
+        cursorColor: themeProvider.primaryAppColor,
         controller: _descriptionController,
         maxLines: 1,
         style: GoogleFonts.inter(
           fontSize: 13,
-          color: kFlourishBlackish,
+          color: themeProvider.mainTextColor,
         ),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           isDense: true,
           contentPadding: EdgeInsets.zero,
           hintText: 'Enter description',
+          hintStyle: TextStyle(color: themeProvider.secondaryTextColor),
           border: InputBorder.none,
         ),
       ),
     );
   }
 
-  Widget buildDeadlineDescription() {
+  Widget buildDeadlineDescription(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.only(left: 40, bottom: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: GestureDetector(
-          onTap: widget.isEditing ? () => _selectDate(context) : null,
+          onTap: widget.isEditing
+              ? () => _selectDate(context, themeProvider)
+              : null,
           child: MouseRegion(
             cursor: widget.isEditing
                 ? SystemMouseCursors.click
@@ -302,21 +308,21 @@ class _TodoItemTileState extends State<TodoItemTile> {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
                 color: _isDateButtonHovering && widget.isEditing
-                    ? kFlourishAdobe.withOpacity(0.1)
+                    ? themeProvider.primaryAppColor.withOpacity(0.1)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 12, color: kFlourishAdobe),
+                  Icon(Icons.calendar_today,
+                      size: 12, color: themeProvider.primaryAppColor),
                   const SizedBox(width: 4),
                   Text(
                     _getDeadlineDescription(),
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: kFlourishAdobe,
+                      color: themeProvider.primaryAppColor,
                     ),
                   ),
                 ],
@@ -330,15 +336,15 @@ class _TodoItemTileState extends State<TodoItemTile> {
     );
   }
 
-  Widget buildEditSaveControls() {
+  Widget buildEditSaveControls(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
             child: Divider(
-              color: Colors.grey,
+              color: themeProvider.dividerColor,
               thickness: 0.5,
               height: 0,
             ),
@@ -347,7 +353,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               IconButton(
-                icon: const Icon(Icons.delete_outlined),
+                icon:
+                    Icon(Icons.delete_outlined, color: themeProvider.iconColor),
                 iconSize: 25,
                 onPressed: () {
                   widget.onItemDelete();
@@ -357,8 +364,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
               OutlinedButton(
                 onPressed: _cancelEditing,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: kFlourishLightBlackish,
-                  backgroundColor: kFlourishLightBlackish.withOpacity(0.7),
+                  foregroundColor: themeProvider.secondaryTextColor,
+                  backgroundColor: themeProvider.dividerColor,
                   side: const BorderSide(color: Colors.transparent),
                   fixedSize: const Size(70, 30),
                   padding: EdgeInsets.zero,
@@ -371,7 +378,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: kFlourishBlackish,
+                    color: themeProvider.mainTextColor,
                   ),
                 ),
               ),
@@ -379,8 +386,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
               ElevatedButton(
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: kFlourishAdobe,
-                  backgroundColor: kFlourishAdobe.withOpacity(0.8),
+                  foregroundColor: Colors.white,
+                  backgroundColor: themeProvider.primaryAppColor,
                   fixedSize: const Size(70, 30),
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
@@ -392,7 +399,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: kFlourishAliceBlue,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -441,11 +448,12 @@ class _TodoItemTileState extends State<TodoItemTile> {
     return '$hour:$minute $amPm';
   }
 
-  void _selectDate(BuildContext context) async {
+  void _selectDate(BuildContext context, ThemeProvider themeProvider) async {
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
+          backgroundColor: themeProvider.popupBackgroundColor,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
@@ -456,17 +464,26 @@ class _TodoItemTileState extends State<TodoItemTile> {
                 height: 300,
                 width: 300,
                 child: Theme(
-                  data: ThemeData.light().copyWith(
-                    colorScheme: ColorScheme.light(
-                      primary: kFlourishAdobe,
-                      onPrimary: Colors.white,
-                      onSurface: Colors.black,
-                      surface: Colors.grey.shade200,
-                    ),
-                    datePickerTheme: const DatePickerThemeData(
-                      backgroundColor: Colors.white,
-                    ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
-                  ),
+                  data: themeProvider.isDarkMode
+                      ? ThemeData.dark().copyWith(
+                          colorScheme: ColorScheme.dark(
+                            primary: themeProvider.primaryAppColor,
+                            onPrimary: Colors.white,
+                            surface: themeProvider.popupBackgroundColor,
+                            onSurface: themeProvider.mainTextColor,
+                          ),
+                          dialogBackgroundColor:
+                              themeProvider.popupBackgroundColor,
+                        )
+                      : ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: themeProvider.primaryAppColor,
+                            onPrimary: Colors.white,
+                            onSurface: themeProvider.mainTextColor,
+                          ),
+                          dialogBackgroundColor:
+                              themeProvider.popupBackgroundColor,
+                        ),
                   child: Builder(
                     builder: (context) {
                       return CalendarDatePicker(
@@ -489,24 +506,24 @@ class _TodoItemTileState extends State<TodoItemTile> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(color: Colors.grey.shade300),
+                    top: BorderSide(color: themeProvider.dividerColor),
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.access_time,
-                        color: kFlourishLightBlackish),
+                    Icon(Icons.access_time,
+                        color: themeProvider.secondaryTextColor),
                     const SizedBox(width: 8),
                     TextButton(
                       onPressed: () {
-                        _selectTime(context);
+                        _selectTime(context, themeProvider);
                       },
                       child: Text(
                         _selectedTime == null
                             ? 'Select time'
                             : _showTimeFormatted(_selectedTime!),
                         style: GoogleFonts.inter(
-                          color: kFlourishBlackish,
+                          color: themeProvider.mainTextColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -528,8 +545,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
                         Navigator.of(context).pop();
                       },
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: kFlourishBlackish,
-                        backgroundColor: kFlourishLightBlackish,
+                        foregroundColor: themeProvider.mainTextColor,
+                        backgroundColor: themeProvider.dividerColor,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         fixedSize: const Size(110, 30),
                         shape: RoundedRectangleBorder(
@@ -551,8 +568,8 @@ class _TodoItemTileState extends State<TodoItemTile> {
                         Navigator.of(context).pop();
                       },
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: kFlourishAliceBlue,
-                        backgroundColor: kFlourishAdobe,
+                        foregroundColor: Colors.white,
+                        backgroundColor: themeProvider.primaryAppColor,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         fixedSize: const Size(110, 30),
                         shape: RoundedRectangleBorder(
@@ -574,36 +591,32 @@ class _TodoItemTileState extends State<TodoItemTile> {
     );
   }
 
-  void _selectTime(BuildContext context) async {
+  void _selectTime(BuildContext context, ThemeProvider themeProvider) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
       initialEntryMode: TimePickerEntryMode.input,
       builder: (BuildContext context, Widget? child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: kFlourishBlackish,
-              onPrimary: Colors.white,
-              onSurface: kFlourishBlackish,
-            ),
-            textSelectionTheme: TextSelectionThemeData(
-              cursorColor: kFlourishBlackish,
-              selectionColor: Colors.grey.shade300,
-              selectionHandleColor: kFlourishBlackish,
-            ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white,
-              hourMinuteTextColor: kFlourishBlackish,
-              dayPeriodTextColor: kFlourishBlackish,
-              dayPeriodColor: kFlourishAdobe,
-              hourMinuteColor: Colors.grey.shade200,
-              dialBackgroundColor: Colors.white,
-              dialHandColor: kFlourishAdobe,
-              dialTextColor: kFlourishBlackish,
-              entryModeIconColor: kFlourishBlackish,
-            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
-          ),
+          data: themeProvider.isDarkMode
+              ? ThemeData.dark().copyWith(
+                  colorScheme: ColorScheme.dark(
+                    primary: themeProvider.primaryAppColor,
+                    onPrimary: Colors.white,
+                    surface: themeProvider.popupBackgroundColor,
+                    onSurface: themeProvider.mainTextColor,
+                  ),
+                  timePickerTheme: TimePickerThemeData(
+                    backgroundColor: themeProvider.popupBackgroundColor,
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: themeProvider.primaryAppColor,
+                    onPrimary: Colors.white,
+                    onSurface: themeProvider.mainTextColor,
+                  ),
+                ),
           child: child!,
         );
       },
@@ -618,7 +631,7 @@ class _TodoItemTileState extends State<TodoItemTile> {
         });
       }
       Navigator.of(context).pop();
-      _selectDate(context);
+      _selectDate(context, themeProvider);
     }
   }
 }

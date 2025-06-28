@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class VolumeSlider extends StatefulWidget {
   const VolumeSlider({required this.volumeChanged, super.key});
@@ -13,6 +15,8 @@ class _VolumeSliderState extends State<VolumeSlider> {
   double volume = 1.0;
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeProvider>(context);
+    final Color iconColor = theme.lightEmphasisColor;
     return SizedBox(
       width: 150,
       child: Row(
@@ -22,6 +26,7 @@ class _VolumeSliderState extends State<VolumeSlider> {
             width: 20,
             height: 20,
             child: IconButton(
+              color: iconColor,
               padding: EdgeInsets.zero,
               iconSize: 15,
               onPressed: () {
@@ -38,10 +43,9 @@ class _VolumeSliderState extends State<VolumeSlider> {
               trackHeight: 2.0,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 10.0),
-              inactiveTrackColor: const Color.fromRGBO(32, 32, 32, 0.5),
-              activeTrackColor: const Color.fromRGBO(66, 66, 66, 1.0),
-              thumbColor: const Color.fromRGBO(45, 45, 45,
-                  1.0), // color of the whole track (past the current pos and buffer)
+              inactiveTrackColor: theme.lightEmphasisColor.withOpacity(0.5),
+              activeTrackColor: theme.lightEmphasisColor,
+              thumbColor: theme.textColor,
             ),
             child: SizedBox(
               width: 80,
@@ -62,6 +66,7 @@ class _VolumeSliderState extends State<VolumeSlider> {
             width: 20,
             height: 20,
             child: IconButton(
+              color: iconColor,
               padding: EdgeInsets.zero,
               iconSize: 15,
               onPressed: () {

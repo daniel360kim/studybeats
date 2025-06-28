@@ -13,6 +13,7 @@ import 'package:studybeats/studyroom/study_tools/study_session/home/home_page.da
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/session_inputs.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/todo_adder.dart';
 import 'package:studybeats/studyroom/study_tools/todo/todo_inputs.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:uuid/uuid.dart';
 
 // Data object for session creation.
@@ -47,7 +48,6 @@ class SessionPageController extends StatefulWidget {
 class _CreateStudySessionPageState extends State<SessionPageController>
     with SingleTickerProviderStateMixin {
   UniqueKey _homeKey = UniqueKey();
-  // Fields to store user inputs.
   String _sessionName = "Untitled Session";
   Duration _studyDuration = const Duration(minutes: 25);
   Duration _breakDuration = const Duration(minutes: 5);
@@ -57,15 +57,12 @@ class _CreateStudySessionPageState extends State<SessionPageController>
   int? _selectedTimerFxId;
   bool isLoopSession = true;
 
-  StudySession?
-      _completedSession; // holds the study session that was just finished
+  StudySession? _completedSession;
 
   int _currentPage = 0;
 
   final PageController _pageController = PageController();
-
   final StudySessionService _studySessionService = StudySessionService();
-
   bool _wasSessionActive = false;
 
   @override
@@ -115,15 +112,14 @@ class _CreateStudySessionPageState extends State<SessionPageController>
     studySessionModel.startSession(newStudySession, _studySessionService);
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
       child: Row(
         children: [
-          if (_currentPage == 1 ||
-              _currentPage == 2) // Hide back button on first and last page
+          if (_currentPage == 1 || _currentPage == 2)
             IconButton(
-              icon: const Icon(Icons.arrow_back, color: kFlourishBlackish),
+              icon: Icon(Icons.arrow_back, color: themeProvider.iconColor),
               onPressed: () {
                 _pageController.previousPage(
                   duration: const Duration(milliseconds: 300),
@@ -138,9 +134,11 @@ class _CreateStudySessionPageState extends State<SessionPageController>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Column(
       children: [
-        _buildHeader(),
+        _buildHeader(themeProvider),
         SizedBox(
           height: _currentPage == 1 || _currentPage == 2
               ? MediaQuery.of(context).size.height - 170
@@ -161,7 +159,6 @@ class _CreateStudySessionPageState extends State<SessionPageController>
                   setState(() {
                     _currentPage = idx;
                     if (idx == 0) {
-                      // Reset the key to force rebuild of home page
                       _homeKey = UniqueKey();
                     }
                   });
@@ -177,10 +174,8 @@ class _CreateStudySessionPageState extends State<SessionPageController>
                     },
                   ),
                   buildSessionNameTimeInputPage(),
-                  buildTaskSelectionPage(),
-                  // Wrap this with a Scaffold to allow BottomNavigationBar to anchor to bottom
+                  buildTaskSelectionPage(themeProvider),
                   CurrentSessionControls(),
-                  // Always show session summary as page 4
                   SessionEndSummary(
                     onClose: () {
                       setState(() {
@@ -242,7 +237,7 @@ class _CreateStudySessionPageState extends State<SessionPageController>
     );
   }
 
-  Widget buildTaskSelectionPage() {
+  Widget buildTaskSelectionPage(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -258,8 +253,8 @@ class _CreateStudySessionPageState extends State<SessionPageController>
               style: ElevatedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                backgroundColor: kFlourishAdobe,
-                foregroundColor: Colors.white,
+                backgroundColor: themeProvider.primaryAppColor,
+                foregroundColor: kFlourishAliceBlue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -286,7 +281,6 @@ class _CreateStudySessionPageState extends State<SessionPageController>
   }
 }
 
-// The StudySessionTodoSelector is included here (it can remain largely unchanged).
 class StudySessionTodoSelector extends StatefulWidget {
   final ValueChanged<List<String>> onSelectionChanged;
 
@@ -313,9 +307,11 @@ class _StudySessionTodoSelectorState extends State<StudySessionTodoSelector> {
     try {
       final listId = await _todoListService.getDefaultTodoListId();
       final todos = await _todoService.fetchTodoItems(listId);
-      setState(() {
-        _todos = todos;
-      });
+      if (mounted) {
+        setState(() {
+          _todos = todos;
+        });
+      }
     } catch (e) {
       debugPrint("Error fetching todos: $e");
     }
@@ -354,6 +350,8 @@ class _StudySessionTodoSelectorState extends State<StudySessionTodoSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -362,14 +360,14 @@ class _StudySessionTodoSelectorState extends State<StudySessionTodoSelector> {
           style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: themeProvider.mainTextColor,
           ),
         ),
         const SizedBox(height: 10),
         _todos.isEmpty
-            ? const Text(
+            ? Text(
                 "No tasks found.",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: themeProvider.secondaryTextColor),
               )
             : ListView.builder(
                 shrinkWrap: true,
@@ -381,12 +379,13 @@ class _StudySessionTodoSelectorState extends State<StudySessionTodoSelector> {
                   return ListTile(
                     title: Text(
                       todo.title,
-                      style: GoogleFonts.inter(color: Colors.white),
+                      style:
+                          GoogleFonts.inter(color: themeProvider.mainTextColor),
                     ),
                     trailing: Checkbox(
                       value: isSelected,
                       onChanged: (val) => _toggleSelection(todo.id),
-                      activeColor: const Color(0xFF58CC02),
+                      activeColor: Colors.green,
                       checkColor: Colors.white,
                     ),
                     onTap: () => _toggleSelection(todo.id),
@@ -396,7 +395,7 @@ class _StudySessionTodoSelectorState extends State<StudySessionTodoSelector> {
         const SizedBox(height: 10),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF58CC02),
+            backgroundColor: Colors.green,
             foregroundColor: Colors.white,
           ),
           onPressed: _addNewTodo,

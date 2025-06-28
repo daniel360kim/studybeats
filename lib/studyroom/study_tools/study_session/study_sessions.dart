@@ -1,10 +1,11 @@
 import 'package:card_swiper/card_swiper.dart';
 import 'package:studybeats/api/study/study_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/page_controller.dart';
+import 'package:studybeats/theme_provider.dart';
 
 /// A Pomodoro Timer widget that displays aggregated statistics and opens a
 /// page for creating new study sessions when the start button is pressed.
@@ -40,21 +41,23 @@ class _PomodoroTimerState extends State<StudySessionSideWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return SizedBox(
       width: 450,
       height: MediaQuery.of(context).size.height - kControlBarHeight,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-              Color(0xFFE0E7FF),
-              Color(0xFFF7F8FC),
+              themeProvider.appBackgroundGradientStart,
+              themeProvider.appBackgroundGradientEnd,
             ])),
         child: Column(
           children: [
-            buildTopBar(),
+            buildTopBar(themeProvider),
             SessionPageController(
                 onSessionCreated: (_) {},
                 onCancel: () {
@@ -67,17 +70,17 @@ class _PomodoroTimerState extends State<StudySessionSideWidget> {
   }
 
   /// Builds the top bar with add and close buttons.
-  Widget buildTopBar() {
+  Widget buildTopBar(ThemeProvider themeProvider) {
     return Container(
       height: 50,
-      color: Colors.white,
+      color: themeProvider.appContentBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
           const Spacer(),
           IconButton(
             onPressed: widget.onClose,
-            icon: const Icon(Icons.close),
+            icon: Icon(Icons.close, color: themeProvider.iconColor),
           ),
         ],
       ),
@@ -90,11 +93,11 @@ class _PomodoroTimerState extends State<StudySessionSideWidget> {
   }
 
   /// Builds a start button that navigates to the new session creation page.
-  Widget buildStartButton() {
+  Widget buildStartButton(ThemeProvider themeProvider) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: kFlourishCyan,
-        foregroundColor: kFlourishBlackish,
+        backgroundColor: themeProvider.primaryAppColor,
+        foregroundColor: Colors.white,
         maximumSize: const Size(130, 120),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),

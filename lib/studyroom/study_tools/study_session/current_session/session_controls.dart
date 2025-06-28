@@ -3,10 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/current_session/session_task_list.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/session_settings.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/todo_adder.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class CurrentSessionControls extends StatefulWidget {
   const CurrentSessionControls({super.key});
@@ -50,12 +50,12 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
     }
   }
 
-  Future<void> _confirmAndEndSession(
-      BuildContext context, StudySessionModel sessionModel) async {
+  Future<void> _confirmAndEndSession(BuildContext context,
+      StudySessionModel sessionModel, ThemeProvider themeProvider) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: themeProvider.popupBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -66,14 +66,15 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
               style: GoogleFonts.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: themeProvider.mainTextColor,
               ),
             ),
           ],
         ),
         content: Text(
           'Are you sure you want to end this study session? Your progress will be saved.',
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+          style: GoogleFonts.inter(
+              fontSize: 14, color: themeProvider.secondaryTextColor),
         ),
         actionsPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -81,7 +82,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
           TextButton(
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: themeProvider.dividerColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -91,7 +92,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
               style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black87),
+                  color: themeProvider.mainTextColor),
             ),
           ),
           TextButton(
@@ -136,6 +137,8 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
   @override
   Widget build(BuildContext context) {
     final sessionModel = Provider.of<StudySessionModel>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     if (!_isEditingTitle &&
         _titleController.text != (sessionModel.currentSession?.title ?? '')) {
       _titleController.text = sessionModel.currentSession?.title ?? '';
@@ -149,7 +152,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
             height: 24,
             width: 24,
             child: CircularProgressIndicator(
-              color: kFlourishAdobe,
+              color: themeProvider.primaryAppColor,
               strokeWidth: 2,
             ),
           ),
@@ -157,6 +160,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
       );
     }
     return Scaffold(
+      backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: true,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -169,31 +173,32 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
             });
           },
           children: [
-            // Page 1: Main session info without task manager
             ListView(
               children: [
-                buildSessionName(sessionModel),
+                buildSessionName(sessionModel, themeProvider),
                 const SizedBox(height: 10),
-                _buildTotalTimeStats(sessionModel),
+                _buildTotalTimeStats(sessionModel, themeProvider),
                 const SizedBox(height: 10),
                 _buildSessionSettings(sessionModel),
                 const SizedBox(height: 10),
-                _buildThemeColorPicker(sessionModel),
+                _buildThemeColorPicker(sessionModel, themeProvider),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
+                    color: themeProvider.appContentBackgroundColor
+                        .withOpacity(0.6),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ElevatedButton(
                     onPressed: () {
-                      _confirmAndEndSession(context, sessionModel);
+                      _confirmAndEndSession(
+                          context, sessionModel, themeProvider);
                     },
                     style: ElevatedButton.styleFrom(
                       maximumSize: const Size(100, 40),
                       minimumSize: const Size(100, 40),
-                      backgroundColor: Colors.white,
+                      backgroundColor: themeProvider.appContentBackgroundColor,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                       shape: RoundedRectangleBorder(
@@ -216,21 +221,21 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                 ),
               ],
             ),
-            // Page 2: Task Manager
-            buildTaskManager(sessionModel),
+            buildTaskManager(sessionModel, themeProvider),
           ],
         ),
       ),
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
-          canvasColor: Colors.white.withOpacity(0.6),
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
         child: BottomNavigationBar(
-          selectedItemColor: kFlourishBlackish,
+          backgroundColor:
+              themeProvider.appContentBackgroundColor.withOpacity(0.8),
+          selectedItemColor: themeProvider.primaryAppColor,
+          unselectedItemColor: themeProvider.secondaryTextColor,
           currentIndex: _currentPage,
-
           onTap: (index) {
             setState(() {
               _currentPage = index;
@@ -241,75 +246,58 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
               );
             });
           },
-          items: [
+          items: const [
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.dashboard,
-                color: _currentPage == 0 ? kFlourishBlackish : Colors.grey,
-              ),
+              icon: Icon(Icons.dashboard_outlined),
               label: 'Overview',
               tooltip: '',
-              backgroundColor: Colors.transparent,
-              activeIcon: Icon(
-                Icons.dashboard,
-                color: kFlourishBlackish,
-              ),
+              activeIcon: Icon(Icons.dashboard),
             ),
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.checklist,
-                color: _currentPage == 1 ? kFlourishBlackish : Colors.grey,
-              ),
+              icon: Icon(Icons.checklist_outlined),
               label: 'Tasks',
               tooltip: '',
-              backgroundColor: Colors.transparent,
-              activeIcon: Icon(
-                Icons.checklist,
-                color: kFlourishBlackish,
-              ),
+              activeIcon: Icon(Icons.checklist),
             ),
           ],
           selectedLabelStyle: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: kFlourishBlackish,
           ),
           unselectedLabelStyle: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: Colors.grey,
           ),
-          type: BottomNavigationBarType.fixed, // Prevents ink animation
-          enableFeedback: false, // Disables feedback animations
-          elevation: 0, // Removes shadow/ink effect
+          type: BottomNavigationBarType.fixed,
+          enableFeedback: false,
+          elevation: 0,
         ),
       ),
     );
   }
 
-  Widget buildTaskManager(StudySessionModel sessionModel) {
+  Widget buildTaskManager(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        // restrict height to max allowed, but shrink-wrap if less
-        maxHeight: 350,
-      ),
+      constraints: const BoxConstraints(maxHeight: 350),
       child: PageView(
         controller: _taskPageController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          _buildTaskListCard(sessionModel),
+          _buildTaskListCard(sessionModel, themeProvider),
           SingleChildScrollView(
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
+                color: themeProvider.appContentBackgroundColor.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon:
+                        Icon(Icons.arrow_back, color: themeProvider.iconColor),
                     tooltip: 'Back to tasks',
                     onPressed: () {
                       _taskPageController.animateToPage(
@@ -321,10 +309,8 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                   ),
                   const SizedBox(height: 12),
                   TodoAdder(
-                    // Pass in the already added todos from the current session as initial selection
                     initialSelectedTodoItems:
                         sessionModel.currentSession?.todos ?? {},
-                    // Update the session by replacing the entire todos set
                     onTodoItemToggled: (selectedItems) async {
                       await sessionModel.updateSession(
                         sessionModel.currentSession!
@@ -342,11 +328,12 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
     );
   }
 
-  Widget _buildTaskListCard(StudySessionModel sessionModel) {
+  Widget _buildTaskListCard(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: themeProvider.appContentBackgroundColor.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -359,13 +346,13 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: kFlourishBlackish,
+                  color: themeProvider.mainTextColor,
                 ),
               ),
               const SizedBox(width: 3),
               IconButton(
                 tooltip: 'Add more tasks',
-                icon: const Icon(Icons.add),
+                icon: Icon(Icons.add, color: themeProvider.iconColor),
                 onPressed: () {
                   _taskPageController.animateToPage(
                     1,
@@ -385,7 +372,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700,
+                    color: themeProvider.secondaryTextColor,
                   ),
                 ),
               ],
@@ -400,11 +387,17 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
     );
   }
 
-  Widget _buildTotalTimeStats(StudySessionModel sessionModel) {
+  Widget _buildTotalTimeStats(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
+    final inactiveColor = themeProvider.secondaryTextColor;
+    final inactiveBgColor = themeProvider.dividerColor;
+    final activeColor = sessionModel.currentSession!.themeColor;
+    final activeBgColor = activeColor.withOpacity(0.2);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: themeProvider.appContentBackgroundColor.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -414,8 +407,8 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: sessionModel.currentPhase == SessionPhase.studyTime
-                    ? sessionModel.currentSession!.themeColor.withOpacity(0.2)
-                    : Colors.grey.shade200,
+                    ? activeBgColor
+                    : inactiveBgColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -427,16 +420,15 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       color: sessionModel.currentPhase == SessionPhase.studyTime
-                          ? sessionModel.currentSession!.themeColor
-                          : Colors.grey.shade600,
+                          ? activeColor
+                          : inactiveColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _formatDuration(
                       sessionModel.accumulatedStudyDuration +
-                          (sessionModel.currentPhase ==
-                                      SessionPhase.studyTime
+                          (sessionModel.currentPhase == SessionPhase.studyTime
                               ? DateTime.now()
                                   .difference(sessionModel.startTime)
                               : Duration.zero),
@@ -445,8 +437,8 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: sessionModel.currentPhase == SessionPhase.studyTime
-                          ? sessionModel.currentSession!.themeColor
-                          : Colors.grey.shade700,
+                          ? activeColor
+                          : inactiveColor,
                     ),
                   ),
                 ],
@@ -459,8 +451,8 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: sessionModel.currentPhase == SessionPhase.breakTime
-                    ? sessionModel.currentSession!.themeColor.withOpacity(0.2)
-                    : Colors.grey.shade200,
+                    ? activeBgColor
+                    : inactiveBgColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -472,16 +464,15 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       color: sessionModel.currentPhase == SessionPhase.breakTime
-                          ? sessionModel.currentSession!.themeColor
-                          : Colors.grey.shade600,
+                          ? activeColor
+                          : inactiveColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _formatDuration(
                       sessionModel.accumulatedBreakDuration +
-                          (sessionModel.currentPhase ==
-                                      SessionPhase.breakTime
+                          (sessionModel.currentPhase == SessionPhase.breakTime
                               ? DateTime.now()
                                   .difference(sessionModel.startTime)
                               : Duration.zero),
@@ -490,8 +481,8 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: sessionModel.currentPhase == SessionPhase.breakTime
-                          ? sessionModel.currentSession!.themeColor
-                          : Colors.grey.shade700,
+                          ? activeColor
+                          : inactiveColor,
                     ),
                   ),
                 ],
@@ -504,37 +495,32 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
   }
 
   Widget _buildSessionSettings(StudySessionModel sessionModel) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SessionSettings(
-          outlineEnabled: false,
-          onTimerSoundEnabled: (enabled) {
-            sessionModel.updateSession(
-              sessionModel.currentSession!.copyWith(
-                soundEnabled: enabled,
-              ),
-              _studySessionService,
-            );
-          },
-          onTimerSoundSelected: (selected) {
-            sessionModel.updateSession(
-              sessionModel.currentSession!.copyWith(
-                soundFxId: selected.id,
-              ),
-              _studySessionService,
-            );
-          }),
-    );
+    return SessionSettings(
+        outlineEnabled: false,
+        onTimerSoundEnabled: (enabled) {
+          sessionModel.updateSession(
+            sessionModel.currentSession!.copyWith(
+              soundEnabled: enabled,
+            ),
+            _studySessionService,
+          );
+        },
+        onTimerSoundSelected: (selected) {
+          sessionModel.updateSession(
+            sessionModel.currentSession!.copyWith(
+              soundFxId: selected.id,
+            ),
+            _studySessionService,
+          );
+        });
   }
 
-  Widget _buildThemeColorPicker(StudySessionModel sessionModel) {
+  Widget _buildThemeColorPicker(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: themeProvider.appContentBackgroundColor.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -545,7 +531,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kFlourishBlackish,
+              color: themeProvider.mainTextColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -578,7 +564,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                         border: Border.all(
                           color:
                               sessionModel.currentSession?.themeColor == color
-                                  ? Colors.black
+                                  ? themeProvider.mainTextColor
                                   : Colors.transparent,
                           width: 2,
                         ),
@@ -606,11 +592,12 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
     }
   }
 
-  Widget buildSessionName(StudySessionModel sessionModel) {
+  Widget buildSessionName(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: themeProvider.appContentBackgroundColor.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Tooltip(
@@ -635,7 +622,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                 });
 
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Future.delayed(Duration(milliseconds: 10), () {
+                  Future.delayed(const Duration(milliseconds: 10), () {
                     if (!_focusNode.hasFocus) {
                       _focusNode.requestFocus();
                       _titleController.selection = TextSelection.fromPosition(
@@ -655,17 +642,15 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                       child: Theme(
                         data: Theme.of(context).copyWith(
                           textSelectionTheme: TextSelectionThemeData(
-                            cursorColor:
-                                kFlourishBlackish, // Changed highlight color
-                            selectionColor: Colors.blue.withOpacity(0.3),
+                            cursorColor: themeProvider.primaryAppColor,
+                            selectionColor:
+                                themeProvider.primaryAppColor.withOpacity(0.3),
                           ),
                         ),
                         child: AbsorbPointer(
                           absorbing: !_isEditingTitle,
                           child: TextField(
-                            cursorColor:
-                                kFlourishBlackish, // Changed highlight color
-
+                            cursorColor: themeProvider.primaryAppColor,
                             controller: _titleController,
                             readOnly: !_isEditingTitle,
                             focusNode: _focusNode,
@@ -674,19 +659,19 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                             style: GoogleFonts.inter(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
-                              color: kFlourishBlackish,
+                              color: themeProvider.mainTextColor,
                             ),
                             decoration: InputDecoration(
                               enabledBorder: _isEditingTitle
                                   ? UnderlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: kFlourishBlackish),
+                                      borderSide: BorderSide(
+                                          color: themeProvider.primaryAppColor),
                                     )
                                   : InputBorder.none,
                               focusedBorder: _isEditingTitle
                                   ? UnderlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: kFlourishBlackish))
+                                      borderSide: BorderSide(
+                                          color: themeProvider.primaryAppColor))
                                   : InputBorder.none,
                             ),
                             onSubmitted: (value) async {
@@ -707,7 +692,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                       Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.close, color: Colors.red),
+                            icon: const Icon(Icons.close, color: Colors.red),
                             onPressed: () {
                               setState(() {
                                 _isEditingTitle = false;
@@ -717,7 +702,7 @@ class _CurrentSessionControlsState extends State<CurrentSessionControls> {
                             },
                           ),
                           IconButton(
-                            icon: Icon(Icons.check, color: Colors.green),
+                            icon: const Icon(Icons.check, color: Colors.green),
                             onPressed: () async {
                               await sessionModel.updateSession(
                                 sessionModel.currentSession!

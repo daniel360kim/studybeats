@@ -1,4 +1,3 @@
-// Replace the top of the file with the following (adding an internal state for loop sessions)
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,14 +5,14 @@ import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
 import 'package:studybeats/api/study/timer_fx/timer_fx_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/timer_player.dart';
+
+import 'package:studybeats/theme_provider.dart';
 
 class SessionSettings extends StatefulWidget {
   final ValueChanged<bool> onTimerSoundEnabled;
   final ValueChanged<TimerFxData> onTimerSoundSelected;
-  // Optionally add a callback for loop session changes:
   final ValueChanged<bool>? onLoopSessionChanged;
   final bool outlineEnabled;
 
@@ -33,13 +32,12 @@ class _SessionSettingsState extends State<SessionSettings> {
   List<TimerFxData> _timerFxList = [];
   TimerFxData? _selectedTimerFx;
   bool _enableTimerSound = true;
-  final bool _loopSession = true; // New state variable for looping sessions
+  final bool _loopSession = true;
 
   bool _error = false;
 
   final TimerFxService _timerFxService = TimerFxService();
   final TimerPlayer _timerPlayer = TimerPlayer();
-
   final _logger = getLogger('_SessionSettingsState');
 
   @override
@@ -61,7 +59,7 @@ class _SessionSettingsState extends State<SessionSettings> {
           Provider.of<StudySessionModel>(context, listen: false);
       final timerFxList = await _timerFxService.getTimerFxData();
 
-      if (timerFxList.isNotEmpty) {
+      if (mounted && timerFxList.isNotEmpty) {
         setState(() {
           _timerFxList = timerFxList;
 
@@ -80,23 +78,26 @@ class _SessionSettingsState extends State<SessionSettings> {
           widget.onTimerSoundEnabled(_enableTimerSound);
           widget.onTimerSoundSelected(_selectedTimerFx!);
         });
-      } else {
+      } else if (mounted) {
         setState(() {
           _error = true;
           _logger.e('No timer sound fx found');
         });
       }
     } catch (e) {
-      setState(() {
-        _error = true;
-        _logger.e('Error getting timer sound fx: $e');
-      });
+      if (mounted) {
+        setState(() {
+          _error = true;
+          _logger.e('Error getting timer sound fx: $e');
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_error) return const SizedBox();
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -104,7 +105,7 @@ class _SessionSettingsState extends State<SessionSettings> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: widget.outlineEnabled
-              ? kFlourishBlackish.withOpacity(0.1)
+              ? themeProvider.dividerColor
               : Colors.transparent,
         ),
       ),
@@ -113,7 +114,6 @@ class _SessionSettingsState extends State<SessionSettings> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // FIRST SETTING: Sound Effects Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -124,7 +124,7 @@ class _SessionSettingsState extends State<SessionSettings> {
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: kFlourishBlackish,
+                        color: themeProvider.mainTextColor,
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -134,14 +134,15 @@ class _SessionSettingsState extends State<SessionSettings> {
                       child: Icon(
                         Icons.info_outline,
                         size: 16,
-                        color: kFlourishBlackish,
+                        color: themeProvider.secondaryTextColor,
                       ),
                     ),
                   ],
                 ),
                 Switch(
                   value: _enableTimerSound,
-                  activeColor: kFlourishAdobe,
+                  activeColor: themeProvider.primaryAppColor,
+                  inactiveTrackColor: themeProvider.backgroundColor,
                   onChanged: (val) {
                     setState(() {
                       _enableTimerSound = val;
@@ -151,7 +152,6 @@ class _SessionSettingsState extends State<SessionSettings> {
                 ),
               ],
             ),
-            // Animated dropdown for sound effect selection when enabled
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               transitionBuilder: (child, animation) =>
@@ -160,7 +160,7 @@ class _SessionSettingsState extends State<SessionSettings> {
                   ? Padding(
                       key: const ValueKey('sound_selection'),
                       padding: const EdgeInsets.only(top: 12),
-                      child: _buildSoundFxSelectionUI(),
+                      child: _buildSoundFxSelectionUI(themeProvider),
                     )
                   : const SizedBox(key: ValueKey('empty')),
             ),
@@ -170,18 +170,24 @@ class _SessionSettingsState extends State<SessionSettings> {
     );
   }
 
-  Widget _buildSoundFxSelectionUI() {
+  Widget _buildSoundFxSelectionUI(ThemeProvider themeProvider) {
     return _timerFxList.isEmpty
         ? Center(
             child: SizedBox(
               width: double.infinity,
               height: 36,
               child: Shimmer.fromColors(
-                baseColor: kFlourishBlackish.withOpacity(0.1),
-                highlightColor: kFlourishBlackish.withOpacity(0.2),
+                baseColor: themeProvider.isDarkMode
+                    ? Colors.grey[800]!
+                    : Colors.grey[200]!,
+                highlightColor: themeProvider.isDarkMode
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: kFlourishBlackish.withOpacity(0.1),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]!
+                        : Colors.grey[200]!,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -189,26 +195,22 @@ class _SessionSettingsState extends State<SessionSettings> {
             ),
           )
         : Theme(
-            // Override the splash and highlight colors so nothing “fills in” on tap.
             data: Theme.of(context).copyWith(
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-              focusColor: Colors.transparent,
+              canvasColor: themeProvider.popupBackgroundColor,
             ),
             child: Container(
               height: 36,
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: kFlourishBlackish.withOpacity(0.1)),
+                border: Border.all(color: themeProvider.inputBorderColor),
               ),
               child: DropdownButton<TimerFxData>(
                 value: _selectedTimerFx,
                 isExpanded: true,
-                icon: const Icon(Icons.arrow_drop_down),
+                icon:
+                    Icon(Icons.arrow_drop_down, color: themeProvider.iconColor),
                 iconSize: 24,
                 elevation: 16,
                 underline: Container(),
@@ -218,7 +220,7 @@ class _SessionSettingsState extends State<SessionSettings> {
                     child: Text(
                       timerFxData.name,
                       style: GoogleFonts.inter(
-                        color: kFlourishBlackish,
+                        color: themeProvider.mainTextColor,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),

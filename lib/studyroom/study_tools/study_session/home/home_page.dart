@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class StudySessionHomePage extends StatefulWidget {
   const StudySessionHomePage({required this.onSessionStart, super.key});
@@ -27,7 +29,6 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
   @override
   void initState() {
     super.initState();
-    // Initialize service once, then fetch streak and stats
     final initialization = _studySessionService.init();
     _currentStreakFuture =
         initialization.then((_) => _studySessionService.getCurrentStreak());
@@ -37,13 +38,12 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
   }
 
   void _initAuth() async {
-    // Import AuthService at the top of your file if not already imported.
-    // ignore: import_of_legacy_library_into_null_safe
-
     final user = await AuthService().getCurrentUser();
-    setState(() {
-      _isAnonymous = user.isAnonymous;
-    });
+    if (mounted) {
+      setState(() {
+        _isAnonymous = user.isAnonymous;
+      });
+    }
   }
 
   DateTime _getStartOfWeek(int weeksBack) {
@@ -56,25 +56,27 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
-          _buildStartSessionButton(),
+          _buildStartSessionButton(themeProvider),
           if (_isAnonymous && !_dismissedAnonWarning)
             Container(
               margin: const EdgeInsets.only(top: 12, bottom: 16),
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1),
+                color: themeProvider.warningBackgroundColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFFE0B2)),
+                border: Border.all(color: themeProvider.warningBorderColor),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      size: 20, color: Color(0xFFF57C00)),
+                  Icon(Icons.warning_amber_rounded,
+                      size: 20, color: themeProvider.warningIconColor),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -82,13 +84,13 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                       style: GoogleFonts.inter(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF6D4C41),
+                        color: themeProvider.warningTextColor,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close,
-                        size: 18, color: Color(0xFF6D4C41)),
+                    icon: Icon(Icons.close,
+                        size: 18, color: themeProvider.warningTextColor),
                     padding: EdgeInsets.zero,
                     onPressed: () {
                       setState(() {
@@ -100,36 +102,41 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
               ),
             ),
           const SizedBox(height: 16),
-          _buildStreakCard(),
+          _buildStreakCard(themeProvider),
           const SizedBox(height: 20),
-          _buildAllTimeStats(),
+          _buildAllTimeStats(themeProvider),
           const SizedBox(height: 20),
-          _buildWeeklyChartSection(),
+          _buildWeeklyChartSection(themeProvider),
         ],
       ),
     );
   }
 
-  Widget _buildAllTimeStats() {
+  Widget _buildAllTimeStats(ThemeProvider themeProvider) {
     return FutureBuilder<StudyStatistics>(
       future: _allTimeStatsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Shimmer.fromColors(
-            baseColor: kFlourishAliceBlue,
-            highlightColor: Colors.grey.shade200,
+            baseColor: themeProvider.isDarkMode
+                ? Colors.grey[800]!
+                : Colors.grey[100]!,
+            highlightColor: themeProvider.isDarkMode
+                ? Colors.grey[700]!
+                : Colors.grey[200]!,
             child: Container(
               width: 450,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: themeProvider.appContentBackgroundColor,
                 borderRadius: BorderRadius.circular(15),
               ),
             ),
           );
         }
         if (snapshot.hasError) {
-          return Text('No data');
+          return Text('No data',
+              style: TextStyle(color: themeProvider.mainTextColor));
         }
 
         final totalStudy = snapshot.data!.totalStudyTime;
@@ -141,7 +148,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           width: 450,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeProvider.appContentBackgroundColor,
             borderRadius: BorderRadius.circular(15),
           ),
           child: Column(
@@ -152,7 +159,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: themeProvider.mainTextColor,
                 ),
               ),
               const SizedBox(height: 16),
@@ -162,19 +169,22 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                   _buildMetricCard(
                     'Focus Time',
                     _formatTime(totalStudy),
-                    kFlourishBlue,
+                    kFlourishAdobe,
+                    themeProvider,
                   ),
                   const SizedBox(height: 16),
                   _buildMetricCard(
                     'Break Time',
                     _formatTime(totalBreak),
-                    kFlourishAdobe,
+                    Colors.blueAccent,
+                    themeProvider,
                   ),
                   const SizedBox(height: 16),
                   _buildMetricCard(
                     'Todos Completed',
                     totalTodosCompleted,
-                    Colors.green,
+                    Colors.greenAccent,
+                    themeProvider,
                   ),
                 ],
               ),
@@ -186,7 +196,8 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
     );
   }
 
-  Widget _buildMetricCard(String label, String value, Color color) {
+  Widget _buildMetricCard(
+      String label, String value, Color color, ThemeProvider themeProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -194,23 +205,29 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           children: [
             CircleAvatar(radius: 4, backgroundColor: color),
             const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
+            Text(label,
+                style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: themeProvider.mainTextColor)),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: themeProvider.mainTextColor),
         ),
       ],
     );
   }
 
-  Widget _buildWeekNavigator() {
+  Widget _buildWeekNavigator(ThemeProvider themeProvider) {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left),
+          icon: Icon(Icons.chevron_left, color: themeProvider.iconColor),
           onPressed: () => setState(() => _weeksBack++),
         ),
         Expanded(
@@ -220,20 +237,20 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: themeProvider.mainTextColor,
               ),
             ),
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_right),
+          icon: Icon(Icons.chevron_right, color: themeProvider.iconColor),
           onPressed: _weeksBack > 0 ? () => setState(() => _weeksBack--) : null,
         ),
       ],
     );
   }
 
-  Widget _buildWeeklyChartSection() {
+  Widget _buildWeeklyChartSection(ThemeProvider themeProvider) {
     return FutureBuilder<Map<DateTime, StudyStatistics>>(
       future:
           _studySessionService.getWeeklyDailyStatistics(weeksBack: _weeksBack),
@@ -245,31 +262,29 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
-              color: Colors.white,
+              color: themeProvider.appContentBackgroundColor,
             ),
           );
         }
         if (snapshot.hasError) {
-          return Text('Error loading weekly data: ${snapshot.error}');
+          return Text('Error loading weekly data: ${snapshot.error}',
+              style: TextStyle(color: themeProvider.mainTextColor));
         }
         final statsMap = snapshot.data!;
         final start = _getStartOfWeek(_weeksBack);
 
-        // Determine raw maximum minutes across study and break
         final rawMaxMinutes = statsMap.values
             .map((s) => s.totalStudyTime.inMinutes + s.totalBreakTime.inMinutes)
-            .reduce((a, b) => a > b ? a : b);
-        // If maximum is under 60 minutes, use four 15-minute intervals
+            .fold(0, (prev, e) => prev > e ? prev : e);
+
         double chartMaxY;
         double interval;
         bool useMinuteLabels = false;
         if (rawMaxMinutes > 0 && rawMaxMinutes < 60) {
-          // 1 hour = 4 intervals of 15 minutes -> 1.0 hours total
           chartMaxY = 1.0;
-          interval = 0.25; // quarter hour
+          interval = 0.25;
           useMinuteLabels = true;
         } else {
-          // Convert to hours and split into 4 segments
           final rawMaxHours = rawMaxMinutes / 60.0;
           const int segments = 4;
           final rawInterval = rawMaxHours / segments;
@@ -277,7 +292,6 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           chartMaxY = interval * segments;
         }
 
-        // Calculate daily averages for the week
         final totalStudySeconds = statsMap.values
             .map((s) => s.totalStudyTime.inSeconds)
             .fold(0, (prev, e) => prev + e);
@@ -288,7 +302,6 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
 
         final dailyAverageStudy = Duration(seconds: totalStudySeconds ~/ 7);
 
-        // Build grouped bars
         final bars = <BarChartGroupData>[];
         for (int i = 0; i < 7; i++) {
           final day = start.add(Duration(days: i));
@@ -301,8 +314,9 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           final isFuture = DateTime(day.year, day.month, day.day).isAfter(
             DateTime(today.year, today.month, today.day),
           );
-          final studyColor = isFuture ? Colors.grey.shade300 : kFlourishBlue;
-          final breakColor = isFuture ? Colors.grey.shade200 : kFlourishAdobe;
+          final studyColor = isFuture ? Colors.grey.shade700 : kFlourishAdobe;
+          final breakColor =
+              isFuture ? Colors.grey.shade800 : Colors.blueAccent;
 
           bars.add(BarChartGroupData(
             x: i,
@@ -326,18 +340,18 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: Colors.white,
+            color: themeProvider.appContentBackgroundColor,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildWeekNavigator(),
+              _buildWeekNavigator(themeProvider),
               const SizedBox(height: 16),
               Text(
                 'Daily Average',
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: kFlourishLightBlackish,
+                  color: themeProvider.secondaryTextColor,
                 ),
               ),
               Text(
@@ -345,7 +359,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                 style: GoogleFonts.inter(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: themeProvider.mainTextColor,
                 ),
               ),
               const SizedBox(height: 16),
@@ -380,7 +394,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                       drawVerticalLine: false,
                       horizontalInterval: interval,
                       getDrawingHorizontalLine: (_) => FlLine(
-                        color: Colors.grey.shade300,
+                        color: themeProvider.dividerColor,
                         strokeWidth: 1,
                       ),
                     ),
@@ -393,8 +407,9 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                             final labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
                             return Text(
                               labels[x.toInt()],
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.black87),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: themeProvider.mainTextColor),
                             );
                           },
                         ),
@@ -405,15 +420,14 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                           interval: interval,
                           reservedSize: 40,
                           getTitlesWidget: (value, meta) {
+                            final style = TextStyle(
+                                fontSize: 10,
+                                color: themeProvider.secondaryTextColor);
                             if (useMinuteLabels) {
                               final mins = (value * 60).toInt();
-                              return Text('${mins}m',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.black54));
+                              return Text('${mins}m', style: style);
                             } else {
-                              return Text('${value.toInt()}h',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.black54));
+                              return Text('${value.toInt()}h', style: style);
                             }
                           },
                         ),
@@ -431,11 +445,11 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  buildLegendItem('Focus', kFlourishBlue,
-                      Duration(seconds: totalStudySeconds)),
+                  buildLegendItem('Focus', kFlourishAdobe,
+                      Duration(seconds: totalStudySeconds), themeProvider),
                   const SizedBox(width: 20),
-                  buildLegendItem('Break', kFlourishAdobe,
-                      Duration(seconds: totalBreakSeconds)),
+                  buildLegendItem('Break', Colors.blueAccent,
+                      Duration(seconds: totalBreakSeconds), themeProvider),
                 ],
               )
             ],
@@ -445,7 +459,8 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
     );
   }
 
-  Widget buildLegendItem(String label, Color color, Duration time) {
+  Widget buildLegendItem(
+      String label, Color color, Duration time, ThemeProvider themeProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -462,7 +477,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           _formatTime(time),
           style: GoogleFonts.inter(
             fontSize: 12,
-            color: Colors.black,
+            color: themeProvider.mainTextColor,
           ),
         ),
       ],
@@ -478,7 +493,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
     }
   }
 
-  Widget _buildStreakCard() {
+  Widget _buildStreakCard(ThemeProvider themeProvider) {
     return FutureBuilder<int>(
       future: _currentStreakFuture,
       builder: (context, snap) {
@@ -486,33 +501,32 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snap.hasError) {
-          return Text('No data');
+          return Text('No data',
+              style: TextStyle(color: themeProvider.mainTextColor));
         }
         final streak = snap.data!;
         return Container(
           width: 450,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeProvider.appContentBackgroundColor,
             borderRadius: BorderRadius.circular(15),
           ),
           child: Row(
             children: [
-              // Icon and vertical separator
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: kFlourishAdobe.withOpacity(0.1),
+                  color: themeProvider.primaryAppColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.local_fire_department,
-                  color: kFlourishAdobe,
+                  color: themeProvider.primaryAppColor,
                   size: 32,
                 ),
               ),
               const SizedBox(width: 16),
-              // Text
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -521,7 +535,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black,
+                      color: themeProvider.mainTextColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -530,7 +544,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
                     style: GoogleFonts.inter(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: kFlourishAdobe),
+                        color: themeProvider.primaryAppColor),
                   ),
                 ],
               ),
@@ -541,8 +555,7 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
     );
   }
 
-  /// Renders a prominent “Start Session” button fitting the app aesthetic.
-  Widget _buildStartSessionButton() {
+  Widget _buildStartSessionButton(ThemeProvider provider) {
     return SizedBox(
       width: 100,
       child: ElevatedButton.icon(
@@ -555,8 +568,8 @@ class _StudySessionHomePageState extends State<StudySessionHomePage> {
           maximumSize: const Size(100, 50),
           minimumSize: const Size(100, 50),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          backgroundColor: kFlourishAdobe,
-          foregroundColor: kFlourishAliceBlue,
+          backgroundColor: provider.primaryAppColor,
+          foregroundColor: provider.emphasisColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/colors.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/study_tools/aichat/aichat.dart';
@@ -212,15 +213,18 @@ class StudyToolbarState extends State<StudyToolbar> {
     // Using .watch() ensures this widget rebuilds when the state changes.
     final controller = context.watch<StudyToolbarController>();
 
+    final theme = Provider.of<ThemeProvider>(context);
+
     return Row(
       children: [
-        _buildControlBar(controller),
+        _buildControlBar(controller, theme),
         _getSelectedWidget(controller),
       ],
     );
   }
 
-  Widget _buildControlBar(StudyToolbarController controller) {
+  Widget _buildControlBar(
+      StudyToolbarController controller, ThemeProvider theme) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
@@ -229,9 +233,11 @@ class StudyToolbarState extends State<StudyToolbar> {
           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.6),
-              border: const Border(
-                bottom: BorderSide(color: Colors.grey, width: 1.0),
+              color: theme.emphasisColor.withOpacity(0.8),
+              border: Border(
+                bottom: BorderSide(
+                    color: theme.lightEmphasisColor.withOpacity(0.3),
+                    width: 1.0),
               ),
             ),
             height: MediaQuery.of(context).size.height - kControlBarHeight,
@@ -400,6 +406,7 @@ class _NavigationItemState extends State<NavigationItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeProvider>(context);
     final bool isSelected = widget.option == widget.selectedOption;
 
     return MouseRegion(
@@ -422,13 +429,14 @@ class _NavigationItemState extends State<NavigationItem> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isSelected || _hovering
-                            ? Colors.white.withOpacity(0.4)
+                            ? theme.emphasisColor.withOpacity(0.3)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(10.0),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.5),
+                                  color:
+                                      theme.lightEmphasisColor.withOpacity(0.5),
                                   offset: const Offset(0, 2),
                                   blurRadius: 8.0,
                                 ),

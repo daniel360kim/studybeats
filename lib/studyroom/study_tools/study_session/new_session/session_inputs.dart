@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/study/timer_fx/objects.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/timer_swiper.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/session_settings.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class SessionInputs extends StatefulWidget {
   const SessionInputs({
@@ -35,13 +36,14 @@ class _SessionInputsState extends State<SessionInputs>
   @override
   bool get wantKeepAlive => true;
 
-  // Timers for Focus and Break sessions.
   Duration studyTime = const Duration(minutes: 25);
   Duration breakTime = const Duration(minutes: 5);
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // for AutomaticKeepAliveClientMixin
+    super.build(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -52,16 +54,16 @@ class _SessionInputsState extends State<SessionInputs>
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: kFlourishBlackish,
+              color: themeProvider.mainTextColor,
             ),
           ),
           const SizedBox(height: 10),
-          _buildTextField(),
+          _buildTextField(themeProvider),
           const SizedBox(height: 20),
-          _buildTimerSetters(),
+          _buildTimerSetters(themeProvider),
           const SizedBox(height: 50),
           Divider(
-            color: kFlourishLightBlackish,
+            color: themeProvider.dividerColor,
             height: 1,
           ),
           const SizedBox(height: 30),
@@ -81,7 +83,7 @@ class _SessionInputsState extends State<SessionInputs>
                 style: ElevatedButton.styleFrom(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  backgroundColor: kFlourishAdobe,
+                  backgroundColor: themeProvider.primaryAppColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -100,29 +102,29 @@ class _SessionInputsState extends State<SessionInputs>
     );
   }
 
-  TextField _buildTextField() {
+  TextField _buildTextField(ThemeProvider themeProvider) {
     return TextField(
-      style: const TextStyle(color: kFlourishBlackish),
+      style: TextStyle(color: themeProvider.mainTextColor),
       decoration: InputDecoration(
         hintText: 'Enter a name for your session',
-        hintStyle:
-            GoogleFonts.inter(color: kFlourishLightBlackish, fontSize: 14),
+        hintStyle: GoogleFonts.inter(
+            color: themeProvider.secondaryTextColor, fontSize: 14),
         border: const OutlineInputBorder(),
         enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: kFlourishLightBlackish),
+          borderSide: BorderSide(color: themeProvider.inputBorderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: kFlourishBlackish),
+          borderSide: BorderSide(color: themeProvider.primaryAppColor),
         ),
       ),
-      cursorColor: kFlourishBlackish,
+      cursorColor: themeProvider.primaryAppColor,
       onChanged: (value) {
         widget.onSessionNameChangeed(value);
       },
     );
   }
 
-  Widget _buildTimerSetters() {
+  Widget _buildTimerSetters(ThemeProvider themeProvider) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -135,6 +137,7 @@ class _SessionInputsState extends State<SessionInputs>
               studyTime = newTime;
             });
           },
+          themeProvider: themeProvider,
         ),
         const SizedBox(width: 20),
         _buildTimeItem(
@@ -146,6 +149,7 @@ class _SessionInputsState extends State<SessionInputs>
               breakTime = newTime;
             });
           },
+          themeProvider: themeProvider,
         ),
       ],
     );
@@ -155,6 +159,7 @@ class _SessionInputsState extends State<SessionInputs>
     required String title,
     required int initialTimeMinutes,
     required ValueChanged<Duration> onTimeChanged,
+    required ThemeProvider themeProvider,
   }) {
     final GlobalKey timeKey = GlobalKey();
 
@@ -162,19 +167,21 @@ class _SessionInputsState extends State<SessionInputs>
       children: [
         Text(
           title,
-          style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+          style: GoogleFonts.inter(
+              fontSize: 16, color: themeProvider.secondaryTextColor),
         ),
         const SizedBox(height: 6),
         Container(
           width: 50,
           height: 2,
-          color: Colors.grey[600],
+          color: themeProvider.secondaryTextColor,
         ),
         const SizedBox(height: 10),
         Container(
           key: timeKey,
           child: _TimeDropdownButton(
             minutes: initialTimeMinutes,
+            themeProvider: themeProvider,
             onTap: () {
               _showTimerPickerMenu(
                   key: timeKey,
@@ -190,7 +197,8 @@ class _SessionInputsState extends State<SessionInputs>
                     onTimeChanged(
                       duration,
                     );
-                  });
+                  },
+                  themeProvider: themeProvider);
             },
           ),
         ),
@@ -203,6 +211,7 @@ class _SessionInputsState extends State<SessionInputs>
     required String pickerTitle,
     required int initialTime,
     required ValueChanged<int> onTimeChanged,
+    required ThemeProvider themeProvider,
   }) async {
     final RenderBox renderBox =
         key.currentContext!.findRenderObject() as RenderBox;
@@ -220,6 +229,8 @@ class _SessionInputsState extends State<SessionInputs>
     final int? result = await showMenu<int>(
       context: context,
       position: position,
+      color: themeProvider.popupBackgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: [
         PopupMenuItem<int>(
           enabled: false,
@@ -242,11 +253,12 @@ class _SessionInputsState extends State<SessionInputs>
                             style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: kFlourishBlackish,
+                              color: themeProvider.mainTextColor,
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close),
+                            icon: Icon(Icons.close,
+                                color: themeProvider.iconColor),
                             onPressed: () {
                               Navigator.of(context).pop(null);
                             },
@@ -254,7 +266,10 @@ class _SessionInputsState extends State<SessionInputs>
                         ],
                       ),
                     ),
-                    const Divider(height: 1, thickness: 1),
+                    Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: themeProvider.dividerColor),
                     Expanded(
                       child: TimerSwiperItem(
                         hourLowerValue: 0,
@@ -284,7 +299,7 @@ class _SessionInputsState extends State<SessionInputs>
                               'Cancel',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
-                                color: Colors.grey[600],
+                                color: themeProvider.secondaryTextColor,
                               ),
                             ),
                           ),
@@ -296,7 +311,7 @@ class _SessionInputsState extends State<SessionInputs>
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 12),
-                              backgroundColor: kFlourishAdobe,
+                              backgroundColor: themeProvider.primaryAppColor,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -328,8 +343,12 @@ class _SessionInputsState extends State<SessionInputs>
 class _TimeDropdownButton extends StatelessWidget {
   final int minutes;
   final VoidCallback onTap;
+  final ThemeProvider themeProvider;
 
-  const _TimeDropdownButton({required this.minutes, required this.onTap});
+  const _TimeDropdownButton(
+      {required this.minutes,
+      required this.onTap,
+      required this.themeProvider});
 
   String _formatDuration(int totalMinutes) {
     final duration = Duration(minutes: totalMinutes);
@@ -348,7 +367,7 @@ class _TimeDropdownButton extends StatelessWidget {
           (states) {
             if (states.contains(WidgetState.hovered) ||
                 states.contains(WidgetState.pressed)) {
-              return Colors.black.withOpacity(0.1);
+              return themeProvider.primaryAppColor.withOpacity(0.1);
             }
             return null;
           },
@@ -365,12 +384,13 @@ class _TimeDropdownButton extends StatelessWidget {
         children: [
           Text(
             _formatDuration(minutes),
-            style: GoogleFonts.inter(fontSize: 28, color: Colors.grey[600]),
+            style: GoogleFonts.inter(
+                fontSize: 28, color: themeProvider.secondaryTextColor),
           ),
           const SizedBox(width: 4),
           Icon(
             Icons.arrow_drop_down,
-            color: Colors.grey[600],
+            color: themeProvider.secondaryTextColor,
             size: 28,
           ),
         ],

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/session_model.dart';
-import 'package:studybeats/colors.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class SessionEndSummary extends StatefulWidget {
   const SessionEndSummary({required this.onClose, super.key});
@@ -22,15 +22,20 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
   @override
   Widget build(BuildContext context) {
     final sessionModel = Provider.of<StudySessionModel>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final session = sessionModel.endedSession;
     if (session == null) {
       return Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
+        baseColor:
+            themeProvider.isDarkMode ? Colors.grey[800]! : Colors.grey.shade300,
+        highlightColor:
+            themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey.shade100,
         child: Container(
           height: 200,
           width: double.infinity,
-          color: Colors.white,
+          color: themeProvider.isDarkMode
+              ? Colors.grey[800]
+              : Colors.grey.shade300,
         ),
       );
     }
@@ -39,13 +44,13 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
-          _buildSessionHeader(session),
+          _buildSessionHeader(session, themeProvider),
           const SizedBox(height: 16),
-          _buildPercentIndicators(session),
+          _buildPercentIndicators(session, themeProvider),
           const SizedBox(height: 36),
-          if (session.todos.isNotEmpty) _buildTaskSection(session),
+          if (session.todos.isNotEmpty)
+            _buildTaskSection(session, themeProvider),
           const SizedBox(height: 16),
-          // Button to close this page
           ElevatedButton(
             onPressed: () {
               widget.onClose();
@@ -55,7 +60,7 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              backgroundColor: kFlourishAdobe,
+              backgroundColor: themeProvider.primaryAppColor,
               foregroundColor: Colors.white,
               maximumSize: const Size(100, 50),
               minimumSize: const Size(100, 50),
@@ -73,8 +78,8 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
     );
   }
 
-  /// Builds the session header with title and start/end time and durations.
-  Widget _buildSessionHeader(StudySession session) {
+  Widget _buildSessionHeader(
+      StudySession session, ThemeProvider themeProvider) {
     final actualStudy = session.actualStudyDuration;
     final actualBreak = session.actualBreakDuration;
     final start = session.startTime;
@@ -97,27 +102,29 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
           style: GoogleFonts.inter(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: themeProvider.mainTextColor,
           ),
         ),
         const SizedBox(height: 18),
-        _buildTimeStats(start: start, end: end),
+        _buildTimeStats(start: start, end: end, themeProvider: themeProvider),
         const SizedBox(height: 18),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildDurationCard(
-                'Focus Time', formatDuration(actualStudy), Colors.green),
-            _buildDurationCard(
-                'Break Time', formatDuration(actualBreak), Colors.blue),
+            _buildDurationCard('Focus Time', formatDuration(actualStudy),
+                Colors.green, themeProvider),
+            _buildDurationCard('Break Time', formatDuration(actualBreak),
+                themeProvider.primaryAppColor, themeProvider),
           ],
         ),
       ],
     );
   }
 
-  /// Build a row for start and end times with icons.
-  Widget _buildTimeStats({required DateTime start, required DateTime end}) {
+  Widget _buildTimeStats(
+      {required DateTime start,
+      required DateTime end,
+      required ThemeProvider themeProvider}) {
     final timeFormat = TimeOfDay.fromDateTime;
     String startText = timeFormat(start).format(context);
     String endText = timeFormat(end).format(context);
@@ -125,15 +132,17 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTimeRow(
-            Icons.play_circle_fill, 'Started', startText, Colors.green),
+        _buildTimeRow(Icons.play_circle_fill, 'Started', startText,
+            Colors.green, themeProvider),
         const SizedBox(height: 8),
-        _buildTimeRow(Icons.stop_circle, 'Ended', endText, Colors.red),
+        _buildTimeRow(
+            Icons.stop_circle, 'Ended', endText, Colors.red, themeProvider),
       ],
     );
   }
 
-  Widget _buildTimeRow(IconData icon, String label, String value, Color color) {
+  Widget _buildTimeRow(IconData icon, String label, String value, Color color,
+      ThemeProvider themeProvider) {
     return Row(
       children: [
         Icon(icon, color: color, size: 20),
@@ -143,6 +152,7 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
             fontSize: 14,
+            color: themeProvider.mainTextColor,
           ),
         ),
         Expanded(
@@ -150,7 +160,7 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
             value,
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.black87,
+              color: themeProvider.mainTextColor,
             ),
           ),
         ),
@@ -158,8 +168,8 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
     );
   }
 
-  /// Build the row with circular indicators for study and break percentages.
-  Widget _buildPercentIndicators(StudySession session) {
+  Widget _buildPercentIndicators(
+      StudySession session, ThemeProvider themeProvider) {
     final actualStudy = session.actualStudyDuration;
     final actualBreak = session.actualBreakDuration;
     final totalSeconds = actualStudy.inSeconds + actualBreak.inSeconds;
@@ -185,17 +195,19 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: themeProvider.mainTextColor,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Focus',
-                style: GoogleFonts.inter(fontSize: 12),
+                style: GoogleFonts.inter(
+                    fontSize: 12, color: themeProvider.secondaryTextColor),
               ),
             ],
           ),
           progressColor: Colors.green,
-          backgroundColor: Colors.grey.shade300,
+          backgroundColor: themeProvider.dividerColor,
           circularStrokeCap: CircularStrokeCap.round,
         ),
         CircularPercentIndicator(
@@ -212,26 +224,26 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: themeProvider.mainTextColor,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Break',
-                style: GoogleFonts.inter(fontSize: 12),
+                style: GoogleFonts.inter(
+                    fontSize: 12, color: themeProvider.secondaryTextColor),
               ),
             ],
           ),
-          progressColor: Colors.blue,
-          backgroundColor: Colors.grey.shade300,
+          progressColor: themeProvider.primaryAppColor,
+          backgroundColor: themeProvider.dividerColor,
           circularStrokeCap: CircularStrokeCap.round,
         ),
       ],
     );
   }
 
-  /// Builds the task section – either a task completion summary if tasks exist,
-  /// or a shimmer effect placeholder if tasks are loading or empty.
-  Widget _buildTaskSection(StudySession session) {
+  Widget _buildTaskSection(StudySession session, ThemeProvider themeProvider) {
     final todoItems = session.todos;
     final completed = session.numCompletedTasks;
     final total = todoItems.length;
@@ -249,7 +261,7 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: themeProvider.mainTextColor,
               ),
             ),
           ],
@@ -259,7 +271,7 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
           borderRadius: BorderRadius.circular(5),
           child: LinearProgressIndicator(
             value: progress,
-            backgroundColor: Colors.grey.shade300,
+            backgroundColor: themeProvider.dividerColor,
             color: Colors.green,
             minHeight: 10,
           ),
@@ -273,7 +285,7 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
                 '$completed of $total tasks completed',
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.black54,
+                  color: themeProvider.secondaryTextColor,
                 ),
               ),
               const SizedBox(width: 8),
@@ -284,8 +296,8 @@ class _SessionEndSummaryState extends State<SessionEndSummary> {
     );
   }
 
-  /// Builds a card that displays a duration label and its value.
-  Widget _buildDurationCard(String title, String duration, Color color) {
+  Widget _buildDurationCard(
+      String title, String duration, Color color, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

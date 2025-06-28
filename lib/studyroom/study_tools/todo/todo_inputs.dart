@@ -1,8 +1,9 @@
 import 'package:studybeats/api/todo/todo_item.dart';
-import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:uuid/uuid.dart';
 
 class AddTaskButton extends StatefulWidget {
@@ -19,6 +20,8 @@ class _AddTaskButtonState extends State<AddTaskButton> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Expanded(
       child: MouseRegion(
         onEnter: (_) {
@@ -37,7 +40,7 @@ class _AddTaskButtonState extends State<AddTaskButton> {
             width: double.infinity,
             decoration: BoxDecoration(
               color: _isHovering
-                  ? kFlourishAdobe.withOpacity(0.1)
+                  ? themeProvider.primaryAppColor.withOpacity(0.1)
                   : Colors.transparent,
               borderRadius: const BorderRadius.all(Radius.circular(10.0)),
             ),
@@ -50,19 +53,23 @@ class _AddTaskButtonState extends State<AddTaskButton> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: _isHovering ? kFlourishAdobe : Colors.transparent,
+                    color: _isHovering
+                        ? themeProvider.primaryAppColor
+                        : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.add,
-                    color: _isHovering ? kFlourishAliceBlue : kFlourishAdobe,
+                    color: _isHovering
+                        ? Colors.white
+                        : themeProvider.primaryAppColor,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   'New task',
                   style: GoogleFonts.inter(
-                    color: kFlourishAdobe,
+                    color: themeProvider.primaryAppColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -100,13 +107,11 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
   void initState() {
     super.initState();
     _titleController.addListener(() {
-
       setState(() {});
     });
     _descriptionController.addListener(() {
       setState(() {});
     });
-    
   }
 
   @override
@@ -118,6 +123,8 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return KeyboardListener(
       autofocus: true,
       focusNode: FocusNode(),
@@ -142,27 +149,27 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey, width: 1.0),
+          color: themeProvider.appContentBackgroundColor,
+          border: Border.all(color: themeProvider.dividerColor, width: 1.0),
           borderRadius: BorderRadius.circular(12.0),
         ),
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ...buildInputFields(),
+            ...buildInputFields(themeProvider),
             const SizedBox(height: 12.0),
-            buildDateTimeButtons(),
+            buildDateTimeButtons(themeProvider),
             const SizedBox(height: 4.0),
-            const Divider(),
+            Divider(color: themeProvider.dividerColor),
             const SizedBox(height: 4.0),
-            buildButtons(),
+            buildButtons(themeProvider),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> buildInputFields() {
+  List<Widget> buildInputFields(ThemeProvider themeProvider) {
     return [
       TextField(
         autofocus: true,
@@ -171,7 +178,7 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
         decoration: InputDecoration(
           hintText: 'Title',
           hintStyle: GoogleFonts.inter(
-            color: kFlourishLightBlackish,
+            color: themeProvider.secondaryTextColor,
             fontSize: 15,
             fontWeight: FontWeight.bold,
           ),
@@ -179,11 +186,11 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
           border: InputBorder.none,
         ),
         style: GoogleFonts.inter(
-          color: kFlourishEmphasisBlackish,
+          color: themeProvider.mainTextColor,
           fontWeight: FontWeight.bold,
           fontSize: 15,
         ),
-        cursorColor: kFlourishBlackish,
+        cursorColor: themeProvider.primaryAppColor,
       ),
       const SizedBox(height: 5.0),
       TextField(
@@ -192,67 +199,60 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
         decoration: InputDecoration(
           hintText: 'Description',
           hintStyle: GoogleFonts.inter(
-            color: kFlourishLightBlackish,
+            color: themeProvider.secondaryTextColor,
             fontSize: 12,
           ),
           border: InputBorder.none,
           isDense: true,
         ),
         style: GoogleFonts.inter(
-          color: kFlourishEmphasisBlackish,
+          color: themeProvider.mainTextColor,
           fontSize: 12,
         ),
-        cursorColor: kFlourishBlackish,
+        cursorColor: themeProvider.primaryAppColor,
       ),
     ];
   }
 
-  Widget buildDateTimeButtons() {
-    final buttonStyle = ButtonStyle(
-      foregroundColor: WidgetStatePropertyAll(Colors.grey[600]),
-      padding: WidgetStateProperty.all<EdgeInsets>(
-        const EdgeInsets.symmetric(
-            horizontal: 8, vertical: 6), // Minimal padding
+  Widget buildDateTimeButtons(ThemeProvider themeProvider) {
+    final buttonStyle = OutlinedButton.styleFrom(
+      foregroundColor: themeProvider.secondaryTextColor,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8.0),
       ),
-      shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0), // Less rounded
-        ),
+      side: BorderSide(
+        color: themeProvider.inputBorderColor,
+        width: 1,
       ),
-      side: WidgetStateProperty.all<BorderSide>(
-        BorderSide(
-          color: Colors.grey.withOpacity(0.6), // Subtle border color
-          width: 1, // Thin border
-        ),
-      ),
-      textStyle: WidgetStateProperty.all<TextStyle>(
-        GoogleFonts.inter(
-          color: kFlourishBlackish.withOpacity(0.8), // Less intense color
-          fontSize: 14,
-        ),
+      textStyle: GoogleFonts.inter(
+        color: themeProvider.mainTextColor,
+        fontSize: 14,
       ),
     );
     return Row(
       children: [
         OutlinedButton(
-          onPressed: () => _selectDate(context),
+          onPressed: () => _selectDate(context, themeProvider),
           style: buttonStyle,
           child: _selectedDate == null
               ? Row(
                   children: [
                     Icon(
                       Icons.calendar_month,
-                      color: Colors.grey[600],
+                      color: themeProvider.secondaryTextColor,
                       size: 16,
                     ),
                     const SizedBox(width: 3),
-                    const Text('Date'),
+                    Text('Date',
+                        style: TextStyle(color: themeProvider.mainTextColor)),
                   ],
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text('${_selectedDate!.toLocal()}'.split(' ')[0]),
+                    Text('${_selectedDate!.toLocal()}'.split(' ')[0],
+                        style: TextStyle(color: themeProvider.mainTextColor)),
                     const SizedBox(width: 2.0),
                     IconButton(
                       constraints: const BoxConstraints(),
@@ -262,9 +262,10 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
                           _selectedDate = null;
                         });
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close,
                         size: 18,
+                        color: themeProvider.secondaryTextColor,
                       ),
                     ),
                   ],
@@ -272,24 +273,26 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
         ),
         const SizedBox(width: 10),
         OutlinedButton(
-          onPressed: () => _selectTime(context),
+          onPressed: () => _selectTime(context, themeProvider),
           style: buttonStyle,
           child: _selectedTime == null
               ? Row(
                   children: [
                     Icon(
                       Icons.schedule,
-                      color: Colors.grey[600],
+                      color: themeProvider.secondaryTextColor,
                       size: 16,
                     ),
                     const SizedBox(width: 3),
-                    const Text('Time'),
+                    Text('Time',
+                        style: TextStyle(color: themeProvider.mainTextColor)),
                   ],
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text(_selectedTime!.format(context)),
+                    Text(_selectedTime!.format(context),
+                        style: TextStyle(color: themeProvider.mainTextColor)),
                     const SizedBox(width: 2.0),
                     IconButton(
                       constraints: const BoxConstraints(),
@@ -299,9 +302,10 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
                           _selectedTime = null;
                         });
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close,
                         size: 18,
+                        color: themeProvider.secondaryTextColor,
                       ),
                     ),
                   ],
@@ -311,41 +315,27 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
     );
   }
 
-  Widget buildButtons() {
-    final buttonStyle = ButtonStyle(
-      foregroundColor: WidgetStatePropertyAll(Colors.grey[600]),
-      padding: WidgetStateProperty.all<EdgeInsets>(
-        const EdgeInsets.symmetric(
-            horizontal: 8, vertical: 6), // Minimal padding
-      ),
-      shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0), // Less rounded
-        ),
-      ),
-      side: WidgetStateProperty.all<BorderSide>(
-        BorderSide(
-          color: Colors.grey.withOpacity(0.6), // Subtle border color
-          width: 1, // Thin border
-        ),
-      ),
-      textStyle: WidgetStateProperty.all<TextStyle>(
-        GoogleFonts.inter(
-          color: kFlourishBlackish.withOpacity(0.8), // Less intense color
-          fontSize: 14,
-        ),
-      ),
-    );
+  Widget buildButtons(ThemeProvider themeProvider) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         OutlinedButton(
           onPressed: widget.onClose,
-          style: buttonStyle,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: themeProvider.secondaryTextColor,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            side: BorderSide(
+              color: themeProvider.inputBorderColor,
+              width: 1,
+            ),
+          ),
           child: Text(
             'Cancel',
             style: GoogleFonts.inter(
-              color: kFlourishBlackish.withOpacity(0.8), // Less intense color
+              color: themeProvider.mainTextColor,
               fontSize: 14,
             ),
           ),
@@ -364,25 +354,20 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
               dueDate: _selectedDate,
               dueTime: _selectedTime,
             );
-
             widget.onCreateTask(newTodo);
           },
-          style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all<Color>(kFlourishAdobe),
-            padding: WidgetStateProperty.all<EdgeInsets>(
-              const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 6), // Minimal padding
-            ),
-            shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0), // Less rounded
-              ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: themeProvider.primaryAppColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
             ),
           ),
           child: Text(
             'Create',
             style: GoogleFonts.inter(
-              color: kFlourishAliceBlue,
+              color: Colors.white,
               fontSize: 14,
             ),
           ),
@@ -391,7 +376,7 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
     );
   }
 
-  void _selectDate(BuildContext context) async {
+  void _selectDate(BuildContext context, ThemeProvider themeProvider) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -399,18 +384,24 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
       lastDate: DateTime(2100),
       builder: (BuildContext context, Widget? child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: kFlourishAdobe, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Colors.black, // Text color for selectable days
-              surface: Colors.grey.shade200, // Background for selected date
-            ), // Dialog background color
-            datePickerTheme: const DatePickerThemeData(
-              backgroundColor: Colors.white, // Picker background
-            ),
-            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
-          ),
+          data: themeProvider.isDarkMode
+              ? ThemeData.dark().copyWith(
+                  colorScheme: ColorScheme.dark(
+                    primary: themeProvider.primaryAppColor,
+                    onPrimary: Colors.white,
+                    surface: themeProvider.popupBackgroundColor,
+                    onSurface: themeProvider.mainTextColor,
+                  ),
+                  dialogBackgroundColor: themeProvider.popupBackgroundColor,
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: themeProvider.primaryAppColor,
+                    onPrimary: Colors.white,
+                    onSurface: themeProvider.mainTextColor,
+                  ),
+                  dialogBackgroundColor: themeProvider.popupBackgroundColor,
+                ),
           child: child!,
         );
       },
@@ -422,40 +413,32 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
     }
   }
 
-  void _selectTime(BuildContext context) async {
+  void _selectTime(BuildContext context, ThemeProvider themeProvider) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
       initialEntryMode: TimePickerEntryMode.input,
       builder: (BuildContext context, Widget? child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: kFlourishBlackish, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: kFlourishBlackish, // Text color in the picker
-            ), // Dialog background color
-            textSelectionTheme: TextSelectionThemeData(
-              cursorColor: kFlourishBlackish, // Cursor color
-              selectionColor:
-                  Colors.grey.shade300, // Text selection highlight color
-              selectionHandleColor: kFlourishBlackish, // Selection handle color
-            ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white, // Picker background
-              hourMinuteTextColor:
-                  kFlourishBlackish, // Text color for hour and minute
-              dayPeriodTextColor: kFlourishBlackish, // AM/PM text color
-              dayPeriodColor: kFlourishAdobe,
-              hourMinuteColor: Colors.grey.shade200, // Hour/minute background
-              dialBackgroundColor: Colors.white, // Dial background
-              dialHandColor: kFlourishAdobe, // Dial hand color
-              dialTextColor: kFlourishBlackish, // Dial text color
-              entryModeIconColor:
-                  kFlourishBlackish, // Icon color for switching modes
-            ),
-            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
-          ),
+          data: themeProvider.isDarkMode
+              ? ThemeData.dark().copyWith(
+                  colorScheme: ColorScheme.dark(
+                    primary: themeProvider.primaryAppColor,
+                    onPrimary: Colors.white,
+                    surface: themeProvider.popupBackgroundColor,
+                    onSurface: themeProvider.mainTextColor,
+                  ),
+                  timePickerTheme: TimePickerThemeData(
+                    backgroundColor: themeProvider.popupBackgroundColor,
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: themeProvider.primaryAppColor,
+                    onPrimary: Colors.white,
+                    onSurface: themeProvider.mainTextColor,
+                  ),
+                ),
           child: child!,
         );
       },

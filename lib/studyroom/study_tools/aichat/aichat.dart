@@ -1,41 +1,23 @@
 import 'dart:async';
-// For ImageFilter
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/study_tools/aichat/aimessage.dart';
-// For PopupMenuDetails
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:studybeats/api/auth/auth_service.dart';
-// import 'package:studybeats/colors.dart'; // No longer primary, new colors defined below
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:uuid/uuid.dart';
 
-// Define new theme colors
-const Color kPrimaryAppColor = Color(0xFF4A90E2); // Medium Blue
-const Color kPrimaryAppDarkColor =
-    Color(0xFF357ABD); // Darker Blue for headers/accents
-const Color kAppBackgroundColorStart = Color(0xFFF4F6F8); // Very Light Gray
-const Color kAppBackgroundColorEnd = Colors.white; // White
-const Color kAppLightTextColor = Colors.black87;
-const Color kAppDarkTextColor =
-    Color(0xFF333333); // Darker Gray for primary text
-const Color kAppSelectedItemBackground =
-    Color(0xFFE3F2FD); // Light Blue (Colors.blue[50])
-const Color kAppPopupBackgroundColor =
-    Color(0xFFF8F9FA); // Very Light Off-White for popups
-const Color kAppInputBorderColor = Color(0xFFDDE2E7); // Light grey for borders
-
-// Minimal PopupMenuDetails if not available from queue.dart
 class PopupMenuDetails extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -43,11 +25,12 @@ class PopupMenuDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Row(
       children: [
-        Icon(icon, color: Colors.white), // White icon on dark popup
+        Icon(icon, color: themeProvider.popupMenuIconColor),
         const SizedBox(width: 8),
-        Text(text, style: const TextStyle(color: Colors.white)),
+        Text(text, style: TextStyle(color: themeProvider.popupMenuIconColor)),
       ],
     );
   }
@@ -71,10 +54,8 @@ class _AiChatState extends State<AiChat> {
   final TextEditingController _textEditingController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   final AuthService _authService = AuthService();
   final OpenaiService _openaiService = OpenaiService();
-
   bool _isPasting = false;
   bool _showScrollToBottomButton = false;
   bool _loadingResponse = false;
@@ -85,19 +66,14 @@ class _AiChatState extends State<AiChat> {
   String? _imageUrl;
   String _errorMessage = '';
   bool _showTokenMessage = false;
-
   final double _maxWidth = 1200;
   final double _minWidth = 300;
-  double _currentWidth = 400; // Default width
-
+  double _currentWidth = 400;
   final List<Map<String, dynamic>> _conversationHistory = [];
   int numCharacters = 0;
-
   bool _isAnonymous = false;
-
   final _logger = getLogger('AiChat');
   final _analyticsService = AnalyticsService();
-
   String? _currentChatId;
   ChatMetadata? _currentChatMetadata;
   List<ChatMetadata> _userChats = [];
@@ -324,9 +300,7 @@ class _AiChatState extends State<AiChat> {
     if (currentText.trim().isNotEmpty ||
         _imageFile != null ||
         _imageUrl != null) {
-      // Call the actual send message logic
       await _sendMessageLogic(currentText);
-      // Clear the input field and reset character count
       if (mounted) {
         _textEditingController.clear();
         setState(() {
@@ -336,7 +310,6 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  // Renamed original _sendMessage to _sendMessageLogic to avoid confusion
   Future<void> _sendMessageLogic(String textForMessage) async {
     if (_currentChatId == null) {
       if (mounted) {
@@ -490,24 +463,28 @@ class _AiChatState extends State<AiChat> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return SizedBox(
       width: _currentWidth,
       height: MediaQuery.of(context).size.height - kControlBarHeight,
       child: KeyboardListener(
-        // Keep KeyboardListener for Shift+Enter
         focusNode: _keyboardListenerFocusNode,
         autofocus: true,
-        onKeyEvent: _handleKeyEvent, // Use this for Shift+Enter
+        onKeyEvent: _handleKeyEvent,
         child: Scaffold(
           key: _scaffoldKey,
-          appBar: buildAppBar(),
-          drawer: _buildChatDrawer(),
+          appBar: buildAppBar(themeProvider),
+          drawer: _buildChatDrawer(themeProvider),
           body: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [kAppBackgroundColorStart, kAppBackgroundColorEnd],
+                colors: [
+                  themeProvider.appBackgroundGradientStart,
+                  themeProvider.appBackgroundGradientEnd
+                ],
               ),
             ),
             child: Stack(
@@ -522,15 +499,17 @@ class _AiChatState extends State<AiChat> {
                           padding: const EdgeInsets.symmetric(
                               vertical: 10, horizontal: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF8E1),
+                            color: themeProvider.warningBackgroundColor,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFFFE0B2)),
+                            border: Border.all(
+                                color: themeProvider.warningBorderColor),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  size: 20, color: Color(0xFFF57C00)),
+                              Icon(Icons.warning_amber_rounded,
+                                  size: 20,
+                                  color: themeProvider.warningIconColor),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -538,13 +517,14 @@ class _AiChatState extends State<AiChat> {
                                   style: GoogleFonts.inter(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF6D4C41),
+                                    color: themeProvider.warningTextColor,
                                   ),
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.close,
-                                    size: 18, color: Color(0xFF6D4C41)),
+                                icon: Icon(Icons.close,
+                                    size: 18,
+                                    color: themeProvider.warningTextColor),
                                 padding: EdgeInsets.zero,
                                 onPressed: () {
                                   setState(() {
@@ -556,7 +536,8 @@ class _AiChatState extends State<AiChat> {
                           ),
                         ),
                       ),
-                    Expanded(child: _buildMessagesArea()),
+                    Expanded(child: _buildMessagesArea(themeProvider)),
+                    /*
                     if (_showError)
                       Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -565,14 +546,16 @@ class _AiChatState extends State<AiChat> {
                                 color: Colors.red,
                                 fontWeight: FontWeight.w600)),
                       ),
+                      */
                     _showTokenMessage && _currentChatId != null
                         ? Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10.0, vertical: 15.0),
-                            child: _getTokenExceededMessage(context),
+                            child: _getTokenExceededMessage(
+                                context, themeProvider),
                           )
                         : (_currentChatId != null
-                            ? buildTextInputFields()
+                            ? buildTextInputFields(themeProvider)
                             : const SizedBox.shrink()),
                   ],
                 ),
@@ -583,7 +566,7 @@ class _AiChatState extends State<AiChat> {
                     child: FloatingActionButton(
                       mini: true,
                       onPressed: _scrollToBottom,
-                      backgroundColor: kPrimaryAppColor,
+                      backgroundColor: themeProvider.primaryAppColor,
                       child:
                           const Icon(Icons.arrow_downward, color: Colors.white),
                     ),
@@ -621,28 +604,31 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
-  Widget _buildMessagesArea() {
+  Widget _buildMessagesArea(ThemeProvider themeProvider) {
     if (_isLoadingChats && _currentChatId == null) {
       return Center(
           child: Shimmer.fromColors(
-              baseColor: Colors.grey[300]!,
-              highlightColor: Colors.grey[100]!,
+              baseColor: themeProvider.shimmerBaseColor,
+              highlightColor: themeProvider.shimmerHighlightColor,
               child: Container(
-                  height: MediaQuery.of(context).size.height,
-                  color: Colors.white)));
+                height: MediaQuery.of(context).size.height,
+                color: themeProvider.shimmerHighlightColor,
+              )));
     }
     if (_currentChatId == null) {
       return Center(
           child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.chat_bubble_outline, size: 50, color: Colors.grey[500]),
+          Icon(Icons.chat_bubble_outline,
+              size: 50, color: themeProvider.secondaryTextColor),
           const SizedBox(height: 10),
           Text(
               _userChats.isEmpty
                   ? "Create a new chat to begin."
                   : "Select a chat from the side menu.",
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              style:
+                  TextStyle(fontSize: 16, color: themeProvider.mainTextColor),
               textAlign: TextAlign.center),
           if (_userChats.isEmpty) ...[
             const SizedBox(height: 20),
@@ -651,7 +637,7 @@ class _AiChatState extends State<AiChat> {
               label: const Text("New Chat"),
               onPressed: _handleCreateNewChat,
               style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryAppColor,
+                  backgroundColor: themeProvider.primaryAppColor,
                   foregroundColor: Colors.white),
             )
           ]
@@ -661,16 +647,18 @@ class _AiChatState extends State<AiChat> {
     if (_isLoadingMessages) {
       return Center(
           child: Shimmer.fromColors(
-              baseColor: Colors.grey[300]!,
-              highlightColor: Colors.grey[100]!,
+              baseColor: themeProvider.shimmerBaseColor,
+              highlightColor: themeProvider.shimmerHighlightColor,
               child: Container(
-                  height: MediaQuery.of(context).size.height - 269,
-                  color: Colors.white)));
+                height: MediaQuery.of(context).size.height - 269,
+                color: themeProvider.shimmerHighlightColor,
+              )));
     }
     if (_conversationHistory.isEmpty) {
       return Center(
           child: Text("Send a message to start this chat...",
-              style: TextStyle(fontSize: 16, color: Colors.grey[700])));
+              style:
+                  TextStyle(fontSize: 16, color: themeProvider.mainTextColor)));
     }
 
     return Padding(
@@ -706,16 +694,12 @@ class _AiChatState extends State<AiChat> {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.enter) {
         if (HardwareKeyboard.instance.isShiftPressed) {
-          // Allow default behavior for Shift+Enter (insert newline)
-          // No explicit handling needed here if TextField's textInputAction is newline
         } else {
-          // Enter alone: send message
           final String currentText = _textEditingController.text;
           if (currentText.trim().isNotEmpty ||
               _imageFile != null ||
               _imageUrl != null) {
             _sendMessageAndClearInput(textToUse: currentText);
-            // Schedule controller clear after the frame to avoid race condition with TextField's internal handling
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 _textEditingController.clear();
@@ -723,9 +707,6 @@ class _AiChatState extends State<AiChat> {
               }
             });
           }
-          // To prevent the TextField from inserting a newline character after we've decided to send,
-          // we might need to ensure this event isn't further processed by the TextField.
-          // However, clearing the controller post-frame is usually effective.
         }
       } else if (event.logicalKey == LogicalKeyboardKey.control ||
           event.logicalKey == LogicalKeyboardKey.meta) {
@@ -738,32 +719,34 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  AppBar buildAppBar() {
+  AppBar buildAppBar(ThemeProvider themeProvider) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: themeProvider.appContentBackgroundColor,
       elevation: 1.0,
-      iconTheme: IconThemeData(color: kAppDarkTextColor.withOpacity(0.7)),
+      iconTheme: IconThemeData(color: themeProvider.iconColor),
       title: Text(
         _currentChatMetadata?.title ?? "AI Chat",
         style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w500,
-            color: kAppDarkTextColor),
+            color: themeProvider.headerTextColor),
         overflow: TextOverflow.ellipsis,
       ),
       actions: [
         Theme(
           data: ThemeData(
-              popupMenuTheme: const PopupMenuThemeData(
-                  color: Color.fromRGBO(57, 57, 57, 1))),
+              popupMenuTheme: PopupMenuThemeData(
+                  color: themeProvider.isDarkMode
+                      ? const Color.fromRGBO(57, 57, 57, 1)
+                      : Colors.white)),
           child: PopupMenuButton<String>(
             onSelected: (value) async {
-              if (value == 'info') await showInfoDialog();
+              if (value == 'info') await showInfoDialog(themeProvider);
               if (value == 'clear_chat' && _currentChatId != null) {
-                await _showClearCurrentChatDialog();
+                await _showClearCurrentChatDialog(themeProvider);
               }
               if (value == 'delete_chat' && _currentChatId != null) {
-                await _showDeleteCurrentChatDialog();
+                await _showDeleteCurrentChatDialog(themeProvider);
               }
             },
             itemBuilder: (context) => [
@@ -784,37 +767,36 @@ class _AiChatState extends State<AiChat> {
                         icon: Icons.delete_forever_outlined,
                         text: 'Delete Current Chat')),
             ],
-            icon: Icon(Icons.more_horiz,
-                color: kAppDarkTextColor.withOpacity(0.7)),
+            icon: Icon(Icons.more_horiz, color: themeProvider.iconColor),
           ),
         ),
         IconButton(
           onPressed: widget.onClose,
-          icon: Icon(Icons.close, color: kAppDarkTextColor.withOpacity(0.7)),
+          icon: Icon(Icons.close, color: themeProvider.iconColor),
         ),
       ],
     );
   }
 
-  Widget _buildChatDrawer() {
+  Widget _buildChatDrawer(ThemeProvider themeProvider) {
     return Drawer(
-      backgroundColor: kAppBackgroundColorEnd,
+      backgroundColor: themeProvider.appContentBackgroundColor,
       child: Column(
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(color: kPrimaryAppDarkColor),
+            decoration: BoxDecoration(color: themeProvider.primaryAppDarkColor),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text('Your Chats',
                     style: GoogleFonts.inter(
-                        color: Colors.white,
+                        color: themeProvider.drawerHeaderTextColor,
                         fontSize: 20,
                         fontWeight: FontWeight.w600)),
                 IconButton(
-                    icon: const Icon(Icons.add_circle,
-                        color: Colors.white, size: 28),
+                    icon: Icon(Icons.add_circle,
+                        color: themeProvider.drawerHeaderTextColor, size: 28),
                     tooltip: "Create New Chat",
                     onPressed: () {
                       _handleCreateNewChat();
@@ -825,7 +807,8 @@ class _AiChatState extends State<AiChat> {
           Expanded(
             child: _isLoadingChats
                 ? Center(
-                    child: CircularProgressIndicator(color: kPrimaryAppColor))
+                    child: CircularProgressIndicator(
+                        color: themeProvider.primaryAppColor))
                 : _userChats.isEmpty
                     ? Center(
                         child: Padding(
@@ -834,13 +817,15 @@ class _AiChatState extends State<AiChat> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.forum_outlined,
-                                  size: 40, color: Colors.grey[400]),
+                                  size: 40,
+                                  color: themeProvider.secondaryTextColor),
                               const SizedBox(height: 10),
                               Text(
                                 "No chats yet.\nClick '+' above to start a new conversation!",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                    fontSize: 16, color: Colors.grey[600]),
+                                    fontSize: 16,
+                                    color: themeProvider.secondaryTextColor),
                               ),
                             ],
                           ),
@@ -856,10 +841,12 @@ class _AiChatState extends State<AiChat> {
                                 horizontal: 12.0, vertical: 6.0),
                             child: Material(
                               color: isSelected
-                                  ? kAppSelectedItemBackground
-                                  : Colors.white,
+                                  ? themeProvider.selectedItemBackgroundColor
+                                  : themeProvider.appContentBackgroundColor,
                               borderRadius: BorderRadius.circular(12),
                               elevation: isSelected ? 2 : 0,
+                              shadowColor: themeProvider.primaryAppColor
+                                  .withOpacity(0.2),
                               child: InkWell(
                                 onTap: () => _selectChat(chat),
                                 borderRadius: BorderRadius.circular(12),
@@ -872,8 +859,9 @@ class _AiChatState extends State<AiChat> {
                                     children: [
                                       Icon(Icons.chat_bubble_outline,
                                           color: isSelected
-                                              ? kPrimaryAppColor
-                                              : Colors.grey[600],
+                                              ? themeProvider.drawerIconColor
+                                              : themeProvider
+                                                  .secondaryTextColor,
                                           size: 22),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -886,17 +874,12 @@ class _AiChatState extends State<AiChat> {
                                                       fontWeight:
                                                           FontWeight.w600,
                                                       fontSize: 14,
-                                                      color: kAppDarkTextColor),
+                                                      color: themeProvider
+                                                          .mainTextColor),
                                                   overflow:
                                                       TextOverflow.ellipsis),
                                               const SizedBox(height: 4),
                                               Row(children: [
-                                                Text("Model: ${chat.modelId}",
-                                                    style: GoogleFonts.inter(
-                                                        fontSize: 11,
-                                                        color:
-                                                            Colors.grey[600])),
-                                                const SizedBox(width: 8),
                                                 Text(
                                                     DateFormat('M/d/y h:mm a')
                                                         .format(chat
@@ -904,8 +887,8 @@ class _AiChatState extends State<AiChat> {
                                                             .toLocal()),
                                                     style: GoogleFonts.inter(
                                                         fontSize: 11,
-                                                        color:
-                                                            Colors.grey[600])),
+                                                        color: themeProvider
+                                                            .secondaryTextColor)),
                                               ]),
                                             ]),
                                       ),
@@ -916,11 +899,11 @@ class _AiChatState extends State<AiChat> {
                             ),
                           );
                         },
-                        separatorBuilder: (context, index) => const Divider(
+                        separatorBuilder: (context, index) => Divider(
                           height: 0,
                           indent: 16,
                           endIndent: 16,
-                          color: kAppBackgroundColorStart,
+                          color: themeProvider.dividerColor,
                         ),
                       ),
           ),
@@ -929,13 +912,13 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
-  Widget buildTextInputFields() {
+  Widget buildTextInputFields(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Container(
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24.0),
-            color: Colors.white,
+            color: themeProvider.appContentBackgroundColor,
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.1),
@@ -963,15 +946,17 @@ class _AiChatState extends State<AiChat> {
             TextField(
               controller: _textEditingController,
               focusNode: _textInputFocusNode,
-              cursorColor: kPrimaryAppColor,
+              cursorColor: themeProvider.primaryAppColor,
               maxLines: 7,
               minLines: 1,
               textInputAction: TextInputAction.newline,
               keyboardType: TextInputType.multiline,
-              style: GoogleFonts.inter(fontSize: 15, color: kAppDarkTextColor),
+              style: GoogleFonts.inter(
+                  fontSize: 15, color: themeProvider.mainTextColor),
               decoration: InputDecoration(
-                  hintText: 'Type a message...', // Updated hint
-                  hintStyle: GoogleFonts.inter(color: Colors.grey[500]),
+                  hintText: 'Type a message...',
+                  hintStyle: GoogleFonts.inter(
+                      color: themeProvider.secondaryTextColor),
                   border: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   enabledBorder: InputBorder.none,
@@ -980,24 +965,15 @@ class _AiChatState extends State<AiChat> {
               inputFormatters: [LengthLimitingTextInputFormatter(2000)],
               onChanged: (text) => setState(() => numCharacters = text.length),
               onSubmitted: (String text) {
-                // Use onSubmitted for Enter key press
-                // This will be triggered on Enter if not Shift+Enter (due to textInputAction.newline)
-                // Check if Shift is NOT pressed. If KeyboardListener is removed, this is the main Enter handler.
-                // However, KeyboardListener is still present for Shift+Enter differentiation.
-                // This onSubmitted will likely fire for Enter on software keyboards or if KeyboardListener doesn't fully consume.
-                // To avoid double send, ensure _handleKeyEvent is the primary handler for hardware Enter.
-                // For now, let's assume _handleKeyEvent handles hardware Enter.
-                // This onSubmitted can be a fallback or for software keyboard's "send" action.
                 if (!HardwareKeyboard.instance.isShiftPressed) {
-                  // Check if shift is not pressed
                   _sendMessageAndClearInput(textToUse: text);
                 }
               },
             ),
-            const Divider(
+            Divider(
               height: 1,
               thickness: 0.5,
-              color: kAppBackgroundColorStart,
+              color: themeProvider.dividerColor,
             ),
             Row(
               children: [
@@ -1005,13 +981,14 @@ class _AiChatState extends State<AiChat> {
                   icon: Icon(Icons.add_photo_alternate_outlined,
                       color: _loadingImage
                           ? Colors.grey
-                          : kPrimaryAppColor.withOpacity(0.8)),
+                          : themeProvider.primaryAppColor.withOpacity(0.8)),
                   tooltip: "Attach Image",
                   onPressed: _loadingImage ? null : _pickImage,
                 ),
                 const Spacer(),
                 Text('$numCharacters/2000',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    style: TextStyle(
+                        fontSize: 11, color: themeProvider.secondaryTextColor)),
                 const SizedBox(width: 8.0),
                 IconButton(
                   icon: Icon(Icons.send_rounded,
@@ -1020,8 +997,8 @@ class _AiChatState extends State<AiChat> {
                               (_textEditingController.text.trim().isEmpty &&
                                   _imageFile == null &&
                                   _imageUrl == null))
-                          ? Colors.grey[400]
-                          : kPrimaryAppColor),
+                          ? themeProvider.secondaryTextColor
+                          : themeProvider.primaryAppColor),
                   tooltip: "Send Message",
                   onPressed: (_loadingResponse ||
                           _loadingImage ||
@@ -1029,8 +1006,7 @@ class _AiChatState extends State<AiChat> {
                               _imageFile == null &&
                               _imageUrl == null))
                       ? null
-                      : () =>
-                          _sendMessageAndClearInput(), // Use the new wrapper
+                      : () => _sendMessageAndClearInput(),
                 ),
               ],
             ),
@@ -1040,24 +1016,26 @@ class _AiChatState extends State<AiChat> {
     );
   }
 
-  Future<void> _showClearCurrentChatDialog() async {
+  Future<void> _showClearCurrentChatDialog(ThemeProvider themeProvider) async {
     if (_currentChatId == null) return;
     showDialog(
         context: context,
         builder: (context) => AlertDialog(
-                backgroundColor: kAppPopupBackgroundColor,
+                backgroundColor: themeProvider.popupBackgroundColor,
                 title: Text('Clear messages in this chat?',
                     style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600, color: kAppDarkTextColor)),
+                        fontWeight: FontWeight.w600,
+                        color: themeProvider.mainTextColor)),
                 content: Text(
                     'This will delete all messages in the current chat. This action cannot be undone.',
                     style: GoogleFonts.inter(
-                        color: kAppDarkTextColor.withOpacity(0.8))),
+                        color: themeProvider.mainTextColor.withOpacity(0.8))),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text('Cancel',
-                          style: TextStyle(color: kAppDarkTextColor))),
+                          style: TextStyle(
+                              color: themeProvider.secondaryTextColor))),
                   TextButton(
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -1068,24 +1046,26 @@ class _AiChatState extends State<AiChat> {
                 ]));
   }
 
-  Future<void> _showDeleteCurrentChatDialog() async {
+  Future<void> _showDeleteCurrentChatDialog(ThemeProvider themeProvider) async {
     if (_currentChatId == null || _currentChatMetadata == null) return;
     showDialog(
         context: context,
         builder: (context) => AlertDialog(
-                backgroundColor: kAppPopupBackgroundColor,
+                backgroundColor: themeProvider.popupBackgroundColor,
                 title: Text('Delete "${_currentChatMetadata!.title}"?',
                     style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600, color: kAppDarkTextColor)),
+                        fontWeight: FontWeight.w600,
+                        color: themeProvider.mainTextColor)),
                 content: Text(
                     'This will permanently delete this chat and all its messages. This action cannot be undone.',
                     style: GoogleFonts.inter(
-                        color: kAppDarkTextColor.withOpacity(0.8))),
+                        color: themeProvider.mainTextColor.withOpacity(0.8))),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text('Cancel',
-                          style: TextStyle(color: kAppDarkTextColor))),
+                          style: TextStyle(
+                              color: themeProvider.secondaryTextColor))),
                   TextButton(
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -1126,7 +1106,7 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  Future<void> showInfoDialog() async {
+  Future<void> showInfoDialog(ThemeProvider themeProvider) async {
     int tokensUsedToday = await _openaiService.getTokensUsedToday();
     final int tokenLimit = _openaiService.getTokenLimit();
     if (tokensUsedToday > tokenLimit && tokenLimit != 0) {
@@ -1142,15 +1122,16 @@ class _AiChatState extends State<AiChat> {
       showDialog(
           context: context,
           builder: (context) => AlertDialog(
-                  backgroundColor: kAppPopupBackgroundColor,
+                  backgroundColor: themeProvider.popupBackgroundColor,
                   title: Row(children: [
                     Text('Token Details',
                         style: GoogleFonts.inter(
                             fontWeight: FontWeight.w600,
-                            color: kAppDarkTextColor)),
+                            color: themeProvider.mainTextColor)),
                     const Spacer(),
                     IconButton(
-                        icon: const Icon(Icons.close, color: kAppDarkTextColor),
+                        icon: Icon(Icons.close,
+                            color: themeProvider.mainTextColor),
                         onPressed: () => Navigator.of(context).pop())
                   ]),
                   content: SizedBox(
@@ -1161,22 +1142,23 @@ class _AiChatState extends State<AiChat> {
                             Text(
                                 'Tokens used today: $tokensUsedTodayStr / $tokenLimitStr',
                                 style: GoogleFonts.inter(
-                                    color: kAppDarkTextColor.withOpacity(0.9))),
+                                    color: themeProvider.mainTextColor
+                                        .withOpacity(0.9))),
                             const SizedBox(height: 20),
                             if (tokenLimit != 0)
                               LinearProgressIndicator(
                                 value: tokensUsedToday / tokenLimit,
                                 backgroundColor: Colors.grey[300],
-                                valueColor:
-                                    AlwaysStoppedAnimation(kPrimaryAppColor),
+                                valueColor: AlwaysStoppedAnimation(
+                                    themeProvider.primaryAppColor),
                                 minHeight: 10,
                                 borderRadius: BorderRadius.circular(5),
                               )
                             else
                               Text("You have unlimited tokens.",
                                   style: GoogleFonts.inter(
-                                      color:
-                                          kAppDarkTextColor.withOpacity(0.9))),
+                                      color: themeProvider.mainTextColor
+                                          .withOpacity(0.9))),
                           ])),
                   actions: [
                     ElevatedButton(
@@ -1185,7 +1167,7 @@ class _AiChatState extends State<AiChat> {
                           widget.onUpgradePressed();
                         },
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: kPrimaryAppColor,
+                            backgroundColor: themeProvider.primaryAppColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8))),
@@ -1195,27 +1177,30 @@ class _AiChatState extends State<AiChat> {
                     OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.grey[400]!),
+                            side: BorderSide(
+                                color: themeProvider.secondaryTextColor),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8))),
                         child: Text('Close',
-                            style: GoogleFonts.inter(color: kAppDarkTextColor)))
+                            style: GoogleFonts.inter(
+                                color: themeProvider.mainTextColor)))
                   ]));
     }
   }
 
-  Widget _getTokenExceededMessage(BuildContext context) {
+  Widget _getTokenExceededMessage(
+      BuildContext context, ThemeProvider themeProvider) {
     return RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
             style: TextStyle(
-                color: kAppDarkTextColor.withOpacity(0.7), fontSize: 12),
+                color: themeProvider.secondaryTextColor, fontSize: 12),
             children: [
               const TextSpan(text: 'Token limit reached for today. '),
               TextSpan(
                   text: 'Upgrade',
-                  style: const TextStyle(
-                      color: kPrimaryAppColor,
+                  style: TextStyle(
+                      color: themeProvider.primaryAppColor,
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline),
                   recognizer: TapGestureRecognizer()

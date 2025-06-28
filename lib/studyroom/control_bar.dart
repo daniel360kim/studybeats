@@ -103,6 +103,7 @@ class _ThemeSwitcherState extends State<ThemeSwitcher>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeProvider>(context);
     return Tooltip(
       message: _isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
       child: GestureDetector(
@@ -131,9 +132,9 @@ class _ThemeSwitcherState extends State<ThemeSwitcher>
                   child: Container(
                     width: 30,
                     height: 30,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      color: _isDarkMode ? theme.textColor : Colors.white,
                     ),
                     child: Stack(
                       alignment: Alignment.center,
@@ -203,7 +204,6 @@ class PlayerWidgetState extends State<PlayerWidget>
   StreamSubscription<int?>? _lofiIndexSubscription;
 
   late final PlaylistNotifier _playlistNotifier;
-  int? _lastPlaylistId;
 
   final _logger = getLogger('PlayerWidgetState');
 
@@ -246,7 +246,6 @@ class PlayerWidgetState extends State<PlayerWidget>
     _audioSourceProvider.addListener(_handleAudioSourceChange);
 
     _playlistNotifier = Provider.of<PlaylistNotifier>(context, listen: false);
-    _lastPlaylistId = _playlistNotifier.playlistId;
     _playlistNotifier.addListener(stopAll);
 
     _setActiveController(_currentAudioSource);
@@ -572,7 +571,9 @@ class PlayerWidgetState extends State<PlayerWidget>
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
         child: Container(
-          color: Colors.white.withOpacity(0.6),
+          color: Provider.of<ThemeProvider>(context)
+              .emphasisColor
+              .withOpacity(0.8),
         ),
       ),
     );

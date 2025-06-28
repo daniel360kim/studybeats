@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class DateTimeWidget extends StatelessWidget {
   DateTimeWidget({super.key});
@@ -11,6 +12,7 @@ class DateTimeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    final theme = Provider.of<ThemeProvider>(context);
     final timeString = DateFormat('h:mm a').format(now);
     final dateString = DateFormat('EEE, MMM d').format(now);
 
@@ -47,23 +49,9 @@ class DateTimeWidget extends StatelessWidget {
             child: Ink(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFdbeafe), // lighter blue‑gray
-                    const Color(0xFFeff6ff),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: theme.songInfoBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-                border: Border.all(color: Colors.blueGrey.shade200, width: 0.5),
+                border: Border.all(color: theme.lightEmphasisColor.withOpacity(0.2), width: 0.5),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -74,8 +62,8 @@ class DateTimeWidget extends StatelessWidget {
                     children: [
                       Text(
                         timeString,
-                        style: const TextStyle(
-                          color: Color(0xFF111827), // slate‑900
+                        style: TextStyle(
+                          color: theme.textColor,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           letterSpacing: 0.2,
@@ -84,8 +72,8 @@ class DateTimeWidget extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         dateString,
-                        style: const TextStyle(
-                          color: Color(0xFF374151), // slate‑700
+                        style: TextStyle(
+                          color: theme.lightEmphasisColor,
                           fontSize: 11.5,
                           letterSpacing: 0.15,
                         ),
@@ -101,7 +89,7 @@ class DateTimeWidget extends StatelessWidget {
                       isOpen ? Icons.chevron_left : Icons.chevron_right,
                       key: ValueKey(isOpen),
                       size: 20,
-                      color: const Color(0xFF374151),
+                      color: theme.lightEmphasisColor,
                     ),
                   ),
                 ],

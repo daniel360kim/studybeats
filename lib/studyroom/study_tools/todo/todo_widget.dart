@@ -4,16 +4,15 @@ import 'package:studybeats/api/study/session_model.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/api/todo/todo_item.dart';
 import 'package:studybeats/api/todo/todo_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/current_session/session_task_list.dart';
 import 'package:studybeats/studyroom/study_tools/study_session/new_session/todo_adder.dart';
-
 import 'package:studybeats/studyroom/study_tools/todo/todo_inputs.dart';
 import 'package:studybeats/studyroom/study_tools/todo/todo_list.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class Todo extends StatefulWidget {
   const Todo({
@@ -66,36 +65,36 @@ class _TodoState extends State<Todo> {
       await _todoListService.init();
 
       final todoLists = await _todoListService.fetchTodoLists();
-
-      final uncompletedTodoItems = todoLists.first.categories.uncompleted;
-      setState(() {
-        _todoLists = todoLists;
-        _selectedListId = todoLists.first.id;
-        _uncompletedTodoItems = uncompletedTodoItems;
-      });
+      if (mounted && todoLists.isNotEmpty) {
+        final uncompletedTodoItems = todoLists.first.categories.uncompleted;
+        setState(() {
+          _todoLists = todoLists;
+          _selectedListId = todoLists.first.id;
+          _uncompletedTodoItems = uncompletedTodoItems;
+        });
+      }
     } catch (e) {
-      // Handle error state more gracefully
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch todo items: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch todo items: $e')),
+        );
+      }
     }
   }
 
-  final PageController _taskPageController = PageController(
-    initialPage: 0,
-  );
-
+  final PageController _taskPageController = PageController(initialPage: 0);
   final StudySessionService _studySessionService = StudySessionService();
 
   void initStudyService() async {
     try {
       await _studySessionService.init();
     } catch (e) {
-      // Handle error state more gracefully
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Something went wrong. Please try again later.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Something went wrong. Please try again later.')),
+        );
+      }
     }
   }
 
@@ -105,7 +104,8 @@ class _TodoState extends State<Todo> {
     super.dispose();
   }
 
-  Widget buildTaskManager(StudySessionModel sessionModel) {
+  Widget buildTaskManager(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
     return SizedBox(
       width: 400,
       height: MediaQuery.of(context).size.height - kControlBarHeight,
@@ -117,19 +117,21 @@ class _TodoState extends State<Todo> {
               controller: _taskPageController,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildTaskListCard(sessionModel),
+                _buildTaskListCard(sessionModel, themeProvider),
                 SingleChildScrollView(
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.6),
+                      color:
+                          themeProvider.appContentBackgroundColor.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back),
+                          icon: Icon(Icons.arrow_back,
+                              color: themeProvider.iconColor),
                           tooltip: 'Back to tasks',
                           onPressed: () {
                             _taskPageController.animateToPage(
@@ -141,10 +143,8 @@ class _TodoState extends State<Todo> {
                         ),
                         const SizedBox(height: 12),
                         TodoAdder(
-                          // Pass in the already added todos from the current session as initial selection
                           initialSelectedTodoItems:
                               sessionModel.currentSession?.todos ?? {},
-                          // Update the session by replacing the entire todos set
                           onTodoItemToggled: (selectedItems) async {
                             await sessionModel.updateSession(
                               sessionModel.currentSession!
@@ -165,11 +165,12 @@ class _TodoState extends State<Todo> {
     );
   }
 
-  Widget _buildTaskListCard(StudySessionModel sessionModel) {
+  Widget _buildTaskListCard(
+      StudySessionModel sessionModel, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: themeProvider.appContentBackgroundColor.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -182,13 +183,13 @@ class _TodoState extends State<Todo> {
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: kFlourishBlackish,
+                  color: themeProvider.mainTextColor,
                 ),
               ),
               const SizedBox(width: 3),
               IconButton(
                 tooltip: 'Add more tasks',
-                icon: const Icon(Icons.add),
+                icon: Icon(Icons.add, color: themeProvider.iconColor),
                 onPressed: () {
                   _taskPageController.animateToPage(
                     1,
@@ -201,17 +202,13 @@ class _TodoState extends State<Todo> {
           ),
           const SizedBox(height: 12),
           if (sessionModel.currentSession!.todos.isEmpty)
-            Column(
-              children: [
-                Text(
-                  'No tasks added yet.',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
+            Text(
+              'No tasks added yet.',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: themeProvider.secondaryTextColor,
+              ),
             )
           else
             SessionTaskList(
@@ -223,7 +220,7 @@ class _TodoState extends State<Todo> {
     );
   }
 
-  Widget buildDefaultList() {
+  Widget buildDefaultList(ThemeProvider themeProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -232,7 +229,7 @@ class _TodoState extends State<Todo> {
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1A1A1A),
+            color: themeProvider.mainTextColor,
           ),
         ),
         const SizedBox(height: 16),
@@ -242,15 +239,15 @@ class _TodoState extends State<Todo> {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E1),
+              color: themeProvider.warningBackgroundColor,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFFFE0B2)),
+              border: Border.all(color: themeProvider.warningBorderColor),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Icon(Icons.warning_amber_rounded,
-                    size: 20, color: Color(0xFFF57C00)),
+                Icon(Icons.warning_amber_rounded,
+                    size: 20, color: themeProvider.warningIconColor),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -258,13 +255,13 @@ class _TodoState extends State<Todo> {
                     style: GoogleFonts.inter(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF6D4C41),
+                      color: themeProvider.warningTextColor,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close,
-                      size: 18, color: Color(0xFF6D4C41)),
+                  icon: Icon(Icons.close,
+                      size: 18, color: themeProvider.warningTextColor),
                   padding: EdgeInsets.zero,
                   onPressed: () {
                     setState(() {
@@ -286,7 +283,6 @@ class _TodoState extends State<Todo> {
                     newTask,
                     ..._uncompletedTodoItems!,
                   ];
-
                   _creatingNewTask = false;
                 }
               });
@@ -329,7 +325,7 @@ class _TodoState extends State<Todo> {
                   _creatingNewTask = true;
                 });
               }),
-              buildPopupMenuButton(),
+              buildPopupMenuButton(themeProvider),
             ],
           ),
         const SizedBox(height: 16),
@@ -377,9 +373,8 @@ class _TodoState extends State<Todo> {
                   final listId = _todoLists!.first.id;
                   _todoService.deleteUncompletedItem(listId, id);
                   setState(() {
-                    _uncompletedTodoItems = _uncompletedTodoItems!
-                        .where((i) => i.id != id)
-                        .toList();
+                    _uncompletedTodoItems =
+                        _uncompletedTodoItems!.where((i) => i.id != id).toList();
                   });
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -398,14 +393,22 @@ class _TodoState extends State<Todo> {
   @override
   Widget build(BuildContext context) {
     final studySession = Provider.of<StudySessionModel>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return _todoLists == null
         ? Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+            baseColor: themeProvider.isDarkMode
+                ? Colors.grey[800]!
+                : Colors.grey[300]!,
+            highlightColor: themeProvider.isDarkMode
+                ? Colors.grey[700]!
+                : Colors.grey[100]!,
             child: Container(
               height: MediaQuery.of(context).size.height - kControlBarHeight,
               width: 400,
-              color: Colors.white,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[800]
+                  : Colors.grey[300],
             ),
           )
         : SizedBox(
@@ -413,23 +416,23 @@ class _TodoState extends State<Todo> {
             height: MediaQuery.of(context).size.height - kControlBarHeight,
             child: Column(
               children: [
-                buildTopBar(),
+                buildTopBar(themeProvider),
                 Expanded(
                   child: Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Color(0xFFE0E7FF),
-                          Color(0xFFF7F8FC),
+                          themeProvider.appBackgroundGradientStart,
+                          themeProvider.appBackgroundGradientEnd,
                         ],
                       ),
                     ),
                     padding: const EdgeInsets.all(15.0),
                     child: studySession.isActive
-                        ? buildTaskManager(studySession)
-                        : buildDefaultList(),
+                        ? buildTaskManager(studySession, themeProvider)
+                        : buildDefaultList(themeProvider),
                   ),
                 ),
               ],
@@ -437,8 +440,9 @@ class _TodoState extends State<Todo> {
           );
   }
 
-  PopupMenuButton<dynamic> buildPopupMenuButton() {
+  PopupMenuButton<dynamic> buildPopupMenuButton(ThemeProvider themeProvider) {
     return PopupMenuButton<dynamic>(
+      color: themeProvider.popupBackgroundColor,
       onSelected: (value) {
         if (value is SortBy) {
           setState(() {
@@ -454,16 +458,19 @@ class _TodoState extends State<Todo> {
         PopupMenuItem(
           enabled: false,
           child: Text('Sort By',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+              style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  color: themeProvider.mainTextColor)),
         ),
         PopupMenuItem<SortBy>(
           value: SortBy.dueDate,
           child: Row(
             children: [
               if (_selectedSortOption == SortBy.dueDate)
-                const Icon(Icons.check, size: 16),
+                Icon(Icons.check, size: 16, color: themeProvider.iconColor),
               const SizedBox(width: 8),
-              const Text('Due Date'),
+              Text('Due Date',
+                  style: TextStyle(color: themeProvider.mainTextColor)),
             ],
           ),
         ),
@@ -472,9 +479,10 @@ class _TodoState extends State<Todo> {
           child: Row(
             children: [
               if (_selectedSortOption == SortBy.createdAt)
-                const Icon(Icons.check, size: 16),
+                Icon(Icons.check, size: 16, color: themeProvider.iconColor),
               const SizedBox(width: 8),
-              const Text('Created At'),
+              Text('Created At',
+                  style: TextStyle(color: themeProvider.mainTextColor)),
             ],
           ),
         ),
@@ -482,16 +490,18 @@ class _TodoState extends State<Todo> {
         PopupMenuItem(
           enabled: false,
           child: Text('Filter By',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+              style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  color: themeProvider.mainTextColor)),
         ),
         PopupMenuItem<TodoFilter>(
           value: TodoFilter.none,
           child: Row(
             children: [
               if (_selectedFilterOption == TodoFilter.none)
-                const Icon(Icons.check, size: 16),
+                Icon(Icons.check, size: 16, color: themeProvider.iconColor),
               const SizedBox(width: 8),
-              const Text('None'),
+              Text('None', style: TextStyle(color: themeProvider.mainTextColor)),
             ],
           ),
         ),
@@ -500,9 +510,10 @@ class _TodoState extends State<Todo> {
           child: Row(
             children: [
               if (_selectedFilterOption == TodoFilter.hasDueDate)
-                const Icon(Icons.check, size: 16),
+                Icon(Icons.check, size: 16, color: themeProvider.iconColor),
               const SizedBox(width: 8),
-              const Text('Has Due Date'),
+              Text('Has Due Date',
+                  style: TextStyle(color: themeProvider.mainTextColor)),
             ],
           ),
         ),
@@ -511,29 +522,30 @@ class _TodoState extends State<Todo> {
           child: Row(
             children: [
               if (_selectedFilterOption == TodoFilter.priority)
-                const Icon(Icons.check, size: 16),
+                Icon(Icons.check, size: 16, color: themeProvider.iconColor),
               const SizedBox(width: 8),
-              const Text('Priority'),
+              Text('Priority',
+                  style: TextStyle(color: themeProvider.mainTextColor)),
             ],
           ),
         ),
       ],
-      icon: const Icon(Icons.more_horiz),
+      icon: Icon(Icons.more_horiz, color: themeProvider.iconColor),
       iconSize: 25,
     );
   }
 
-  Widget buildTopBar() {
+  Widget buildTopBar(ThemeProvider themeProvider) {
     return Container(
       height: 40,
-      color: Colors.white,
+      color: themeProvider.appContentBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         children: [
           const Spacer(),
           IconButton(
             onPressed: widget.onClose,
-            icon: const Icon(Icons.close),
+            icon: Icon(Icons.close, color: themeProvider.iconColor),
           ),
         ],
       ),

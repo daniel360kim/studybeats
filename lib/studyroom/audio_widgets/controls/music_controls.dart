@@ -1,5 +1,7 @@
 import 'package:studybeats/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class MusicControlButton extends StatelessWidget {
   const MusicControlButton({
@@ -8,7 +10,7 @@ class MusicControlButton extends StatelessWidget {
     required this.iconSize,
     required this.icon,
     required this.onPressed,
-    this.iconColor = kFlourishEmphasisBlackish,
+    required this.iconColor,
   })  : assert(iconSize > 0),
         assert(splashLength > 0),
         assert(splashLength >= iconSize);
@@ -65,6 +67,7 @@ class Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Provider.of<ThemeProvider>(context);
     const double mainIconSize = 35.0;
     const double secondaryIconSize = 15.0;
     return SizedBox(
@@ -75,21 +78,24 @@ class Controls extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (showFavorite)
-            MusicControlButton(
-              icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-              iconSize: secondaryIconSize,
-              splashLength: secondaryIconSize + 10,
-              onPressed: () {
-                onFavorite(!isFavorite);
-              },
-              iconColor: isFavorite ? Colors.red : kFlourishEmphasisBlackish,
-            ),
+              MusicControlButton(
+                icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                iconSize: secondaryIconSize,
+                splashLength: secondaryIconSize + 10,
+                onPressed: () {
+                  onFavorite(!isFavorite);
+                },
+                iconColor: isFavorite
+                    ? theme.favoriteIconColor
+                    : theme.lightEmphasisColor,
+              ),
             const SizedBox(width: 7.0),
             MusicControlButton(
               icon: Icons.skip_previous,
               iconSize: mainIconSize,
               splashLength: mainIconSize,
               onPressed: () => onPrevious(),
+              iconColor: theme.lightEmphasisColor,
             ),
             const SizedBox(width: 3.0),
             MusicControlButton(
@@ -103,6 +109,7 @@ class Controls extends StatelessWidget {
                   onPlay();
                 }
               },
+              iconColor: theme.lightEmphasisColor,
             ),
             const SizedBox(width: 3.0),
             MusicControlButton(
@@ -110,15 +117,17 @@ class Controls extends StatelessWidget {
               iconSize: mainIconSize,
               splashLength: mainIconSize,
               onPressed: () => onNext(),
+              iconColor: theme.lightEmphasisColor,
             ),
             const SizedBox(width: 7.0),
             if (showShuffle)
-            MusicControlButton(
-              icon: Icons.shuffle,
-              iconSize: secondaryIconSize,
-              splashLength: secondaryIconSize + 10,
-              onPressed: () => onShuffle(),
-            ),
+              MusicControlButton(
+                icon: Icons.shuffle,
+                iconSize: secondaryIconSize,
+                splashLength: secondaryIconSize + 10,
+                onPressed: () => onShuffle(),
+                iconColor: theme.lightEmphasisColor,
+              ),
           ],
         ));
   }
