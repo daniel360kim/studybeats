@@ -140,7 +140,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                         isUserPro: _isPro,
                       )),
                   // For non-pro users, show a pro scene promotion if any pro scenes exist.
-                  if (!_isPro && proItems.isNotEmpty && !_isAnonymousUser)
+                  if (!_isPro && proItems.isNotEmpty)
                     _buildProSceneStack(proItems),
                 ],
               ),
@@ -228,7 +228,7 @@ class _SceneSelectorState extends State<SceneSelector> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Unlock ${proItems.length} more scenes",
+                    "Unlock even more scenes",
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

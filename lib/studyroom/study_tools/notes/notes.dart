@@ -299,7 +299,6 @@ class _NotesState extends State<Notes> {
               icon: Icon(Icons.add, color: themeProvider.iconColor),
               tooltip: 'Create a new note',
             ),
-          const SizedBox(width: 8),
           _isDownloadingPdf
               ? SizedBox(
                   width: 24,
@@ -313,11 +312,9 @@ class _NotesState extends State<Notes> {
                     ),
                   ),
                 )
-              : IconButton(
-                  icon: Icon(Icons.picture_as_pdf_outlined,
-                      color: themeProvider.iconColor),
-                  tooltip: 'Export selected note as PDF',
-                  onPressed: () async {
+              : PopupMenuButton<String>(
+                  onSelected: (String value) async {
+                    // This function is called when a menu item is selected
                     if (_notePreviews == null || _notePreviews!.isEmpty) return;
 
                     final selectedNoteId =
@@ -341,18 +338,66 @@ class _NotesState extends State<Notes> {
                         throw Exception("Selected note not found.");
                       }
 
+                      // Generate the downloadable link
                       final downloadUrl = await _noteService.exportNoteAsPdf(
                           _defaultFolderId, selectedNoteId);
-                      html.window.open(downloadUrl, '_blank');
+
+                      // Perform action based on the selected menu item
+                      if (value == 'share') {
+                        // Use the Web Share API if available
+                        try {
+                          await html.window.navigator.share({
+                            'title': selectedNote.title,
+                            'text': 'Here is the note I wanted to share.',
+                            'url': downloadUrl,
+                          });
+                        } catch (e) {
+                          // Fallback for browsers that don't support sharing
+                          html.window.open(downloadUrl, '_blank');
+                        }
+                      } else if (value == 'download') {
+                        // Directly open the link to download
+                        html.window.open(downloadUrl, '_blank');
+                      }
                     } catch (e) {
-                      _logger.e('Error exporting note: $e');
-                      _showError();
+                      if (!e.toString().contains('AbortError')) {
+                        _logger.e('Error exporting note: $e');
+                        _showError();
+                      }
                     } finally {
                       if (mounted) {
                         setState(() => _isDownloadingPdf = false);
                       }
                     }
                   },
+                  itemBuilder: (BuildContext context) =>
+                      <PopupMenuEntry<String>>[
+                    // The "Share" menu item
+                    const PopupMenuItem<String>(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(Icons.share_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Share'),
+                        ],
+                      ),
+                    ),
+                    // The "Download" menu item
+                    const PopupMenuItem<String>(
+                      value: 'download',
+                      child: Row(
+                        children: [
+                          Icon(Icons.download_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Download'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  icon: Icon(Icons.share_outlined,
+                      color: themeProvider.iconColor),
+                  tooltip: 'Share or Download PDF',
                 ),
           if (!isPro) buildNoteUsageReport(themeProvider),
           const Spacer(),

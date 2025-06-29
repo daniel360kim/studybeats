@@ -453,23 +453,9 @@ class LofiTracksView extends StatelessWidget {
         : 'assets/brand/spotify_logo_full_black.png';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Center(
-        child: GestureDetector(
-          onTap: () async {
-            final Uri url = Uri.parse('https://www.spotify.com');
-            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-              _logger.w("Could not launch ${url.toString()}");
-            }
-          },
-          child: Image.asset(
-            logoAssetPath,
-            height: 24,
-            fit: BoxFit.contain,
-            semanticLabel: 'Powered by Spotify. Links to Spotify.com',
-          ),
-        ),
-      ),
-    );
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Center(
+          child: SizedBox(),
+        ));
   }
 }

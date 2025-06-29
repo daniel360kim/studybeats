@@ -11,6 +11,7 @@ import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/switch.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/volumebar.dart';
+import 'package:studybeats/theme_provider.dart';
 
 class BackgroundSoundControl extends StatefulWidget {
   const BackgroundSoundControl({
@@ -42,7 +43,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   final _sfxService = SfxService();
   final ValueNotifier<double> _volumeNotifier = ValueNotifier<double>(50.0);
 
-  // *** NEW: didUpdateWidget to handle global mute ***
   @override
   void didUpdateWidget(covariant BackgroundSoundControl oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -64,7 +64,6 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
   }
 
   void _loadSoundControl() async {
-    // ... (implementation is unchanged)
     try {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
@@ -131,6 +130,8 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
       return const _LoadingShimmer();
     }
 
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -171,7 +172,7 @@ class _BackgroundSoundControlState extends State<BackgroundSoundControl>
             child: Text(
               widget.backgroundSound.name,
               style: GoogleFonts.inter(
-                color: kFlourishBlackish,
+                color: themeProvider.textColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
