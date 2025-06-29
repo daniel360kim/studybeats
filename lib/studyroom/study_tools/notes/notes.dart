@@ -10,6 +10,7 @@ import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/theme_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:html' as html;
 import 'draggable_note.dart';
 
 class Notes extends StatefulWidget {
@@ -40,6 +41,7 @@ class _NotesState extends State<Notes> {
 
   bool _isAnonymous = false;
   bool _dismissedAnonWarning = false;
+  bool _isDownloadingPdf = false;
 
   @override
   void initState() {
@@ -120,7 +122,7 @@ class _NotesState extends State<Notes> {
           setState(() {
             _creatingNewNote = false;
           });
-          _fetchNotes(); // refetch to update list
+          _fetchNotes();
         },
       ),
     );
@@ -235,6 +237,8 @@ class _NotesState extends State<Notes> {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Delete selected note',
+            icon: Icon(Icons.delete_outlined, color: themeProvider.iconColor),
             onPressed: () async {
               if (_notePreviews == null || _notePreviews!.isEmpty) return;
               final selectedNoteId =
@@ -243,14 +247,8 @@ class _NotesState extends State<Notes> {
                 if (_creatingNewNote) {
                   _overlayEntry?.remove();
                   _overlayEntry = null;
-                  setState(() {
-                    _creatingNewNote = false;
-                  });
+                  setState(() => _creatingNewNote = false);
                 }
-                setState(() {
-                  _currentNoteCount--;
-                });
-
                 await _noteService.deleteNote(
                   _defaultFolderId,
                   selectedNoteId,
@@ -268,13 +266,8 @@ class _NotesState extends State<Notes> {
                               : Colors.white)),
                   action: SnackBarAction(
                     label: 'Undo',
-                    onPressed: () async {
-                      setState(() {
-                        _currentNoteCount++;
-                      });
-                      await _noteService.undoDelete(
-                          _defaultFolderId, selectedNoteId);
-                    },
+                    onPressed: () => _noteService.undoDelete(
+                        _defaultFolderId, selectedNoteId),
                     textColor: themeProvider.primaryAppColor,
                   ),
                   duration: const Duration(seconds: 15),
@@ -290,8 +283,6 @@ class _NotesState extends State<Notes> {
                 ),
               );
             },
-            tooltip: 'Delete selected note',
-            icon: Icon(Icons.delete_outlined, color: themeProvider.iconColor),
           ),
           VerticalDivider(
             indent: 8,
@@ -301,16 +292,68 @@ class _NotesState extends State<Notes> {
           if (_currentNoteCount < noteLimit || noteLimit == 0)
             IconButton(
               onPressed: () {
-                setState(() {
-                  _creatingNewNote = true;
-                  _currentNoteCount++;
-                });
+                setState(() => _creatingNewNote = true);
                 final newNoteId = const Uuid().v4();
                 _showDraggableNote(newNoteId);
               },
               icon: Icon(Icons.add, color: themeProvider.iconColor),
               tooltip: 'Create a new note',
             ),
+          const SizedBox(width: 8),
+          _isDownloadingPdf
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          themeProvider.iconColor),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(Icons.picture_as_pdf_outlined,
+                      color: themeProvider.iconColor),
+                  tooltip: 'Export selected note as PDF',
+                  onPressed: () async {
+                    if (_notePreviews == null || _notePreviews!.isEmpty) return;
+
+                    final selectedNoteId =
+                        _notePreviews![_selectedNoteIndex.value].id;
+                    if (_creatingNewNote) {
+                      _overlayEntry?.remove();
+                      _overlayEntry = null;
+                      setState(() => _creatingNewNote = false);
+                    }
+
+                    setState(() => _isDownloadingPdf = true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Generating your PDF...')),
+                    );
+
+                    try {
+                      final selectedNote = await _noteService.getNoteById(
+                          _defaultFolderId, selectedNoteId);
+
+                      if (selectedNote == null) {
+                        throw Exception("Selected note not found.");
+                      }
+
+                      final downloadUrl = await _noteService.exportNoteAsPdf(
+                          _defaultFolderId, selectedNoteId);
+                      html.window.open(downloadUrl, '_blank');
+                    } catch (e) {
+                      _logger.e('Error exporting note: $e');
+                      _showError();
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isDownloadingPdf = false);
+                      }
+                    }
+                  },
+                ),
           if (!isPro) buildNoteUsageReport(themeProvider),
           const Spacer(),
           IconButton(
@@ -421,7 +464,15 @@ class _NotesState extends State<Notes> {
           return const SizedBox();
         } else if (snapshot.hasData) {
           final notes = snapshot.data!;
-          _notePreviews = notes;
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _notePreviews = notes;
+                });
+              }
+            });
+          }
           return ListView.builder(
             key: ValueKey<int>(notes.length),
             itemCount: notes.length,

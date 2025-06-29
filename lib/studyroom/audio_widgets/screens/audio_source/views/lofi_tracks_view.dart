@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:url_launcher/url_launcher.dart'; // Required for launching URL
+import 'package:studybeats/theme_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/widgets/shimmer_list_widget.dart';
 
@@ -22,10 +24,6 @@ class LofiTracksView extends StatelessWidget {
 
   final _logger = getLogger('LofiTracksView');
 
-  // Updated to Spotify brand color
-  static const Color accentColor = Colors.deepOrange;
-  static const Color spotifyBlack = Color(0xFF191414); // Spotify Black
-
   LofiTracksView({
     super.key,
     required this.tracks,
@@ -42,8 +40,8 @@ class LofiTracksView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    _logger.v(
-        "Building widget. Track count: ${tracks!.length}, Playing URI: $currentlyPlayingId");
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final accentColor = themeProvider.primaryAppColor;
     bool hasTracks = tracks != null && tracks!.isNotEmpty;
 
     return Padding(
@@ -51,21 +49,7 @@ class LofiTracksView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          /*
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              icon: Icon(Icons.arrow_back_rounded,
-                  color: spotifyBlack.withOpacity(0.7), size: 24),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                onBack();
-              },
-              tooltip: "Back to Playlists",
-            ),
-          ),
-          */
-          if (hasTracks) _buildPlaylistInfo(context),
+          if (hasTracks) _buildPlaylistInfo(context, themeProvider),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -75,8 +59,8 @@ class LofiTracksView extends StatelessWidget {
                 child: (tracks == null && isLoading)
                     ? ShimmerListWidget(isPlaylist: false)
                     : !hasTracks
-                        ? _buildEmptyState(context)
-                        : _buildTracksList(context),
+                        ? _buildEmptyState(context, themeProvider)
+                        : _buildTracksList(context, themeProvider),
               ),
             ),
           ),
@@ -85,19 +69,22 @@ class LofiTracksView extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaylistInfo(BuildContext context) {
+  Widget _buildPlaylistInfo(BuildContext context, ThemeProvider themeProvider) {
+    final accentColor = themeProvider.primaryAppColor;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: themeProvider.appContentBackgroundColor,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: themeProvider.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -106,7 +93,7 @@ class LofiTracksView extends StatelessWidget {
             child: Container(
               width: 80,
               height: 80,
-              color: Colors.grey[300],
+              color: themeProvider.dividerColor,
               child: (tracks != null && tracks!.isNotEmpty)
                   ? GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
@@ -119,11 +106,10 @@ class LofiTracksView extends StatelessWidget {
                         return CachedNetworkImage(
                           imageUrl: tracks![i].artworkUrl100,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[200],
-                          ),
+                          placeholder: (context, url) =>
+                              Container(color: themeProvider.dividerColor),
                           errorWidget: (context, url, error) => Container(
-                            color: Colors.grey[400],
+                            color: themeProvider.dividerColor,
                             child: const Icon(Icons.music_note,
                                 color: Colors.white70, size: 20),
                           ),
@@ -144,7 +130,7 @@ class LofiTracksView extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: spotifyBlack,
+                    color: themeProvider.mainTextColor,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -154,7 +140,7 @@ class LofiTracksView extends StatelessWidget {
                   "${playlist.numSongs} tracks",
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: Colors.grey[700],
+                    color: themeProvider.secondaryTextColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -163,6 +149,7 @@ class LofiTracksView extends StatelessWidget {
                   children: [
                     _buildActionButton(
                       context,
+                      themeProvider,
                       icon: Icons.play_circle_filled_rounded,
                       label: "Play All",
                       onTap: tracks != null && tracks!.isNotEmpty
@@ -183,12 +170,14 @@ class LofiTracksView extends StatelessWidget {
   }
 
   Widget _buildActionButton(
-    BuildContext context, {
+    BuildContext context,
+    ThemeProvider themeProvider, {
     required IconData icon,
     required String label,
     required VoidCallback? onTap,
   }) {
     final bool isEnabled = onTap != null;
+    final accentColor = themeProvider.primaryAppColor;
 
     return InkWell(
       onTap: onTap,
@@ -226,7 +215,8 @@ class LofiTracksView extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, ThemeProvider themeProvider) {
+    final accentColor = themeProvider.primaryAppColor;
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -234,94 +224,81 @@ class LofiTracksView extends StatelessWidget {
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
           child: Center(
             child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.music_off_rounded,
-                        size: 64, color: Colors.grey.shade400),
-                    const SizedBox(height: 24),
-                    Text('No tracks in this playlist',
-                        style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700])),
-                    const SizedBox(height: 12),
-                    Text(
-                        'Add some tracks to this playlist in Spotify and pull down to refresh.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          height: 1.4,
-                        )),
-                    const SizedBox(height: 32),
-                    ElevatedButton.icon(
-                      onPressed: onRefresh,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Refresh Now'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: accentColor,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.music_off_rounded,
+                      size: 64, color: themeProvider.secondaryTextColor),
+                  const SizedBox(height: 24),
+                  Text('No tracks in this playlist',
+                      style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: themeProvider.mainTextColor)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Add some tracks to this playlist in Spotify and pull down to refresh.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: themeProvider.secondaryTextColor,
+                      height: 1.4,
                     ),
-                  ],
-                )),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: onRefresh,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Refresh Now'),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: accentColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTracksList(BuildContext context) {
+  Widget _buildTracksList(BuildContext context, ThemeProvider themeProvider) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-      itemCount: tracks!.length + 2, // +1 for header, +1 for footer
+      itemCount: tracks!.length + 1,
       itemBuilder: (context, index) {
-        if (index == 0) {
-          // Header section with count and search (future feature)
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-            child: Row(
-              children: [
-                Text(
-                  "${tracks!.length} Tracks",
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else if (index == tracks!.length + 1) {
-          // Footer with attribution reminder
-          return _buildListFooter();
+        if (index == tracks!.length) {
+          return _buildSpotifyAttribution(themeProvider);
         }
 
-        final trackIndex = index - 1;
-        final track = tracks![trackIndex];
+        final track = tracks![index];
         bool isCurrentlyPlayingThisTrack = track.id == currentlyPlayingId;
 
         return _buildTrackListItem(
-            context, track, trackIndex, isCurrentlyPlayingThisTrack);
+            context, track, index, isCurrentlyPlayingThisTrack, themeProvider);
       },
     );
   }
 
-  Widget _buildTrackListItem(BuildContext context, LofiSongMetadata track,
-      int index, bool isCurrentlyPlayingThisTrack) {
+  Widget _buildTrackListItem(
+      BuildContext context,
+      LofiSongMetadata track,
+      int index,
+      bool isCurrentlyPlayingThisTrack,
+      ThemeProvider themeProvider) {
+    final accentColor = themeProvider.primaryAppColor;
     Color tileColor = isCurrentlyPlayingThisTrack
         ? accentColor.withOpacity(0.08)
         : Colors.transparent;
-    Color titleColor = isCurrentlyPlayingThisTrack
-        ? accentColor
-        : spotifyBlack; // Changed to spotifyBlack for non-playing
+    Color titleColor =
+        isCurrentlyPlayingThisTrack ? accentColor : themeProvider.mainTextColor;
     FontWeight titleFontWeight =
         isCurrentlyPlayingThisTrack ? FontWeight.bold : FontWeight.w500;
 
@@ -342,7 +319,7 @@ class LofiTracksView extends StatelessWidget {
             }
           },
           borderRadius: BorderRadius.circular(12.0),
-          hoverColor: Colors.grey.shade100.withOpacity(0.7),
+          hoverColor: themeProvider.dividerColor.withOpacity(0.5),
           child: Padding(
             padding:
                 const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -355,7 +332,7 @@ class LofiTracksView extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: isCurrentlyPlayingThisTrack
                         ? accentColor
-                        : Colors.grey[400],
+                        : themeProvider.secondaryTextColor,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -365,13 +342,15 @@ class LofiTracksView extends StatelessWidget {
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        boxShadow: themeProvider.isDarkMode
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8.0),
@@ -381,25 +360,13 @@ class LofiTracksView extends StatelessWidget {
                           height: 52,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
-                            width: 52,
-                            height: 52,
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      accentColor),
-                                ),
-                              ),
-                            ),
-                          ),
+                              width: 52,
+                              height: 52,
+                              color: themeProvider.dividerColor),
                           errorWidget: (context, url, error) => Container(
                             width: 52,
                             height: 52,
-                            color: Colors.grey[300],
+                            color: themeProvider.dividerColor,
                             child: const Icon(Icons.music_note,
                                 color: Colors.white70),
                           ),
@@ -413,29 +380,20 @@ class LofiTracksView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        // Re-added Row for explicit badge
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Assuming SpotifyTrackSimple has an 'isExplicit' boolean field.
-
-                          Expanded(
-                            child: Text(track.trackName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                    fontSize: 15,
-                                    fontWeight: titleFontWeight,
-                                    color: titleColor)),
-                          ),
-                        ],
-                      ),
+                      Text(track.trackName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: titleFontWeight,
+                              color: titleColor)),
                       const SizedBox(height: 4),
                       Text(track.artistName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
-                              fontSize: 13, color: Colors.grey[600])),
+                              fontSize: 13,
+                              color: themeProvider.secondaryTextColor)),
                     ],
                   ),
                 ),
@@ -472,7 +430,8 @@ class LofiTracksView extends StatelessWidget {
                       )
                     : Text(_formatDuration((track.trackTime * 1000).toInt()),
                         style: GoogleFonts.inter(
-                            fontSize: 13, color: Colors.grey[500])),
+                            fontSize: 13,
+                            color: themeProvider.secondaryTextColor)),
               ],
             ),
           ),
@@ -481,14 +440,18 @@ class LofiTracksView extends StatelessWidget {
     );
   }
 
-  // Helper function to format duration
   String _formatDuration(int milliseconds) {
     final int seconds = (milliseconds / 1000).floor() % 60;
     final int minutes = (milliseconds / 60000).floor();
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildSpotifyAttribution() {
+  Widget _buildSpotifyAttribution(ThemeProvider themeProvider) {
+    // Use a different asset for dark mode
+    final logoAssetPath = themeProvider.isDarkMode
+        ? 'assets/brand/spotify_logo_full_white.png'
+        : 'assets/brand/spotify_logo_full_black.png';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Center(
@@ -500,19 +463,13 @@ class LofiTracksView extends StatelessWidget {
             }
           },
           child: Image.asset(
-            'assets/brand/spotify_logo_full_black.png', // Full logo (icon + wordmark)
-            height:
-                24, // Ensure height maintains aspect ratio for >= 70px width
+            logoAssetPath,
+            height: 24,
             fit: BoxFit.contain,
             semanticLabel: 'Powered by Spotify. Links to Spotify.com',
           ),
         ),
       ),
     );
-  }
-
-  // Update footer to avoid redundancy
-  Widget _buildListFooter() {
-    return Container();
   }
 }

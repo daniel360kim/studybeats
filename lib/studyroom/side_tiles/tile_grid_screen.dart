@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reorderables/reorderables.dart';
-import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/side_tiles/tiles/calendar_tile.dart';
 import 'package:studybeats/studyroom/side_tiles/tiles/clock_tile.dart';

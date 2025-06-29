@@ -1,42 +1,47 @@
+// --- Corrected Imports ---
+const functions = require("firebase-functions"); 
 const admin = require("firebase-admin");
+const { onCall } = require("firebase-functions/v2/https");
 
-// Initialize Firebase Admin SDK.
+// Imports needed for the PDF conversion logic
+const PDFDocument = require("pdfkit"); // Use pdfkit for server-side PDF generation
+const { Writable } = require("stream");
+
+
+// --- Firebase Initialization ---
 try {
+  // Initialize Firebase Admin SDK only once
   if (admin.apps.length === 0) {
     admin.initializeApp();
   }
 } catch (e) {
-  console.warn("Firebase Admin SDK already initialized or error during initialization in index.js:", e.message);
+  console.warn("Firebase Admin SDK already initialized or error in index.js:", e.message);
 }
 
-// Import functions from mailchimpHooks.js
+// --- Import all function logic files ---
 const mailchimpRelatedFunctions = require('./mailchimpHooks');
-// Import functions from userManagementHooks.js
 const userManagementRelatedFunctions = require('./userManagementHooks');
-const functions = require("firebase-functions");
+const weatherFunctions = require('./weather');
+const pdfGeneratorFunctions = require('./pdfGenerator');
 
-// --- Re-export functions from mailchimpHooks.js ---
+// --- Runtime Options for memory-intensive functions ---
+const runtimeOpts = {
+  timeoutSeconds: 300, // 5 minutes
+  memory: "1GiB",      // 1 GB of memory
+};
+
+// --- Export all functions ---
+
+// Mailchimp
 exports.initializeUserSettingsOnUserCreate = mailchimpRelatedFunctions.initializeUserSettingsOnUserCreate;
 exports.manageMailchimpFromNotificationSettingsChange = mailchimpRelatedFunctions.manageMailchimpFromNotificationSettingsChange;
-exports.cleanupUserOnDelete = mailchimpRelatedFunctions.cleanupUserOnDelete; // This is the Firestore onDocumentDeleted trigger
+exports.cleanupUserOnDelete = mailchimpRelatedFunctions.cleanupUserOnDelete;
 exports.backfillDefaultNotificationSettings = mailchimpRelatedFunctions.backfillDefaultNotificationSettings;
 
-// --- Re-export functions from userManagementHooks.js ---
-exports.handleAuthUserDeletionV1 = userManagementRelatedFunctions.handleAuthUserDeletionV1; // This is the Auth onUserDeleted trigger
+// User Management
+exports.handleAuthUserDeletionV1 = userManagementRelatedFunctions.handleAuthUserDeletionV1;
 exports.cleanupOldAnonymousUsers = userManagementRelatedFunctions.cleanupOldAnonymousUsers; 
-exports.handleAuthUserCreation = userManagementRelatedFunctions.handleAuthUserCreation; // This is the Auth onUserCreated trigger
+exports.handleAuthUserCreation = userManagementRelatedFunctions.handleAuthUserCreation;
 
-// Import and export weather functions
-const weatherFunctions = require('./weather');
+// Weather
 exports.getWeather = weatherFunctions.getWeather;
-
-// Example of another function directly in index.js (if you have any)
-// const { onRequest } = require("firebase-functions/v2/https");
-// const logger = require("firebase-functions/logger");
-//
-// exports.simpleHttpTest = onRequest((request, response) => {
-//   logger.info("Simple HTTP Test function called from index.js!");
-//   response.send("Hello from a simple function in index.js!");
-// });
-
-// Ensure all functions you intend to deploy are exported from this file.

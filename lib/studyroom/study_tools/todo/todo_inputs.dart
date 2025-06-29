@@ -391,16 +391,14 @@ class _CreateNewTaskInputsState extends State<CreateNewTaskInputs> {
                     onPrimary: Colors.white,
                     surface: themeProvider.popupBackgroundColor,
                     onSurface: themeProvider.mainTextColor,
-                  ),
-                  dialogBackgroundColor: themeProvider.popupBackgroundColor,
+                  ), dialogTheme: DialogThemeData(backgroundColor: themeProvider.popupBackgroundColor),
                 )
               : ThemeData.light().copyWith(
                   colorScheme: ColorScheme.light(
                     primary: themeProvider.primaryAppColor,
                     onPrimary: Colors.white,
                     onSurface: themeProvider.mainTextColor,
-                  ),
-                  dialogBackgroundColor: themeProvider.popupBackgroundColor,
+                  ), dialogTheme: DialogThemeData(backgroundColor: themeProvider.popupBackgroundColor),
                 ),
           child: child!,
         );

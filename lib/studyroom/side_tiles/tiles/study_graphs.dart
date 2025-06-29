@@ -5,7 +5,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
 import 'package:studybeats/api/side_widgets/objects.dart';
 
-import 'package:studybeats/api/study/objects.dart';
 import 'package:studybeats/api/study/study_service.dart';
 import 'package:studybeats/colors.dart';
 import 'package:studybeats/studyroom/side_tiles/tile_screen_controller.dart';
@@ -97,7 +96,7 @@ class _StudyGraphsTileState extends State<StudyGraphsTile>
         // Otherwise, assume 5‑min break per 25‑min study as an estimate.
         _breakMinutes = weeklyStats.values
             .map((d) =>
-                d.totalBreakTime?.inMinutes.toDouble() ??
+                d.totalBreakTime.inMinutes.toDouble() ??
                 (d.totalStudyTime.inMinutes / 5))
             .fold(0, (a, b) => a + b);
       }

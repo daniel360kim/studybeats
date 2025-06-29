@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/rendering.dart';
 import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/scenes/objects.dart';
 import 'package:studybeats/api/scenes/scene_service.dart';
@@ -254,14 +253,14 @@ class _StudyRoomState extends State<StudyRoom> {
 
   Widget buildBackgroundImage() {
     bool isDarkThemeEnabled = Provider.of<ThemeProvider>(context).isDarkMode;
-    final String? _backgroundImageUrl =
+    final String? backgroundImageUrl =
         isDarkThemeEnabled ? _backgroundImageUrlDark : _backgroundImageUrlLight;
     return Stack(
       children: [
-        if (_backgroundImageUrl != null)
+        if (backgroundImageUrl != null)
           ClipRRect(
             child: CachedNetworkImage(
-              imageUrl: _backgroundImageUrl,
+              imageUrl: backgroundImageUrl,
               width: MediaQuery.of(context).size.width,
               height: MediaQuery.of(context).size.height,
               fit: BoxFit.cover,
@@ -280,7 +279,7 @@ class _StudyRoomState extends State<StudyRoom> {
                         changeScene(id);
                       },
                       currentScene: _currentScene!,
-                      currentSceneBackgroundUrl: _backgroundImageUrl!,
+                      currentSceneBackgroundUrl: backgroundImageUrl!,
                       onUpgradeSelected: (option) async {
                         // Show the upgrade dialog
                         switch (option) {

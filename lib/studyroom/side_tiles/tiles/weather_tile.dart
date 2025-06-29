@@ -184,8 +184,8 @@ class _WeatherTileState extends State<WeatherTile>
     if (code >= 300 && code < 600) {
       return LinearGradient(
         colors: isFront
-            ? [const Color(0xff00416A), const Color(0xff799F0C)]
-            : [const Color(0xff002B4A), const Color(0xff5A7F0C)],
+            ? [const Color(0xff373B44), const Color(0xff4286f4)]
+            : [const Color(0xff232526), const Color(0xff414345)],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       );

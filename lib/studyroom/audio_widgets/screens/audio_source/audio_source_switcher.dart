@@ -14,6 +14,7 @@ import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/spotify_
 import 'package:studybeats/studyroom/audio/spotify_controller.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/views/lofi_tracks_view.dart';
 import 'package:studybeats/studyroom/playlist_notifier.dart';
+import 'package:studybeats/theme_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Views
@@ -467,6 +468,7 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     const borderRadius = BorderRadius.only(
         topLeft: Radius.circular(40), topRight: Radius.circular(40));
 
@@ -501,14 +503,14 @@ class _AudioSourceSwitcherState extends State<AudioSourceSwitcher> {
                     filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300.withOpacity(0.6),
+                        color: themeProvider.backgroundColor.withOpacity(0.8),
                         borderRadius: borderRadius,
                       ),
                       padding: const EdgeInsets.all(8),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: borderRadius,
-                          color: Colors.white.withOpacity(0.95),
+                          color: themeProvider.appContentBackgroundColor,
                         ),
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
