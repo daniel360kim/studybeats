@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/audio/background_sfx/objects.dart';
 import 'package:studybeats/api/audio/background_sfx/sfx_service.dart';
-import 'package:studybeats/colors.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/studyroom/audio/audio_state.dart';
 import 'package:studybeats/studyroom/audio_widgets/screens/background_sound/switch.dart';

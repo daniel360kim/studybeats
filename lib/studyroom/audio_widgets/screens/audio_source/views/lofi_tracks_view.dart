@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:studybeats/api/audio/objects.dart';
 import 'package:studybeats/log_printer.dart';
 import 'package:studybeats/theme_provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:studybeats/studyroom/audio_widgets/screens/audio_source/widgets/shimmer_list_widget.dart';
 
