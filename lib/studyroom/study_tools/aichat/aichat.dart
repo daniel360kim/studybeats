@@ -1,21 +1,18 @@
 import 'dart:async';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
-import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/api/analytics/analytics_service.dart';
-import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:studybeats/api/openai/openai_service.dart';
-import 'package:studybeats/api/stripe/subscription_service.dart';
 import 'package:studybeats/log_printer.dart';
-import 'package:studybeats/router.dart';
 import 'package:studybeats/studyroom/control_bar.dart';
 import 'package:studybeats/studyroom/study_tools/aichat/aimessage.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:studybeats/theme_provider.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:studybeats/api/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker_web/image_picker_web.dart';
@@ -59,8 +56,6 @@ class _AiChatState extends State<AiChat> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final AuthService _authService = AuthService();
   final OpenaiService _openaiService = OpenaiService();
-  final StripeSubscriptionService _subscriptionService =
-      StripeSubscriptionService();
   bool _isPasting = false;
   bool _showScrollToBottomButton = false;
   bool _loadingResponse = false;
@@ -77,8 +72,6 @@ class _AiChatState extends State<AiChat> {
   final List<Map<String, dynamic>> _conversationHistory = [];
   int numCharacters = 0;
   bool _isAnonymous = false;
-  bool _isPro = false;
-  final int _freeChatLimit = 1;
   final _logger = getLogger('AiChat');
   final _analyticsService = AnalyticsService();
   String? _currentChatId;
@@ -98,22 +91,6 @@ class _AiChatState extends State<AiChat> {
     try {
       final user = await _authService.getCurrentUser();
       _isAnonymous = user.isAnonymous;
-
-      if (!_isAnonymous) {
-        final isPro = await _subscriptionService.hasProMembership();
-        if (mounted) {
-          setState(() {
-            _isPro = isPro;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _isPro = false;
-          });
-        }
-      }
-
       await _openaiService.init();
       await _analyticsService.logOpenFeature(ContentType.aiChat, 'AiChat');
       final url = await _authService.getProfilePictureUrl();
@@ -190,12 +167,8 @@ class _AiChatState extends State<AiChat> {
     }
   }
 
-  Future<void> _selectChat(ChatMetadata? chatMetadata,
-      {bool userInitiated = false}) async {
+  Future<void> _selectChat(ChatMetadata? chatMetadata) async {
     if (!mounted) return;
-
-    final bool shouldCloseDrawer =
-        userInitiated && (_scaffoldKey.currentState?.isDrawerOpen ?? false);
 
     if (chatMetadata == null) {
       if (mounted) {
@@ -209,7 +182,7 @@ class _AiChatState extends State<AiChat> {
         });
       }
       _logger.i("No chat selected or available.");
-      if (shouldCloseDrawer) {
+      if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
         Navigator.of(context).pop();
       }
       return;
@@ -222,7 +195,7 @@ class _AiChatState extends State<AiChat> {
       if (mounted) {
         setState(() => _currentChatMetadata = chatMetadata);
       }
-      if (shouldCloseDrawer) {
+      if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
         Navigator.of(context).pop();
       }
       return;
@@ -239,7 +212,7 @@ class _AiChatState extends State<AiChat> {
     });
 
     _logger.i("Selected chat: ${chatMetadata.title} (ID: ${chatMetadata.id})");
-    if (shouldCloseDrawer) {
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.of(context).pop();
     }
 
@@ -267,13 +240,6 @@ class _AiChatState extends State<AiChat> {
   }
 
   Future<void> _handleCreateNewChat() async {
-    if (!_isPro && _userChats.length >= _freeChatLimit) {
-      _logger.w(
-          "Chat limit reached. Pro: $_isPro, Anon: $_isAnonymous. Prompting for action.");
-      widget.onUpgradePressed();
-      return;
-    }
-
     final defaultModelId = "gpt-4o-mini";
     final newChatTitle =
         "New Chat ${DateFormat('MMM d, HH:mm').format(DateTime.now())}";
@@ -547,7 +513,7 @@ class _AiChatState extends State<AiChat> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  "Chats are not saved for anonymous users. Sign up to save your history!",
+                                  "Chats won't be saved unless you're logged in.",
                                   style: GoogleFonts.inter(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w500,
@@ -571,6 +537,16 @@ class _AiChatState extends State<AiChat> {
                         ),
                       ),
                     Expanded(child: _buildMessagesArea(themeProvider)),
+                    /*
+                    if (_showError)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(_errorMessage,
+                            style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      */
                     _showTokenMessage && _currentChatId != null
                         ? Padding(
                             padding: const EdgeInsets.symmetric(
@@ -803,9 +779,6 @@ class _AiChatState extends State<AiChat> {
   }
 
   Widget _buildChatDrawer(ThemeProvider themeProvider) {
-    final bool chatLimitReached =
-        !_isPro && _userChats.length >= _freeChatLimit;
-
     return Drawer(
       backgroundColor: themeProvider.appContentBackgroundColor,
       child: Column(
@@ -823,25 +796,10 @@ class _AiChatState extends State<AiChat> {
                         fontWeight: FontWeight.w600)),
                 IconButton(
                     icon: Icon(Icons.add_circle,
-                        color: chatLimitReached
-                            ? Colors.grey[600]
-                            : themeProvider.drawerHeaderTextColor,
-                        size: 28),
-                    tooltip: chatLimitReached
-                        ? (_isAnonymous
-                            ? "Sign up to create more chats"
-                            : "Upgrade to Pro for unlimited chats")
-                        : "Create New Chat",
+                        color: themeProvider.drawerHeaderTextColor, size: 28),
+                    tooltip: "Create New Chat",
                     onPressed: () {
-                      if (chatLimitReached) {
-                        if (_isAnonymous) {
-                          context.goNamed(AppRoute.loginPage.name);
-                        } else {
-                          widget.onUpgradePressed();
-                        }
-                      } else {
-                        _handleCreateNewChat();
-                      }
+                      _handleCreateNewChat();
                     })
               ],
             ),
@@ -890,8 +848,7 @@ class _AiChatState extends State<AiChat> {
                               shadowColor: themeProvider.primaryAppColor
                                   .withOpacity(0.2),
                               child: InkWell(
-                                onTap: () =>
-                                    _selectChat(chat, userInitiated: true),
+                                onTap: () => _selectChat(chat),
                                 borderRadius: BorderRadius.circular(12),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -950,56 +907,7 @@ class _AiChatState extends State<AiChat> {
                         ),
                       ),
           ),
-          if (!_isPro && !_isAnonymous) _buildDrawerProPromotion(themeProvider),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDrawerProPromotion(ThemeProvider themeProvider) {
-    return InkWell(
-      onTap: widget.onUpgradePressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        color: themeProvider.isDarkMode
-            ? themeProvider.appContentBackgroundColor.withAlpha(200)
-            : themeProvider.primaryAppColor.withOpacity(0.05),
-        child: Row(
-          children: [
-            Image.asset(
-              'assets/icons/crown.png',
-              width: 24,
-              height: 24,
-              color: Colors.amber[600],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Upgrade to Pro",
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: themeProvider.mainTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Unlimited chats, image uploads & more.",
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: themeProvider.secondaryTextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.keyboard_arrow_right,
-                color: themeProvider.secondaryTextColor),
-          ],
-        ),
       ),
     );
   }
@@ -1069,57 +977,13 @@ class _AiChatState extends State<AiChat> {
             ),
             Row(
               children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.add_photo_alternate_outlined,
-                          color: (_loadingImage || !_isPro)
-                              ? Colors.grey
-                              : themeProvider.primaryAppColor.withOpacity(0.8)),
-                      tooltip: _isPro
-                          ? "Attach Image"
-                          : _isAnonymous
-                              ? "Sign up to attach images"
-                              : "Attach Image (Pro feature)",
-                      onPressed: _loadingImage
-                          ? null
-                          : (_isPro
-                              ? _pickImage
-                              : () {
-                                  if (_isAnonymous) {
-                                    context.goNamed(AppRoute.loginPage.name);
-                                  } else {
-                                    widget.onUpgradePressed();
-                                  }
-                                }),
-                    ),
-                    if (!_isPro && !_isAnonymous)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: GestureDetector(
-                          onTap: widget.onUpgradePressed,
-                          child: Container(
-                            padding: const EdgeInsets.all(1.5),
-                            decoration: BoxDecoration(
-                              color: Colors.amber[600],
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                  color:
-                                      themeProvider.appContentBackgroundColor,
-                                  width: 1),
-                            ),
-                            child: Image.asset(
-                              'assets/icons/crown.png',
-                              width: 8,
-                              height: 8,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                IconButton(
+                  icon: Icon(Icons.add_photo_alternate_outlined,
+                      color: _loadingImage
+                          ? Colors.grey
+                          : themeProvider.primaryAppColor.withOpacity(0.8)),
+                  tooltip: "Attach Image",
+                  onPressed: _loadingImage ? null : _pickImage,
                 ),
                 const Spacer(),
                 Text('$numCharacters/2000',
@@ -1346,10 +1210,6 @@ class _AiChatState extends State<AiChat> {
   }
 
   Future<void> _pickImage() async {
-    if (!_isPro) {
-      widget.onUpgradePressed();
-      return;
-    }
     if (!mounted) return;
     setState(() {
       _imageFile = null;
